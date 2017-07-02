@@ -6,7 +6,7 @@ This repository collects a useful tools and python modules targeted for [IMX App
 Dependencies
 ------------
 
-- [Python 3](https://www.python.org) - The interpreter
+- [Python 3.x](https://www.python.org) - The interpreter
 - [Click](http://click.pocoo.org/6) - Python package for creating beautiful command line interface.
 - [PyWinUSB](https://github.com/rene-aguirre/pywinusb) - Python package that simplifies USB-HID communications on Windows OS.
 - [PyUSB](https://walac.github.io/pyusb/) - Python package to access USB devices in Linux OS.
@@ -39,5 +39,10 @@ You can also install from source by executing in shell the following commands:
 Usage
 -----
 
-TODO: Add description
+TODO: Add description of the API
+
+Python IMX module is distributed with two command-line utilities (tools):
+* [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool to for manipulation with `*.imx` image
+* [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+
 

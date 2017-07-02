@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2017 Martin Olejar, martin.olejar@gmail.com
+# Copyright (c) 2017 Martin Olejar
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
@@ -592,7 +592,7 @@ def cli(ctx, pid=None, debug=0):
         ctx.obj['DEVICE'] = None
 
 
-# IMX HAB: Read device info
+# IMX SD: Read device info
 @cli.command(help = "Read detailed information's about HAB and Chip from connected IMX device")
 @click.pass_context
 def info(ctx):
@@ -715,7 +715,7 @@ def info(ctx):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Read Memory/Regs command
+# IMX SD: Read Memory/Regs command
 @cli.command(help = "Read raw data from specified address in connected IMX device. "
                     "The address value must be aligned to selected access size !")
 @click.argument('address', nargs=1, type=UINT)
@@ -770,7 +770,7 @@ def read(ctx, address, length, size, compress, file):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Read Register command
+# IMX SD: Read Register command
 @cli.command(help = "Read value of register or memory at specified address from connected IMX device. "
                     "The address value must be aligned to selected access size !")
 @click.argument('address', nargs=1, type=UINT)
@@ -833,7 +833,7 @@ def rreg(ctx, address, count, size, format):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Write Register command
+# IMX SD: Write Register command
 @cli.command(help = "Write value into register or memory at specified address in connected IMX device. "
                     "The address value must be aligned to selected access size !")
 @click.argument('address', nargs=1, type=UINT)
@@ -877,7 +877,7 @@ def wreg(ctx, address, value, size, bytes):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Write File command
+# IMX SD: Write File command
 @cli.command(help = "Write image file into connected device. Supported extensions: *.imx, *.bin")
 @click.argument('file', nargs=1, type=INFILE)
 @click.option('-a', '--addr', type=UINT, help='Start Address (required for *.bin)')
@@ -965,7 +965,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Write DCD command
+# IMX SD: Write DCD command
 @cli.command(short_help="Write DCD file")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('file', nargs=1, type=INFILE)
@@ -982,12 +982,22 @@ def wdcd(ctx, address, file, offset):
         with open(file, "rb") as f:
             data = f.read()
             f.close()
+
+        if offset < len(data):
+            data = data[offset:]
+
+    elif file.lower().endswith('.imx'):
+        img = imx.Image()
+        data = bytearray(os.path.getsize(file))
+        with open(file, 'rb') as f:
+            f.readinto(data)
+            img.parse(data)
+
+        data = img.dcd.export()
+
     else:
         click.secho('\n Could not read from file: %s \n Unsupported extension' % (file))
         sys.exit(ERROR_CODE)
-
-    if offset < len(data):
-        data = data[offset:]
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
@@ -1018,7 +1028,7 @@ def wdcd(ctx, address, file, offset):
 
 
 
-# IMX HAB: Write CSF command
+# IMX SD: Write CSF command
 @cli.command(short_help="Write CSF file")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('file', nargs=1, type=INFILE)
@@ -1035,6 +1045,11 @@ def wcsf(ctx, address, file, offset):
         with open(file, "rb") as f:
             data = f.read()
             f.close()
+
+    elif file.lower().endswith('.imx'):
+        click.echo('\n [ ERROR ] The parser of CFS blob from *.imx not implemented yet')
+        sys.exit(ERROR_CODE)
+
     else:
         click.secho('\n [ ERROR ] Could not read from file: %s \n Unsupported extension' % (file))
         sys.exit(ERROR_CODE)
@@ -1070,7 +1085,7 @@ def wcsf(ctx, address, file, offset):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: RUN command
+# IMX SD: RUN command
 @cli.command(short_help="Jump to specified address and RUN")
 @click.argument('address', nargs=1, type=UINT)
 @click.pass_context
@@ -1108,7 +1123,7 @@ def jump(ctx, address):
         sys.exit(ERROR_CODE)
 
 
-# IMX HAB: Read Status command
+# IMX SD: Read Status command
 @cli.command(short_help="Read status value")
 @click.pass_context
 def stat(ctx):
