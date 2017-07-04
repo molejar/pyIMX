@@ -25,7 +25,7 @@ import imx
 
 
 ########################################################################################################################
-## Tools
+## Misc
 ########################################################################################################################
 
 
@@ -43,7 +43,7 @@ def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
     if length > 16: length = 16
 
     # Create header
-    header = '  address | '
+    header = '  ADDRESS | '
     for i in range(0, length):
         header += "{0:02X} ".format(i)
     header += '| '
@@ -514,31 +514,8 @@ class UInt(click.ParamType):
         return val
 
 
-class ImagePath(click.ParamType):
-    """ Custom argument type for Image File
-    """
-    name = 'image path'
-
-    def __init__(self, mode):
-        self.mode = mode
-
-    def __repr__(self):
-        return 'IPATH'
-
-    def convert(self, value, param, ctx):
-        if not value.lower().endswith(('.imx', '.bin')):
-            self.fail('Unsupported file type !', param, ctx)
-
-        if self.mode == 'open' and not os.path.lexists(value):
-            self.fail('File [%s] does not exist !' % value, param, ctx)
-
-        return value
-
-
 # Instances of custom argument types
 UINT = UInt()
-INFILE  = ImagePath('open')
-OUTFILE = ImagePath('save')
 
 
 ########################################################################################################################
@@ -614,14 +591,14 @@ def info(ctx):
         return None
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Get Connected Device Name
@@ -653,7 +630,7 @@ def info(ctx):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
     else:
         bmodList = {
             0: "Boot from Fuses",
@@ -722,7 +699,7 @@ def info(ctx):
 @click.argument('length', nargs=1, type=UINT)
 @click.option('-s', '--size', type=click.Choice(['8', '16', '32']), default='32', show_default=True, help="Access Size")
 @click.option('-c/', '--compress/', is_flag=True, default=False, help="Compress dump output")
-@click.option('-f', '--file', type=OUTFILE, help="Output file name with extension: *.bin")
+@click.option('-f', '--file', type=click.Path(readable=False), help="Output file name")
 @click.pass_context
 def read(ctx, address, length, size, compress, file):
     ''' Read data from IMX regs or memory '''
@@ -730,14 +707,14 @@ def read(ctx, address, length, size, compress, file):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Read data from IMX Device
@@ -747,7 +724,7 @@ def read(ctx, address, length, size, compress, file):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
@@ -763,7 +740,7 @@ def read(ctx, address, length, size, compress, file):
 
             if not error:
                 if ctx.obj['DEBUG']: click.echo()
-                click.secho(" Successfully saved into: %s." % file)
+                click.secho(" - Successfully saved into: %s." % file)
 
     if error:
         click.echo(error_msg)
@@ -784,7 +761,7 @@ def rreg(ctx, address, count, size, format):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     reg_size = int(size) // 8
@@ -793,7 +770,7 @@ def rreg(ctx, address, count, size, format):
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Read data from IMX Device
@@ -803,7 +780,7 @@ def rreg(ctx, address, count, size, format):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
@@ -847,14 +824,14 @@ def wreg(ctx, address, value, size, bytes):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Write value into register from IMX Device
@@ -864,22 +841,22 @@ def wreg(ctx, address, value, size, bytes):
         if ctx.obj['DEBUG']:
           error_msg = '\n' + traceback.format_exc()
         else:
-          error_msg = ' [ ERROR ] %s' % str(e)
+          error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Write Reg OK.")
+        click.secho(" - Done")
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
 
 
 # IMX SD: Write File command
-@cli.command(help = "Write image file into connected device. Supported extensions: *.imx, *.bin")
-@click.argument('file', nargs=1, type=INFILE)
+@cli.command(help = "Write U-Boot image file into connected device and RUN it")
+@click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-a', '--addr', type=UINT, help='Start Address (required for *.bin)')
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.option('-m', '--ocram', type=UINT, default=0, help='IMX OCRAM Address, required for DDR init')
@@ -888,19 +865,19 @@ def wreg(ctx, address, value, size, bytes):
 @click.option('-s/','--skipdcd/', is_flag=True, default=False, help='Skip DCD Header from *.imx image')
 @click.pass_context
 def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
-    ''' Write IMG file (uboot.imx, uImage, ...) '''
+    ''' Write image file (uboot.imx, uImage, ...) '''
 
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Load image
@@ -918,7 +895,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 if ocram == 0:
                     raise Exception('Argument: -m/--ocram must be specified !')
 
-                click.echo(' [IMX-DEV] Init DDR\n')
+                click.echo(' - Init DDR')
                 dcd = img.dcd.export()
                 flasher.WriteDCD(ocram, dcd)
         else:
@@ -929,22 +906,21 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 data = f.read()
                 f.close()
 
-
         if offset < len(data):
             data = data[offset:]
 
-        click.secho('\n [IMX-DEV] Writing %s, please wait !' % file)
+        click.secho(" - Writing %s, please wait !" % file)
         if ctx.obj['DEBUG']: click.echo()
         # Write data from image into device
         flasher.WriteFile(addr, data)
         # Skip DCD header if set
         if file.lower().endswith('.imx') and skipdcd:
-            click.echo('\n [IMX-DEV] Skip DCD content\n')
+            click.echo(' - Skip DCD content')
             flasher.SkipDCD()
             if ctx.obj['DEBUG']: click.echo()
         # Run loaded uboot.imx image
         if file.lower().endswith('.imx') and run:
-            click.echo(' [IMX-DEV] Run\n')
+            click.secho(' - Jump to ADDR: 0x%08X and RUN' % addr)
             flasher.JumpAndRun(addr)
 
     except Exception as e:
@@ -952,14 +928,14 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Write Reg OK.")
+        click.secho(" - Done")
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
@@ -968,45 +944,42 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
 # IMX SD: Write DCD command
 @cli.command(short_help="Write DCD file")
 @click.argument('address', nargs=1, type=UINT)
-@click.argument('file', nargs=1, type=INFILE)
+@click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wdcd(ctx, address, file, offset):
+    ''' Write DCD file '''
+
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
-    if file.lower().endswith('.bin'):
-        with open(file, "rb") as f:
-            data = f.read()
-            f.close()
-
-        if offset < len(data):
-            data = data[offset:]
-
-    elif file.lower().endswith('.imx'):
+    if file.lower().endswith('.imx'):
         img = imx.Image()
-        data = bytearray(os.path.getsize(file))
+        raw_data = bytearray(os.path.getsize(file))
         with open(file, 'rb') as f:
-            f.readinto(data)
-            img.parse(data)
+            f.readinto(raw_data)
+            img.parse(raw_data)
 
         data = img.dcd.export()
 
     else:
-        click.secho('\n Could not read from file: %s \n Unsupported extension' % (file))
-        sys.exit(ERROR_CODE)
+        with open(file, "rb") as f:
+            if offset > 0:
+                f.seek(offset)
+            data = f.read()
+            f.close()
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
-        click.secho('[IMX-DEV] Writing %s, please wait !\n' % file)
+        click.secho(' - Writing DCD from %s, please wait !' % file)
         # Write value into register from IMX Device
         flasher.WriteDCD(address, data)
     except Exception as e:
@@ -1014,57 +987,51 @@ def wdcd(ctx, address, file, offset):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Write Reg OK.")
+        click.secho(" - Done")
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
 
 
-
 # IMX SD: Write CSF command
 @cli.command(short_help="Write CSF file")
 @click.argument('address', nargs=1, type=UINT)
-@click.argument('file', nargs=1, type=INFILE)
+@click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wcsf(ctx, address, file, offset):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
-    if file.lower().endswith('.bin'):
-        with open(file, "rb") as f:
-            data = f.read()
-            f.close()
-
-    elif file.lower().endswith('.imx'):
-        click.echo('\n [ ERROR ] The parser of CFS blob from *.imx not implemented yet')
+    if file.lower().endswith('.imx'):
+        click.echo('\n - ERROR: The parser of CFS blob from *.imx is not implemented yet')
         sys.exit(ERROR_CODE)
 
     else:
-        click.secho('\n [ ERROR ] Could not read from file: %s \n Unsupported extension' % (file))
-        sys.exit(ERROR_CODE)
-
-    if offset < len(data):
-        data = data[offset:]
+        with open(file, "rb") as f:
+            if offset > 0:
+                f.seek(offset)
+            data = f.read()
+            f.close()
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
-        click.secho(' [IMX-DEV] Writing %s, please wait !\n' % file)
+        click.secho(' - Writing %s, please wait !' % file)
         # Write value into register from IMX Device
         flasher.WriteCSF(address, data)
     except Exception as e:
@@ -1072,14 +1039,14 @@ def wcsf(ctx, address, file, offset):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Write Reg OK.")
+        click.secho(' - Done')
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
@@ -1093,14 +1060,14 @@ def jump(ctx, address):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo("\n No IMX board detected !")
+        click.echo("\n - No IMX board detected !")
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Write value into register from IMX Device
@@ -1110,14 +1077,14 @@ def jump(ctx, address):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Running.")
+        click.secho(" - Jump to ADDR: 0x%08X and RUN" % address)
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
@@ -1130,14 +1097,14 @@ def stat(ctx):
     error = False
 
     if ctx.obj['DEVICE'] is None:
-        click.echo('\n No IMX board detected !')
+        click.echo('\n - No IMX board detected !')
         sys.exit(ERROR_CODE)
 
     # Create Flasher instance
     flasher = imx.SerialDownloader()
 
     try:
-        click.secho("\n [IMX-DEV] %s\n" % ctx.obj['DEVICE'].getInfo())
+        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
         flasher.connect_usb(ctx.obj['DEVICE'])
         # Read Status from IMX Device
@@ -1147,14 +1114,14 @@ def stat(ctx):
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
         else:
-            error_msg = ' [ ERROR ] %s' % str(e)
+            error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
     flasher.disconnect()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" [IMX-DEV] Status: 0x%08X" % status)
+        click.secho(" - Status: 0x%08X" % status)
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)

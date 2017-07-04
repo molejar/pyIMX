@@ -38,14 +38,14 @@ For printing a general info of usage this tool execute `imxsd -?`.
 
 #### $ imxsd info
 
-Read detailed information's about HAB and the SoC from connected i.MX/Vybrid device
+Read detailed information's about the SoC and HAB Log from connected i.MX/Vybrid device
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
 $ imxsd info
 
- [IMX-DEV] SE Blank ULT1 (0x15a2, 0x76)
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
  ---------------------------------------------------------
  Connected Device Info
@@ -105,14 +105,14 @@ Read value of register or memory at specified address from connected i.MX/Vybrid
 * **-f, --format** - Value print format: b) binary, d) dec, x) hex (default: x)
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
  $ imxsd rreg 0x800000
 
-  [IMX-DEV] SE Blank ULT1 0x15A2 0x0076
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
-  REG32[0x00800000] = 0x6DCE73EF
+ REG32[0x00800000] = 0x441DE4DA
 ```
 
 <br>
@@ -128,14 +128,14 @@ Write value into register or memory at specified address in connected i.MX/Vybri
 * **-b, --bytes** - Count of Bytes (default: 4)
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
  $ imxsd wreg 0x900000 0x55555555
 
-  [IMX-DEV] SE Blank ULT1 0x15A2 0x0076
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
-  [IMX-DEV] Write Reg OK.
+ - Done
 ```
 
 <br>
@@ -152,14 +152,14 @@ Read raw data from a specified address in connected i.MX/Vybrid device.
 * **-f, --file** - Output file name with extension: *.bin
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
  $ imxsd read 0x900000 200
 
-  [IMX-DEV] SE Blank ULT1 0x15A2 0x0076
+  DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
-   address | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | 0123456789ABCDEF
+   ADDRESS | 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | 0123456789ABCDEF
   -----------------------------------------------------------------------------
   00900000 | 55 55 55 55 75 43 05 68 05 28 92 0C 01 A0 00 02 | UUUUuC.h.(......
   00900010 | 92 EF CF 63 FA 68 02 04 7F 7F 67 BF A7 33 53 DD | ...c.h....g..3S.
@@ -191,11 +191,18 @@ Write image file into connected device. Supported extensions: *.imx, *.bin
 * **-r, --run** - Run loaded *.imx image
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
- $ imxsd wimg -r -i -m 0x900000 u-boot.imx
+ $ imxsd wimg -s -r -i -m 0x910000 u-boot.imx
 
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
+
+ - Init DDR
+ - Writing u-boot.imx, please wait !
+ - Skip DCD content
+ - Jump to ADDR: 0x877FF400 and RUN
+ - Done
 ```
 
 <br>
@@ -208,11 +215,15 @@ Write Device Configuration Data (DCD) as raw image *.bin or will extract it from
 * **-o, --offset** - Offset of input data for raw image (default: 0)
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
- $ imxsd wdcd 0x900000 u-boot.imx
+ $ imxsd wdcd 0x910000 u-boot.imx
 
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
+
+ - Writing DCD from u-boot.imx, please wait !
+ - Done
 ```
 
 <br>
@@ -225,11 +236,15 @@ Write Code Signing File (CSF) as raw image *.bin or will extract it from *.imx i
 * **-o, --offset** - Offset of input data for raw image (default: 0)
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
- $ imxsd wcsf 0x900000 u-boot.imx
+ $ imxsd wcsf 0x910000 u-boot.imx
 
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
+
+ - Writing CSF from u-boot.imx, please wait !
+ - Done
 ```
 
 <br>
@@ -241,13 +256,14 @@ Jump to specified address and RUN
 ##### options:
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
- $ imxsd jump 0x900000
+ $ imxsd jump 0x877FF400
 
- [IMX-DEV] SE Blank ULT1 0x15A2 0x0076
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
+ - Jump to ADDR: 0x877FF400 and RUN
 ```
 
 <br>
@@ -259,13 +275,12 @@ Read status value
 ##### options:
 * **-?, --help** - Show help message and exit
 
-**Example (IMX7D):**
+##### Example (IMX7D):
 
 ```sh
  $ imxsd stat
 
- [IMX-DEV] SE Blank ULT1 0x15A2 0x0076
+ DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 
- [IMX-DEV] Status: 0xF0F0F0F0
-
+ - Status: 0xF0F0F0F0
 ```

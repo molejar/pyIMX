@@ -46,7 +46,7 @@ class USBIF_BASE(object):
 
     def _decode_packet(self, data):
         report_id = data[0]                            # Get USB-HID Report ID
-        return (report_id, data[1:])
+        return (report_id, bytearray(data[1:]))
 
     def open(self):
         raise NotImplementedError()

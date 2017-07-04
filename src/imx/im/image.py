@@ -103,12 +103,12 @@ class Image(object):
             if self.ivt.dcd > self.ivt.itself:
                 self.dcd.parse(data, offset + self.ivt.dcd - self.ivt.itself)
             if self.ivt.csf > self.ivt.itself:
-                self.csf.parse(data, offset + self.ivt.csf - self.ivt.itself)
-            aa = offset + (self.ivt.csf - self.ivt.itself) + self.csf.size
-            #xx = data[aa:]
-            #print(xx)
-
-            #self.app.parse(data, offset + self.ivt.app - self.ivt.itself)
+                app_offset = offset + self.ivt.entry - self.ivt.itself
+                csf_offset = offset + self.ivt.csf - self.ivt.itself
+                self.csf.parse(data, csf_offset)
+                self.app.parse(data[app_offset:csf_offset])
+            else:
+                self.app.parse(data, offset + self.ivt.entry - self.ivt.itself)
         else:
             pass
 
