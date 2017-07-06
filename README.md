@@ -1,7 +1,9 @@
 pyIMX
 =====
 
-This repository collects a useful tools and python modules targeted for [IMX Applications Processors]().
+This repository collects a useful tools and python modules targeted for [IMX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors).
+
+> This project is still in alpha phase. Please, test it and report the issues.
 
 Dependencies
 ------------
@@ -39,10 +41,44 @@ You can also install from source by executing in shell the following commands:
 Usage
 -----
 
-TODO: Add description of the API
+The API for IMX boot image manager:
+
+``` Python
+    import imx
+
+
+```
+
+The API for IMX serial downloader:
+
+``` Python
+    import imx
+
+    # scan for connected USB devs
+    devs = imx.SerialDownloader.scanUSB()
+
+    if devs:
+        # Create Flasher instance
+        flasher = imx.SerialDownloader()
+
+        # Connect IMX Device
+        flasher.connectUSB(devs[0])
+
+        # Read data from IMX Device (i.MX7D OCRAM)
+        data = flasher.read(0x910000, 100, 8)
+
+        # Write boot image data into IMX Device (i.MX7D OCRAM)
+        flasher.writeFile(0x910000, data)
+
+        ...
+```
 
 Python IMX module is distributed with two command-line utilities (tools):
-* [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool to for manipulation with `*.imx` image
+* [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool for manipulation with `*.imx` boot image
 * [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
 
+TODO
+----
 
+* Add image security features (sign and encryption) into `imxim` tool
+* Finish serial interface support in IMX serial downloader module

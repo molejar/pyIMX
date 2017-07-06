@@ -127,7 +127,7 @@ class SerialDownloader(object):
         self._uart_dev = None
 
     @staticmethod
-    def scan_usb_devs(pid=None):
+    def scanUSB(pid=None):
         """ IMX SD: Scan commected USB devices
         :param: pid The PID value of USB device
         :rtype : object
@@ -145,7 +145,7 @@ class SerialDownloader(object):
         return usb_devs
 
     @staticmethod
-    def scan_uart_ports():
+    def scanUART():
         return UARTIF.available_ports()
 
     def is_connected(self):
@@ -156,13 +156,13 @@ class SerialDownloader(object):
         else:
             return False
 
-    def get_target_name(self):
+    def getTargetName(self):
         if self._usb_dev:
             for name, val in self.HID_PID.items():
                 if self._usb_dev.pid == val:
                     return name
 
-    def connect_usb(self, dev):
+    def connectUSB(self, dev):
         """ IMX SD: Connect by USB
         """
         if dev is not None:
@@ -175,7 +175,7 @@ class SerialDownloader(object):
             logging.info('USB Disconnected !')
             return False
 
-    def connect_uart(self, port, baudrate):
+    def connectUART(self, port, baudrate):
         """ IMX SD: Connect by UART """
         if port is not None:
             self._uart_dev = UARTIF()
@@ -321,7 +321,7 @@ class SerialDownloader(object):
             offset += pkglen
             length -= pkglen
 
-    def Read(self, address, length, format=32):
+    def read(self, address, length, format=32):
         """ IMX SD: Read value from reg/mem at specified address
         :param address: Start address of first register
         :param length: Count of bytes
@@ -342,7 +342,7 @@ class SerialDownloader(object):
         logging.info('RX-CMD: %s', atos(ret_val))
         return ret_val
 
-    def Write(self, address, value, count=4, format=32):
+    def write(self, address, value, count=4, format=32):
         """ IMX SD: Write value into reg/mem at specified address
         :param address: Start address of first register
         :param value: Register value
@@ -364,7 +364,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WRITE')
 
-    def WriteCSF(self, address, data):
+    def writeCSF(self, address, data):
         """ IMX SD: Write CSF Data at specified address
         :param address: Start Address
         :param data: The CSF data in bytearray type
@@ -375,7 +375,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WCSF')
 
-    def WriteDCD(self, address, data):
+    def writeDCD(self, address, data):
         """ IMX SD: Write DCD values at specified address
         :param address: Start Address
         :param data: The DCD data in bytearray type
@@ -386,7 +386,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WDCD')
 
-    def WriteFile(self, address, data):
+    def writeFile(self, address, data):
         """ IMX SD: Write File/Data at specified address
         :param address: Start Address
         :param data: The image data in bytearray type
@@ -397,14 +397,14 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WFILE')
 
-    def SkipDCD(self):
+    def skipDCD(self):
         """ IMX SD: Skip DCD Header from loaded file """
         logging.info('TX-CMD: SkipDCD')
         self._send_cmd('SKIPDCD')
         self._check_secinfo()
         self._check_status('SKIPDCD')
 
-    def ReadStatus(self):
+    def readStatus(self):
         """ IMX SD: Read Status
         :return status value
         """
@@ -415,7 +415,7 @@ class SerialDownloader(object):
         logging.info('RX-CMD: 0x%08X', status)
         return status
 
-    def JumpAndRun(self, address):
+    def jumpAndRun(self, address):
         """ IMX SD: Jump to specified address and run
         :param address: Destination address
         """
