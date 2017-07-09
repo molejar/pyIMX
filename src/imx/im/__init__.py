@@ -16,7 +16,7 @@
 from .commands import BytesEnum, WriteOpsEnum, CheckOpsEnum, AlgorithmEnum, ProtocolEnum, InsKeyEnum, AuthEnum, \
                       EngineEnum, ItmEnum, WriteDataCmd, CheckDataCmd, NopCmd, SetCmd, InitializeCmd, UnlockCmd, \
                       InstallKeyCmd, AuthDataCmd
-from .segments import SegIVT, SegDCD, SegBDT, SegAPP, SegCSF
+from .segments import SegIVT, SegBDT, SegAPP, SegDCD, SegCSF
 from .image import Image
 
 __all__ = [
@@ -24,9 +24,9 @@ __all__ = [
     'Image',
     # Segments
     'SegIVT',
-    'SegDCD',
     'SegBDT',
     'SegAPP',
+    'SegDCD',
     'SegCSF',
     # Commands
     'NopCmd',

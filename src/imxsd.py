@@ -889,7 +889,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 img.parse(data)
 
             if addr is None:
-                addr = img.ivt.itself
+                addr = img.address
 
             if init:
                 if ocram == 0:
@@ -903,11 +903,10 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 raise Exception('Argument: -a/--addr must be specified !')
 
             with open(file, "rb") as f:
+                if offset > 0:
+                    f.seek(offset)
                 data = f.read()
                 f.close()
-
-        if offset < len(data):
-            data = data[offset:]
 
         click.secho(" - Writing %s, please wait !" % file)
         if ctx.obj['DEBUG']: click.echo()

@@ -41,15 +41,69 @@ You can also install from source by executing in shell the following commands:
 Usage
 -----
 
-The API for IMX boot image manager:
+The example of IMX boot image manager API usage:
 
 ``` Python
     import imx
 
+    # --------------------------------------------------------------------------------
+    # Create new U-Boot IMX image
+    # --------------------------------------------------------------------------------
 
+    # Create DCD segnent instance
+    dcd = imx.SegDCD()
+
+    # Create Write Data command and append values with addresses
+    cmd = imx.WriteDataCmd(imx.BytesEnum.BYTES_4, imx.WriteOpsEnum.WRITE_VALUE)
+    cmd.append(0x30340004, 0x4F400005)
+    cmd.append(0x30391000, 0x00000002)
+    cmd.append(0x307A0000, 0x01040001)
+    ...
+
+    # Append commands into DCD segment
+    dcd.append(cmd)
+    dcd.append(imx.CheckDataCmd(imx.BytesEnum.BYTES_4, imx.CheckOpsEnum.ANY_CLEAR, 0x307900C4, 0x00000001))
+
+    # Open U-Boot raw image
+    with open('u-boot.img', 'rb') as f:
+        app = f.read()
+
+    # Create IMX U-Boot image with DCD segment
+    img = imx.Image(0x78700000, app, dcd)
+
+    # Print image info
+    print(img)
+
+    # Save IMX U-Boot image
+    with open('u-boot.imx', 'wb') as f:
+        f.write(img.export())
+
+    # --------------------------------------------------------------------------------
+    # Extract DCD from existing U-Boot IMX image
+    # --------------------------------------------------------------------------------
+
+    # Create IMX image instance
+    img = imx.Image()
+
+    # Open U-Boot IMX image
+    with open('u-boot.imx', 'rb') as f:
+        data = f.read()
+
+    # Parse U-Boot IMX image
+    img.parse(data)
+
+    # Extract DCD from U-Boot IMX image
+    dcd = img.dcd
+
+    # Print extracted DCD info
+    print(dcd)
+
+    # Save extracted DCD content into raw image
+    with open('dcd.img', 'wb') as f:
+        f.write(dcd.export())
 ```
 
-The API for IMX serial downloader:
+The example of IMX serial downloader API usage:
 
 ``` Python
     import imx
@@ -71,6 +125,9 @@ The API for IMX serial downloader:
         flasher.writeFile(0x910000, data)
 
         ...
+
+        # Disconnect IMX Device
+        flasher.disconnect()
 ```
 
 Python IMX module is distributed with two command-line utilities (tools):
@@ -80,5 +137,5 @@ Python IMX module is distributed with two command-line utilities (tools):
 TODO
 ----
 
-* Add image security features (sign and encryption) into `imxim` tool
+* Add image security features (sign and encryption)
 * Finish serial interface support in IMX serial downloader module

@@ -21,6 +21,90 @@ import imx
 
 
 ########################################################################################################################
+## Misc
+########################################################################################################################
+
+
+def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
+    """ Return string array in hex dump.format
+    :param data:     {List} The data array of {Bytes}
+    :param saddr:    {Int}  Absolute Start Address
+    :param compress: {Bool} Compressed output (remove duplicated content, rows)
+    :param length:   {Int}  Number of Bytes for row (max 16).
+    :param sep:      {Char} For the text part, {sep} will be used for non ASCII char.
+    """
+    result = []
+
+    # The max line length is 16 bytes
+    if length > 16: length = 16
+
+    # Create header
+    header = '  ADDRESS | '
+    for i in range(0, length):
+        header += "{0:02X} ".format(i)
+    header += '| '
+    for i in range(0, length):
+        header += "{0:X}".format(i)
+    result.append(header)
+    result.append((' ' + '-' * (13 + 4 * length)))
+
+    # Check address align
+    offset = saddr % length
+    address = saddr - offset
+    align = True if (offset > 0) else False
+
+    # Print flags
+    prev_line = None
+    print_mark = True
+
+    # process data
+    for i in range(0, len(data) + offset, length):
+
+        hexa = ''
+        if align:
+            subSrc = data[0: length - offset]
+        else:
+            subSrc = data[i - offset: i + length - offset]
+            if compress:
+                # compress output string
+                if subSrc == prev_line:
+                    if print_mark:
+                        print_mark = False
+                        result.append(' *')
+                    continue
+                else:
+                    prev_line = subSrc
+                    print_mark = True
+
+        if align:
+            hexa += '   ' * offset
+
+        for h in range(0, len(subSrc)):
+            h = subSrc[h]
+            if not isinstance(h, int):
+                h = ord(h)
+            hexa += "{0:02X} ".format(h)
+
+        text = ''
+        if align:
+            text += ' ' * offset
+
+        for c in subSrc:
+            if not isinstance(c, int):
+                c = ord(c)
+            if 0x20 <= c < 0x7F:
+                text += chr(c)
+            else:
+                text += sep
+
+        result.append((' %08X | %-' + str(length * 3) + 's| %s') % (address + i, hexa, text))
+        align = False
+
+    result.append((' ' + '-' * (13 + 4 * length)))
+    return '\n'.join(result)
+
+
+########################################################################################################################
 ## New argument types
 ########################################################################################################################
 

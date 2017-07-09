@@ -13,10 +13,9 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from .im import Image, SegIVT, SegDCD, SegBDT, SegAPP, SegCSF, \
-               BytesEnum, WriteOpsEnum, CheckOpsEnum, AlgorithmEnum, ProtocolEnum, InsKeyEnum, AuthEnum,  \
-               EngineEnum, ItmEnum, WriteDataCmd, CheckDataCmd, NopCmd, SetCmd, InitializeCmd, UnlockCmd, \
-               InstallKeyCmd, AuthDataCmd
+from .im import Image, SegDCD, SegCSF, WriteDataCmd, CheckDataCmd, NopCmd, SetCmd, InitializeCmd, UnlockCmd, \
+                InstallKeyCmd, AuthDataCmd, BytesEnum, WriteOpsEnum, CheckOpsEnum, AlgorithmEnum, ProtocolEnum, \
+                InsKeyEnum, AuthEnum, EngineEnum, ItmEnum
 
 from .sd import SerialDownloader, \
                SD_GenericError, SD_CommandError, SD_ConnectionError, SD_DataError, SD_SecureError, SD_TimeoutError
@@ -36,10 +35,7 @@ __all__ = [
     'SD_SecureError',
     'SD_TimeoutError',
     # Image Segments
-    'SegIVT',
     'SegDCD',
-    'SegBDT',
-    'SegAPP',
     'SegCSF',
     # Image Commands
     'NopCmd',

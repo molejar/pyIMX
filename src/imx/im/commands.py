@@ -276,6 +276,30 @@ class CheckDataCmd(object):
         self._header.param |= int(value) << 3
 
     @property
+    def address(self):
+        return self._address
+
+    @address.setter
+    def address(self, value):
+        self._address = value
+
+    @property
+    def mask(self):
+        return self._mask
+
+    @mask.setter
+    def mask(self, value):
+        self._mask = value
+
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, value):
+        self._count = value
+
+    @property
     def size(self):
         return self._header.length
 
@@ -285,49 +309,38 @@ class CheckDataCmd(object):
     def __repr__(self):
         return self.info()
 
-    def __init__(self, bytes=BytesEnum.BYTES_4, ops=CheckOpsEnum.ALL_SET):
+    def __init__(self, bytes=BytesEnum.BYTES_4, ops=CheckOpsEnum.ALL_SET, address=0, mask=0, count=None):
         assert BytesEnum.CheckValue(bytes),  "uncorrected value !"
         assert CheckOpsEnum.CheckValue(ops), "uncorrected value !"
         self._header = Header(tag=CmdTag.HAB_CMD_CHK_DAT, param=((ops & 0x3) << 3) | (bytes & 0x7))
-        self._chdata = []
+        self._address = address
+        self._mask = mask
+        self._count = count
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Check Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(WriteOpsEnum.ValueToStr(self.ops), self.bytes)
+        msg += "Check Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(CheckOpsEnum.ValueToStr(self.ops), self.bytes)
         msg += "-" * 60 + "\n"
-        for cmd in self._chdata:
-            msg += "- ADDR: 0x{0:08X}, VAL: 0x{1:08X}\n".format(cmd[0], cmd[1])
+        msg += "- ADDR: 0x{0:08X}, MASK: 0x{1:08X}".format(self._address, self._mask)
+        if self.count:
+            msg += ", COUNT: {0:d}".format(self._count)
+        msg += "\n"
         return msg
-
-    def append(self, address, value):
-        assert 0 <= address <= 0xFFFFFFFF, "address out of range"
-        assert 0 <= value <= 0xFFFFFFFF, "value out of range"
-        self._chdata.append([address, value])
-        self._header.length += 8
-
-    def pop(self, index):
-        assert 0 <= index < len(self._chdata)
-        cmd = self._chdata.pop(index)
-        self._header.length -= 8
-        return cmd
-
-    def clear(self):
-        self._chdata.clear()
-        self._header.length = self._header.size
 
     def parse(self, data, offset=0):
         self._header.parse(data, offset)
-        tmp_size = self._header.size
-        while tmp_size < self._header.length:
-            assert (offset + tmp_size) < len(data)
-            tmp = unpack_from(">LL", data, offset + tmp_size)
-            self._chdata.append(tmp)
-            tmp_size += 8
+        if (self._header.length - self._header.size) > 8:
+            (self._address, self._mask, self._count) = unpack_from(">LLL", data, offset + self._header.size)
+        else:
+            (self._address, self._mask) = unpack_from(">LL", data, offset + self._header.size)
+            self._count = None
 
     def export(self):
         raw_data = self._header.export()
-        for cmd in self._chdata:
-            raw_data += pack(">LL", cmd[0], cmd[1])
+        if self._count is None:
+            raw_data += pack(">LL", self._address, self._mask)
+        else:
+            raw_data += pack(">LLL", self._address, self._mask, self._count)
         return raw_data
 
 
