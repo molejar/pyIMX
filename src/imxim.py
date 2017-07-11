@@ -16,92 +16,9 @@
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import os
+import sys
 import click
 import imx
-
-
-########################################################################################################################
-## Misc
-########################################################################################################################
-
-
-def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
-    """ Return string array in hex dump.format
-    :param data:     {List} The data array of {Bytes}
-    :param saddr:    {Int}  Absolute Start Address
-    :param compress: {Bool} Compressed output (remove duplicated content, rows)
-    :param length:   {Int}  Number of Bytes for row (max 16).
-    :param sep:      {Char} For the text part, {sep} will be used for non ASCII char.
-    """
-    result = []
-
-    # The max line length is 16 bytes
-    if length > 16: length = 16
-
-    # Create header
-    header = '  ADDRESS | '
-    for i in range(0, length):
-        header += "{0:02X} ".format(i)
-    header += '| '
-    for i in range(0, length):
-        header += "{0:X}".format(i)
-    result.append(header)
-    result.append((' ' + '-' * (13 + 4 * length)))
-
-    # Check address align
-    offset = saddr % length
-    address = saddr - offset
-    align = True if (offset > 0) else False
-
-    # Print flags
-    prev_line = None
-    print_mark = True
-
-    # process data
-    for i in range(0, len(data) + offset, length):
-
-        hexa = ''
-        if align:
-            subSrc = data[0: length - offset]
-        else:
-            subSrc = data[i - offset: i + length - offset]
-            if compress:
-                # compress output string
-                if subSrc == prev_line:
-                    if print_mark:
-                        print_mark = False
-                        result.append(' *')
-                    continue
-                else:
-                    prev_line = subSrc
-                    print_mark = True
-
-        if align:
-            hexa += '   ' * offset
-
-        for h in range(0, len(subSrc)):
-            h = subSrc[h]
-            if not isinstance(h, int):
-                h = ord(h)
-            hexa += "{0:02X} ".format(h)
-
-        text = ''
-        if align:
-            text += ' ' * offset
-
-        for c in subSrc:
-            if not isinstance(c, int):
-                c = ord(c)
-            if 0x20 <= c < 0x7F:
-                text += chr(c)
-            else:
-                text += sep
-
-        result.append((' %08X | %-' + str(length * 3) + 's| %s') % (address + i, hexa, text))
-        align = False
-
-    result.append((' ' + '-' * (13 + 4 * length)))
-    return '\n'.join(result)
 
 
 ########################################################################################################################
@@ -173,46 +90,86 @@ def info(offset, file):
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
 
 
 # IMX Image: Create new image from attached file
 @cli.command(short_help="Create new image from attached file")
+@click.argument('address', nargs=1, type=UINT)
 @click.argument('infile', nargs=1, type=click.Path(exists=True))
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
-def create(infile, outfile):
+@click.option('-d', '--dcd', type=click.Path(exists=True), help="DCD File")
+@click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File")
+@click.option('-t', '--type', type=click.Choice(('nand', 'spi', 'sd')), default='sd', show_default=True,
+              help="Image Storage Type")
+def create(address, infile, outfile, type, dcd=None, csf=None):
     """ Create new image from attached file """
+    offset = {'nand': 0x200,
+              'spi':  0x200,
+              'sd':   0x400}
     try:
+        img = imx.Image(addr = address, offset = offset[type])
 
-        click.secho("Done Successfully")
+        with open(infile, 'rb') as f:
+            img.app = f.read()
+
+        if dcd:
+            if dcd.lower().endswith(('.txt', '.dcd', '.yaml')):
+                raise NotImplementedError()
+            else:
+                with open(infile, 'rb') as f:
+                    img.dcd.parse(f.read())
+        if csf:
+            raise NotImplementedError()
+
+        with open(outfile, 'wb') as f:
+            f.write(img.export())
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
+
+    click.secho("Done Successfully")
 
 
 # IMX Image: Extract image content
 @cli.command(short_help="Extract image content")
 @click.argument('file', nargs=1, type=click.Path(exists=True))
-def extract(file):
+@click.option('-t', '--type', type=click.Choice(('nand', 'spi', 'sd')), default='sd', show_default=True,
+              help="Image Storage Type")
+def extract(file, type):
     """ Extract image content """
+    offset = {'nand': 0x200,
+              'spi':  0x200,
+              'sd':   0x400}
     try:
-
-        click.secho("Done Successfully")
+        # Create IMX image instance
+        img = imx.Image(offset = offset[type])
+        # Open and parse IMX image
+        with open(file, 'rb') as f:
+            img.parse(f.read())
+        # Create extraction dir
+        file_path, file_name = os.path.split(file)
+        out_path = os.path.normpath(os.path.join(file_path, file_name + ".ex"))
+        os.makedirs(out_path, exist_ok=True)
+        # Save U-Boot Image
+        with open(os.path.join(out_path, 'u-boot.bin'), 'wb') as f:
+            f.write(img.app)
+        # Save DCD Section
+        if img.dcd.enabled:
+            with open(os.path.join(out_path, 'dcd.bin'), 'wb') as f:
+                f.write(img.dcd.export())
+        # Save CSF Section
+        if img.csf.enabled:
+            #with open(os.path.join(out_path, 'csf.bin'), 'wb') as f:
+            #    f.write(img.csf.export())
+            pass
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
 
-
-# IMX Image: Update existing image
-@cli.command(short_help="Update existing image")
-@click.argument('infile', nargs=1, type=click.Path(exists=True))
-def update(infile):
-    """ Update existing image """
-    try:
-
-        click.secho("Done Successfully")
-
-    except Exception as e:
-        click.echo(str(e) if str(e) else "Unknown Error !")
+    click.secho("Image successfully extracted into dir: %s" % out_path)
 
 
 def main():

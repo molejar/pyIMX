@@ -16,7 +16,7 @@
 from struct import pack, unpack_from, calcsize
 
 from .header import Header, SegTag, UnparsedException, CorruptedException
-from .commands import WriteDataCmd, CheckDataCmd, NopCmd, SetCmd, InitializeCmd, UnlockCmd, InstallKeyCmd, AuthDataCmd
+from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData
 from .secret import SecretKeyBlob, Certificate, Signature
 
 
@@ -293,7 +293,7 @@ class SegDCD(BaseSegment):
         self._header = Header(SegTag.HAB_TAG_DCD, param)
         self._header.length = self._header.size
         self._commands = []
-        self._command_types = (WriteDataCmd, CheckDataCmd, NopCmd, UnlockCmd)
+        self._command_types = (CmdWriteData, CmdCheckData, CmdNop, CmdUnlock)
 
     def __len__(self):
         len(self._commands)
@@ -394,14 +394,14 @@ class SegCSF(BaseSegment):
         self._header = Header(SegTag.HAB_TAG_CSF, param)
         self._commands = []
         self._command_types = (
-            WriteDataCmd,
-            CheckDataCmd,
-            NopCmd,
-            SetCmd,
-            InitializeCmd,
-            UnlockCmd,
-            InstallKeyCmd,
-            AuthDataCmd
+            CmdWriteData,
+            CmdCheckData,
+            CmdNop,
+            CmdSet,
+            CmdInitialize,
+            CmdUnlock,
+            CmdInstallKey,
+            CmdAuthData
         )
 
     def __len__(self):
@@ -466,13 +466,13 @@ class SegCSF(BaseSegment):
                 raise CorruptedException("at position: " + hex(offset + cmd_offset))
         self._enabled = True
         for cmd in self._commands:
-            if isinstance(cmd, InstallKeyCmd):
+            if isinstance(cmd, CmdInstallKey):
                 header = Header(SegTag.HAB_TAG_CRT)
                 header.parse(data, offset + cmd.keydat)
                 #print(header)
                 index = offset + cmd.keydat + header.size
                 #print(data[index:index+header.length])
-            elif isinstance(cmd, AuthDataCmd):
+            elif isinstance(cmd, CmdAuthData):
                 header = Header(SegTag.HAB_TAG_SIG)
                 header.parse(data, offset + cmd.auth_start)
                 #print(header)

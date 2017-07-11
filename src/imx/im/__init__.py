@@ -13,9 +13,9 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from .commands import BytesEnum, WriteOpsEnum, CheckOpsEnum, AlgorithmEnum, ProtocolEnum, InsKeyEnum, AuthEnum, \
-                      EngineEnum, ItmEnum, WriteDataCmd, CheckDataCmd, NopCmd, SetCmd, InitializeCmd, UnlockCmd, \
-                      InstallKeyCmd, AuthDataCmd
+from .commands import EnumBytes, EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumProtocol, EnumInsKey, EnumAuth, \
+                      EnumEngine, EnumItm, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, \
+                      CmdInstallKey, CmdAuthData
 from .segments import SegIVT, SegBDT, SegAPP, SegDCD, SegCSF
 from .image import Image
 
@@ -29,22 +29,22 @@ __all__ = [
     'SegDCD',
     'SegCSF',
     # Commands
-    'NopCmd',
-    'SetCmd',
-    'WriteDataCmd',
-    'CheckDataCmd',
-    'InitializeCmd',
-    'InstallKeyCmd',
-    'AuthDataCmd',
-    'UnlockCmd',
+    'CmdNop',
+    'CmdSet',
+    'CmdWriteData',
+    'CmdCheckData',
+    'CmdInitialize',
+    'CmdInstallKey',
+    'CmdAuthData',
+    'CmdUnlock',
     # Elements
-    'BytesEnum',
-    'WriteOpsEnum',
-    'CheckOpsEnum',
-    'AlgorithmEnum',
-    'ProtocolEnum',
-    'InsKeyEnum',
-    'AuthEnum',
-    'EngineEnum',
-    'ItmEnum'
+    'EnumBytes',
+    'EnumWriteOps',
+    'EnumCheckOps',
+    'EnumAlgorithm',
+    'EnumProtocol',
+    'EnumInsKey',
+    'EnumAuth',
+    'EnumEngine',
+    'EnumItm'
 ]

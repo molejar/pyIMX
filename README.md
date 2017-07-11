@@ -62,7 +62,8 @@ The example of IMX boot image manager API usage:
 
     # Append commands into DCD segment
     dcd.append(cmd)
-    dcd.append(imx.CheckDataCmd(imx.BytesEnum.BYTES_4, imx.CheckOpsEnum.ANY_CLEAR, 0x307900C4, 0x00000001))
+    dcd.append(imx.CheckDataCmd(imx.BytesEnum.BYTES_4, imx.CheckOpsEnum.ANY_CLEAR, 
+                                0x307900C4, 0x00000001))
 
     # Open U-Boot raw image
     with open('u-boot.img', 'rb') as f:
