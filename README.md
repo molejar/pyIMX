@@ -54,7 +54,7 @@ The example of IMX boot image manager API usage:
     dcd = imx.SegDCD()
 
     # Create Write Data command and append values with addresses
-    cmd = imx.WriteDataCmd(imx.BytesEnum.BYTES_4, imx.WriteOpsEnum.WRITE_VALUE)
+    cmd = imx.CmdWriteData(imx.EnumBytes.BYTES_4, imx.EnumWriteOps.WRITE_VALUE)
     cmd.append(0x30340004, 0x4F400005)
     cmd.append(0x30391000, 0x00000002)
     cmd.append(0x307A0000, 0x01040001)
@@ -62,7 +62,7 @@ The example of IMX boot image manager API usage:
 
     # Append commands into DCD segment
     dcd.append(cmd)
-    dcd.append(imx.CheckDataCmd(imx.BytesEnum.BYTES_4, imx.CheckOpsEnum.ANY_CLEAR, 
+    dcd.append(imx.CmdCheckData(imx.EnumBytes.BYTES_4, imx.EnumCheckOps.ANY_CLEAR,
                                 0x307900C4, 0x00000001))
 
     # Open U-Boot raw image

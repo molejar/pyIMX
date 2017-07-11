@@ -94,6 +94,8 @@ Create new IMX image from attached raw u-boot image and DCD and/or CSF
 * **-t, --type** - Image storage type: nand, spi or sd (default: sd)
 * **-?, --help** - Show help message and exit
 
+##### Example:
+
 ```sh
 $ imxim create ...
 
