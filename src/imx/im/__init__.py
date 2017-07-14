@@ -17,7 +17,7 @@ from .commands import EnumBytes, EnumWriteOps, EnumCheckOps, EnumAlgorithm, Enum
                       EnumEngine, EnumItm, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, \
                       CmdInstallKey, CmdAuthData
 from .segments import SegIVT, SegBDT, SegAPP, SegDCD, SegCSF
-from .images import BootDev, BootImage
+from .images import BootImage
 
 __all__ = [
     # Main Classes
@@ -46,7 +46,5 @@ __all__ = [
     'EnumInsKey',
     'EnumAuth',
     'EnumEngine',
-    'EnumItm',
-    # Enums
-    'BootDev'
+    'EnumItm'
 ]

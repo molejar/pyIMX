@@ -15,7 +15,7 @@
 
 from .im import BootImage, SegDCD, SegCSF, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, \
                 CmdInstallKey, CmdAuthData, EnumBytes, EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumProtocol, \
-                EnumInsKey, EnumAuth, EnumEngine, EnumItm, BootDev
+                EnumInsKey, EnumAuth, EnumEngine, EnumItm
 
 from .sd import SerialDownloader, \
                 SD_GenericError, SD_CommandError, SD_ConnectionError, SD_DataError, SD_SecureError, SD_TimeoutError
@@ -55,7 +55,5 @@ __all__ = [
     'EnumInsKey',
     'EnumAuth',
     'EnumEngine',
-    'EnumItm',
-    # Image Boot Device
-    'BootDev'
+    'EnumItm'
 ]

@@ -20,33 +20,20 @@ from .segments import SegIVT, SegBDT, SegAPP, SegDCD, SegCSF
 
 
 ########################################################################################################################
-## Enums
-########################################################################################################################
-@unique
-class BootDev(IntEnum):
-    SD_eSD_SDXC = 0x00
-    MMC_eMMC = 0x01
-    RawNAND = 0x02
-    QSPI = 0x03
-    NOR_OneNAND = 0x04
-    SerialROM  = 0x05
-
-
-########################################################################################################################
 ## IMX Image Classes
 ########################################################################################################################
 
 class BootImage(object):
     ''' IMX Boot Image '''
 
-    BDEV = (
-        {'NAME': 'SD/eSD/SDXC', 'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000},
-        {'NAME': 'MMC/eMMC',    'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000},
-        {'NAME': 'RawNAND',     'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000},
-        {'NAME': 'QSPI',        'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000},
-        {'NAME': 'NOR/OneNAND', 'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000},
-        {'NAME': 'SerialROM',   'OFFSET': 0x400, 'HEAD_SIZE': 0xC00, 'APP_ALIGN': 0x1000, 'CSF_SIZE': 0x2000}
-    )
+    # The value of CSF segment size
+    CSF_SIZE  = 0x2000
+    # The align value of APP segment
+    APP_ALIGN = 0x1000
+    # The value of image head size
+    #           offset | size
+    HEAD_SIZE = {0x400: 0xC00,
+                 0x100: 0x300}
 
     @property
     def address(self):
@@ -55,6 +42,14 @@ class BootImage(object):
     @address.setter
     def address(self, value):
         self._ivt.ivt_addr = value
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @address.setter
+    def offset(self, value):
+        self._offset = value
 
     @property
     def version(self):
@@ -97,6 +92,7 @@ class BootImage(object):
 
     @plg.setter
     def plg(self, value):
+        assert isinstance(value, bool)
         self._plg = value
 
     @property
@@ -108,14 +104,25 @@ class BootImage(object):
         sum += self._csf.space
         return sum
 
-    def __init__(self, addr=0, app=None, dcd=None, csf=None, plg=None, dev=BootDev.SD_eSD_SDXC, ver=0x41):
-        self._ivt = SegIVT(ivt_addr=addr, version=ver)
+    def __init__(self, address=0, app=None, dcd=None, csf=None, offset=0x400, plugin=False, version=0x41):
+        '''
+        Initialize boot image object
+        :param address: The start address in target memory
+        :param app: The application image as bytes array
+        :param dcd: The DCD segment as SegDCD object
+        :param csf: The CSF segment as SegCSF object
+        :param offset: The IVT offset
+        :param plugin: The plugin flag as bool
+        :param version: The version of boot image format
+        :return: BootImage object
+        '''
+        self._ivt = SegIVT(ivt_addr = address + offset, version = version)
         self._bdt = SegBDT()
         self._app = SegAPP(app)
         self._dcd = dcd if dcd else SegDCD()
         self._csf = csf if csf else SegCSF()
-        self._plg = plg
-        self._dev = int(dev)
+        self._plg = plugin
+        self._offset = offset
 
     def __str__(self):
         return self.info()
@@ -129,27 +136,36 @@ class BootImage(object):
         self._bdt.padding = 0
         # Calculate padding for DCD, APP and CSF sections
         tmp_val = self._ivt.space + self._bdt.space + self._dcd.size
-        self._dcd.padding = self.BDEV[self._dev]['HEAD_SIZE'] - tmp_val
+        head_size = 0xC00 if self._offset not in self.HEAD_SIZE else self.HEAD_SIZE[self._offset]
+        self._dcd.padding = head_size - tmp_val
         # TODO: Check calculation of APP padding
-        tmp_val = self._app.size % self.BDEV[self._dev]['APP_ALIGN']
-        self._app.padding = self.BDEV[self._dev]['APP_ALIGN'] - tmp_val if tmp_val > 0 else 0
+        tmp_val = self._app.size % self.APP_ALIGN
+        self._app.padding = self.APP_ALIGN - tmp_val if tmp_val > 0 else 0
         # Set IVT section
+        self._ivt.bdt_addr = self._ivt.ivt_addr + self._ivt.space
         if self._dcd.enabled:
             self._ivt.dcd_addr = self._ivt.bdt_addr + self._bdt.space
-            self._ivt.img_addr = self._ivt.dcd_addr + self._dcd.space
+            self._ivt.app_addr = self._ivt.dcd_addr + self._dcd.space
         else:
             # TODO: Check the Image format without DCD section
             self._ivt.dcd_addr = 0
-            self._ivt.img_addr = self._ivt.bdt_addr + self._bdt.space
+            self._ivt.app_addr = self._ivt.bdt_addr + self._bdt.space
         if self._csf.enabled:
-            self._ivt.csf_addr = self._ivt.img_addr + self._app.space
-            self._csf.padding = self.BDEV[self._dev]['CSF_SIZE'] - self._csf.size
+            self._ivt.csf_addr = self._ivt.app_addr + self._app.space
+            self._csf.padding = self.CSF_SIZE - self._csf.size
         else:
             self._ivt.csf_addr = 0
         # Set BDT section
-        self._bdt.start  = self._ivt.ivt_addr - self.BDEV[self._dev]['OFFSET']
-        self._bdt.length = self.size
-        self._ivt.bdt_addr = self._ivt.ivt_addr + self._ivt.space
+        self._bdt.start  = self._ivt.ivt_addr - self._offset
+        self._bdt.length = self.size + self._offset
+        self._bdt.plugin = 1 if self._plg else 0
+        # TODO: Remove debug code
+        #msg  = "IVT -> size: {0:d}, padding: {1:d}\n".format(self._ivt.size, self._ivt.padding)
+        #msg += "BDT -> size: {0:d}, padding: {1:d}\n".format(self._bdt.size, self._bdt.padding)
+        #msg += "DCD -> size: {0:d}, padding: {1:d}\n".format(self._dcd.size, self._dcd.padding)
+        #msg += "APP -> size: {0:d}, padding: {1:d}\n".format(self._app.size, self._app.padding)
+        #msg += "CSF -> size: {0:d}, padding: {1:d}\n".format(self._csf.size, self._csf.padding)
+        #print(msg)
 
     def info(self):
         self._update()
@@ -179,14 +195,14 @@ class BootImage(object):
 
     def parse(self, data, offset=0):
         assert type(data) in (str, bytes, bytearray)
-        assert len(data) > offset + self.BDEV[self._dev]['HEAD_SIZE']
+        assert len(data) > offset + 0xC00 if self._offset not in self.HEAD_SIZE else self.HEAD_SIZE[self._offset]
 
         imx_image = False
         while offset < len(data):
             try:
                 self._ivt.parse(data, offset)
             except UnparsedException:
-                offset += self.BDEV[self._dev]['OFFSET']
+                offset += self._offset
             else:
                 imx_image = True
                 break
@@ -194,16 +210,16 @@ class BootImage(object):
         if imx_image:
             self._ivt.padding = (self._ivt.bdt_addr - self._ivt.ivt_addr) - self._ivt.size
             self._bdt.parse(data, (offset + self._ivt.bdt_addr) - self._ivt.ivt_addr)
-            img_offset = self._ivt.ivt_addr - self._bdt.start
+            self._offset = self._ivt.ivt_addr - self._bdt.start
 
             if self._ivt.dcd_addr > self._ivt.ivt_addr:
                 self._bdt.padding = (self._ivt.dcd_addr - self._ivt.bdt_addr) - self._bdt.size
                 self._dcd.parse(data, (offset + self._ivt.dcd_addr) - self._ivt.ivt_addr)
-                self._dcd.padding = (self._ivt.img_addr - self._ivt.dcd_addr) - self._dcd.size
+                self._dcd.padding = (self._ivt.app_addr - self._ivt.dcd_addr) - self._dcd.size
             else:
-                self._bdt.padding = (self._ivt.img_addr - self._ivt.bdt_addr) - self._bdt.size
+                self._bdt.padding = (self._ivt.app_addr - self._ivt.bdt_addr) - self._bdt.size
 
-            img_start = offset + (self._ivt.img_addr - self._ivt.ivt_addr)
+            img_start = offset + (self._ivt.app_addr - self._ivt.ivt_addr)
             if self._ivt.csf_addr > self._ivt.ivt_addr:
                 csf_start = (offset + self._ivt.csf_addr) - self._ivt.ivt_addr
                 self._app.data = data[img_start:csf_start]
@@ -211,10 +227,11 @@ class BootImage(object):
                 self._csf.parse(data, csf_start)
                 self._csf.padding = self._bdt.length - (csf_start + self._csf.size)
             else:
-                img_end = self._bdt.length - img_offset
+                img_end = self._bdt.length - self._offset
                 self._app.data = data[img_start:img_end]
                 self._app.padding = (len(data) - offset) - img_end
 
+            # TODO: Remove debug code
             #msg  = "IVT -> size: {0:d}, padding: {1:d}\n".format(self._ivt.size, self._ivt.padding)
             #msg += "BDT -> size: {0:d}, padding: {1:d}\n".format(self._bdt.size, self._bdt.padding)
             #msg += "DCD -> size: {0:d}, padding: {1:d}\n".format(self._dcd.size, self._dcd.padding)
@@ -241,11 +258,11 @@ class KernelImage(object):
 
     @property
     def address(self):
-        return self._ivt.img_addr
+        return self._ivt.app_addr
 
     @address.setter
     def address(self, value):
-        self._ivt.img_addr = value
+        self._ivt.app_addr = value
 
     @property
     def version(self):

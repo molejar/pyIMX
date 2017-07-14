@@ -100,57 +100,46 @@ def info(offset, file):
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
 @click.option('-d', '--dcd', type=click.Path(exists=True), help="DCD File")
 @click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File")
-@click.option('-m', '--medium', type=click.Choice(('sd', 'mmc', 'nand', 'onand', 'qspi', 'srom')),
-              default='sd', show_default=True, help="Boot medium/storage")
-def create(address, infile, outfile, medium, dcd=None, csf=None):
+@click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
+@click.option('-p/', '--plugin/', is_flag=True, default=False, show_default=True, help="Plugin Image")
+def create(address, infile, outfile, offset, plugin, dcd=None, csf=None):
     """ Create new image from attached file """
-    bdev = {'sd':    imx.BootDev.SD_eSD_SDXC,
-            'mmc':   imx.BootDev.MMC_eMMC,
-            'nand':  imx.BootDev.RawNAND,
-            'onand': imx.BootDev.NOR_OneNAND,
-            'qspi':  imx.BootDev.QSPI,
-            'srom':  imx.BootDev.SerialROM}
-    try:
-        img = imx.BootImage(addr = address, dev = bdev[medium])
 
-        with open(infile, 'rb') as f:
-            img.app = f.read()
+    #try:
+    img = imx.BootImage(address = address, offset = offset, plugin= plugin)
 
-        if dcd:
-            if dcd.lower().endswith(('.txt', '.dcd', '.yaml')):
-                raise NotImplementedError()
-            else:
-                with open(infile, 'rb') as f:
-                    img.dcd.parse(f.read())
-        if csf:
+    with open(infile, 'rb') as f:
+        img.app = f.read()
+
+    if dcd:
+        if dcd.lower().endswith(('.txt', '.dcd', '.yaml')):
             raise NotImplementedError()
+        else:
+            with open(dcd, 'rb') as f:
+                img.dcd.parse(f.read())
+    if csf:
+        raise NotImplementedError()
 
-        with open(outfile, 'wb') as f:
-            f.write(img.export())
+    with open(outfile, 'wb') as f:
+        f.write(img.export())
 
-    except Exception as e:
-        click.echo(str(e) if str(e) else "Unknown Error !")
-        sys.exit(ERROR_CODE)
+    #except Exception as e:
+    #    click.echo(str(e) if str(e) else "Unknown Error !")
+    #    sys.exit(ERROR_CODE)
 
-        click.secho("Image successfully created: %s" % outfile)
+    click.secho("Image successfully created: %s" % outfile)
 
 
 # IMX Image: Extract image content
 @cli.command(short_help="Extract image content")
 @click.argument('file', nargs=1, type=click.Path(exists=True))
-@click.option('-m', '--medium', type=click.Choice(('sd', 'mmc', 'nand', 'onand', 'qspi', 'srom')),
-              default='sd', show_default=True, help="Boot medium/storage")
-def extract(file, medium):
+@click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
+def extract(file, offset):
     """ Extract image content """
-    bdev = {'sd':    imx.BootDev.SD_eSD_SDXC,
-            'mmc':   imx.BootDev.MMC_eMMC,
-            'nand':  imx.BootDev.RawNAND,
-            'onand': imx.BootDev.NOR_OneNAND,
-            'qspi':  imx.BootDev.QSPI,
-            'srom':  imx.BootDev.SerialROM}
+
     try:
         # Create IMX image instance
-        img = imx.BootImage(dev=bdev[medium])
+        img = imx.BootImage(offset = offset)
         # Open and parse IMX image
         with open(file, 'rb') as f:
             img.parse(f.read())

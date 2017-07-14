@@ -778,7 +778,7 @@ class CmdAuthData(object):
         msg += " Flag:   {0:s}\n".format(EnumAuth.ValueToStr(self._header.param))
         msg += " Prot:   {0:s}\n".format(EnumProtocol.ValueToStr(self.pcl))
         msg += " Engine: {0:s}\n".format(EnumEngine.ValueToStr(self.eng))
-        msg += " Key:    {0:d} (Key address)\n".format(self.key)
+        msg += " Key:    {0:d} (Key index)\n".format(self.key)
         msg += " Conf:   {0:d} (Configuration)\n".format(self.cfg)
         msg += " Addr:   0x{0:08X} (Start address of authentication data) \n".format(self.auth_start)
         msg += "-" * 60 + "\n"

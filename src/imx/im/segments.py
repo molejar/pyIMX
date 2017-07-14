@@ -51,7 +51,7 @@ class BaseSegment(object):
         if self._padding > 0:
             return bytearray([self.PADDING_VAL] * self._padding)
         else:
-            return None
+            return b''
 
     def __init__(self):
         self._padding = 0
@@ -89,12 +89,12 @@ class SegIVT(BaseSegment):
         return self._header
 
     @property
-    def img_addr(self):
-        return self._img
+    def app_addr(self):
+        return self._app
 
-    @img_addr.setter
-    def img_addr(self, value):
-        self._img = value
+    @app_addr.setter
+    def app_addr(self, value):
+        self._app = value
 
     @property
     def dcd_addr(self):
@@ -142,7 +142,7 @@ class SegIVT(BaseSegment):
         super().__init__()
         self._header = Header(SegTag.HAB_TAG_IVT, version)
         self._header.length = self._header.size + calcsize(self.FORMAT)
-        self._img = img_addr
+        self._app = img_addr
         self._rs1 = 0
         self._dcd = 0
         self._bdt = 0
@@ -154,7 +154,7 @@ class SegIVT(BaseSegment):
         msg  = " IVT: 0x{0:08X}\n".format(self._ivt)
         msg += " BDT: 0x{0:08X}\n".format(self._bdt)
         msg += " DCD: 0x{0:08X}\n".format(self._dcd)
-        msg += " IMG: 0x{0:08X}\n".format(self._img)
+        msg += " APP: 0x{0:08X}\n".format(self._app)
         msg += " CSF: 0x{0:08X}\n".format(self._csf)
         msg += "\n"
         return msg
@@ -166,13 +166,13 @@ class SegIVT(BaseSegment):
         '''
         self._header.parse(data, offset)
         offset += self._header.size
-        (self._img,
+        (self._app,
          self._rs1,
          self._dcd,
          self._bdt,
          self._ivt,
          self._csf,
-         self._re2) = unpack_from(self.FORMAT, data, offset)
+         self._rs2) = unpack_from(self.FORMAT, data, offset)
 
     def export(self, padding=False):
         '''
@@ -181,7 +181,7 @@ class SegIVT(BaseSegment):
         '''
         data = self.header.export()
         data += pack(self.FORMAT,
-                     self._img,
+                     self._app,
                      self._rs1,
                      self._dcd,
                      self._bdt,
@@ -237,9 +237,13 @@ class SegBDT(BaseSegment):
         self._plugin = plugin
 
     def info(self):
+        '''
+        The info string of BDT segment
+        :return: string
+        '''
         msg  = " Start:  0x{0:08X}\n".format(self._start)
         msg += " Length: {0:d} Bytes\n".format(self._length)
-        msg += " Plugin: 0x{0:08X}\n".format(self._plugin)
+        msg += " Plugin: {0:s}\n".format('YES' if self._plugin else 'NO')
         msg += "\n"
         return msg
 
@@ -277,7 +281,7 @@ class SegAPP(BaseSegment):
 
 
     def info(self):
-        msg  = " Start:  0x{0:08X}\n".format(self._start)
+        msg  = " Size: {0:d} Bytes\n".format(len(self._data))
         msg += "\n"
         return msg
 
@@ -376,10 +380,10 @@ class SegDCD(BaseSegment):
                 break
             if not passed:
                 raise CorruptedException
-        self._enabled = True
+        self.enabled = True
 
     def export(self, padding=False):
-        data = None
+        data = b''
         if self.enabled:
             data = self._header.export()
             for command in self._commands:
@@ -510,7 +514,7 @@ class SegCSF(BaseSegment):
                 continue
 
     def export(self, padding=False):
-        data = None
+        data = b''
         if self.enabled:
             data = self.header.export()
             for command in self._commands:
