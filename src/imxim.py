@@ -84,7 +84,7 @@ def info(offset, file):
         with open(file, 'rb') as f:
             f.seek(offset)
             f.readinto(data)
-        img = imx.Image()
+        img = imx.BootImage()
         img.parse(data)
         click.echo(str(img))
 
@@ -100,15 +100,18 @@ def info(offset, file):
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
 @click.option('-d', '--dcd', type=click.Path(exists=True), help="DCD File")
 @click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File")
-@click.option('-t', '--type', type=click.Choice(('nand', 'spi', 'sd')), default='sd', show_default=True,
-              help="Image Storage Type")
-def create(address, infile, outfile, type, dcd=None, csf=None):
+@click.option('-m', '--medium', type=click.Choice(('sd', 'mmc', 'nand', 'onand', 'qspi', 'srom')),
+              default='sd', show_default=True, help="Boot medium/storage")
+def create(address, infile, outfile, medium, dcd=None, csf=None):
     """ Create new image from attached file """
-    offset = {'nand': 0x200,
-              'spi':  0x200,
-              'sd':   0x400}
+    bdev = {'sd':    imx.BootDev.SD_eSD_SDXC,
+            'mmc':   imx.BootDev.MMC_eMMC,
+            'nand':  imx.BootDev.RawNAND,
+            'onand': imx.BootDev.NOR_OneNAND,
+            'qspi':  imx.BootDev.QSPI,
+            'srom':  imx.BootDev.SerialROM}
     try:
-        img = imx.Image(addr = address, offset = offset[type])
+        img = imx.BootImage(addr = address, dev = bdev[medium])
 
         with open(infile, 'rb') as f:
             img.app = f.read()
@@ -129,22 +132,25 @@ def create(address, infile, outfile, type, dcd=None, csf=None):
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho("Done Successfully")
+        click.secho("Image successfully created: %s" % outfile)
 
 
 # IMX Image: Extract image content
 @cli.command(short_help="Extract image content")
 @click.argument('file', nargs=1, type=click.Path(exists=True))
-@click.option('-t', '--type', type=click.Choice(('nand', 'spi', 'sd')), default='sd', show_default=True,
-              help="Image Storage Type")
-def extract(file, type):
+@click.option('-m', '--medium', type=click.Choice(('sd', 'mmc', 'nand', 'onand', 'qspi', 'srom')),
+              default='sd', show_default=True, help="Boot medium/storage")
+def extract(file, medium):
     """ Extract image content """
-    offset = {'nand': 0x200,
-              'spi':  0x200,
-              'sd':   0x400}
+    bdev = {'sd':    imx.BootDev.SD_eSD_SDXC,
+            'mmc':   imx.BootDev.MMC_eMMC,
+            'nand':  imx.BootDev.RawNAND,
+            'onand': imx.BootDev.NOR_OneNAND,
+            'qspi':  imx.BootDev.QSPI,
+            'srom':  imx.BootDev.SerialROM}
     try:
         # Create IMX image instance
-        img = imx.Image(offset = offset[type])
+        img = imx.BootImage(dev=bdev[medium])
         # Open and parse IMX image
         with open(file, 'rb') as f:
             img.parse(f.read())

@@ -882,7 +882,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
         flasher.connectUSB(ctx.obj['DEVICE'])
         # Load image
         if file.lower().endswith('.imx'):
-            img = imx.Image()
+            img = imx.BootImage()
             data = bytearray(os.path.getsize(file))
             with open(file, 'rb') as f:
                 f.readinto(data)
@@ -956,7 +956,7 @@ def wdcd(ctx, address, file, offset):
         sys.exit(ERROR_CODE)
 
     if file.lower().endswith('.imx'):
-        img = imx.Image()
+        img = imx.BootImage()
         raw_data = bytearray(os.path.getsize(file))
         with open(file, 'rb') as f:
             f.readinto(raw_data)

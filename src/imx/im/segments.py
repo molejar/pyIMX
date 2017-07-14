@@ -89,58 +89,64 @@ class SegIVT(BaseSegment):
         return self._header
 
     @property
-    def imgAddress(self):
+    def img_addr(self):
         return self._img
 
-    @imgAddress.setter
-    def imgAddress(self, value):
+    @img_addr.setter
+    def img_addr(self, value):
         self._img = value
 
     @property
-    def dcdAddress(self):
+    def dcd_addr(self):
         return self._dcd
 
-    @dcdAddress.setter
-    def dcdAddress(self, value):
+    @dcd_addr.setter
+    def dcd_addr(self, value):
         self._dcd = value
 
     @property
-    def bdtAddress(self):
+    def bdt_addr(self):
         return self._bdt
 
-    @bdtAddress.setter
-    def bdtAddress(self, value):
+    @bdt_addr.setter
+    def bdt_addr(self, value):
         self._bdt = value
 
     @property
-    def ivtAddress(self):
+    def ivt_addr(self):
         return self._ivt
 
-    @ivtAddress.setter
-    def ivtAddress(self, value):
+    @ivt_addr.setter
+    def ivt_addr(self, value):
         self._ivt = value
 
     @property
-    def csfAddress(self):
+    def csf_addr(self):
         return self._csf
 
-    @csfAddress.setter
-    def csfAddress(self, value):
+    @csf_addr.setter
+    def csf_addr(self, value):
         self._csf = value
 
     @property
     def size(self):
         return self._header.length
 
-    def __init__(self, address=0, version=0x41):
+    def __init__(self, ivt_addr=0, img_addr=0, version=0x41):
+        '''
+
+        :param ivt_addr:
+        :param img_addr:
+        :param version:
+        '''
         super().__init__()
         self._header = Header(SegTag.HAB_TAG_IVT, version)
         self._header.length = self._header.size + calcsize(self.FORMAT)
-        self._img = 0
+        self._img = img_addr
         self._rs1 = 0
         self._dcd = 0
         self._bdt = 0
-        self._ivt = address
+        self._ivt = ivt_addr
         self._csf = 0
         self._rs2 = 0
 
@@ -154,6 +160,10 @@ class SegIVT(BaseSegment):
         return msg
 
     def parse(self, data, offset=0):
+        '''
+        :param data:
+        :param offset:
+        '''
         self._header.parse(data, offset)
         offset += self._header.size
         (self._img,
@@ -165,8 +175,13 @@ class SegIVT(BaseSegment):
          self._re2) = unpack_from(self.FORMAT, data, offset)
 
     def export(self, padding=False):
+        '''
+        :param padding:
+        :return:
+        '''
         data = self.header.export()
-        data += pack(self.FORMAT, self._img,
+        data += pack(self.FORMAT,
+                     self._img,
                      self._rs1,
                      self._dcd,
                      self._bdt,
@@ -211,6 +226,11 @@ class SegBDT(BaseSegment):
         return calcsize(self.FORMAT)
 
     def __init__(self, start=0, length=0, plugin=0):
+        '''
+        :param start:
+        :param length:
+        :param plugin:
+        '''
         super().__init__()
         self._start = start
         self._length = length
@@ -249,6 +269,9 @@ class SegAPP(BaseSegment):
         return len(self._data)
 
     def __init__(self, data=None):
+        '''
+        :param data:
+        '''
         super().__init__()
         self._data = data
 
@@ -286,6 +309,10 @@ class SegDCD(BaseSegment):
     @property
     def size(self):
         return self._header.length if self.enabled else 0
+
+    @property
+    def space(self):
+        return self.size + self.padding if self.enabled else 0
 
     def __init__(self, enabled=False, param=0x41):
         super().__init__()
@@ -352,13 +379,14 @@ class SegDCD(BaseSegment):
         self._enabled = True
 
     def export(self, padding=False):
-        if not self.enabled:
-            return None
-        data = self._header.export()
-        for command in self._commands:
-            data += command.export()
-        if padding:
-            data += self._padding_export()
+        data = None
+        if self.enabled:
+            data = self._header.export()
+            for command in self._commands:
+                data += command.export()
+            if padding:
+                data += self._padding_export()
+
         return data
 
 
@@ -482,13 +510,14 @@ class SegCSF(BaseSegment):
                 continue
 
     def export(self, padding=False):
-        if not self.enabled:
-            return None
-        data = self.header.export()
-        for command in self._commands:
-            data += command.export()
-        if padding:
-            data += self._padding_export()
+        data = None
+        if self.enabled:
+            data = self.header.export()
+            for command in self._commands:
+                data += command.export()
+            if padding:
+                data += self._padding_export()
+
         return data
 
 

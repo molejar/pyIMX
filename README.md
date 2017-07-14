@@ -70,7 +70,7 @@ The example of IMX boot image manager API usage:
         app = f.read()
 
     # Create IMX U-Boot image with DCD segment
-    img = imx.Image(0x78700000, app, dcd)
+    img = imx.BootImage(0x78700000, app, dcd)
 
     # Print image info
     print(img)

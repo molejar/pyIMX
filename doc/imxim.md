@@ -68,13 +68,15 @@ Write Data Command (Ops: WRITE_VALUE, Bytes: 4)
 - ...
 ```
 
+<br>
+
 #### $ imxim extract [OPTIONS] FILE
 
 Extract the IMX image content into a directory "file_name.ex"
 
 ##### options:
-* **-t, --type** - Image storage type: nand, spi or sd (default: sd)
-* **-?, --help** - Show help message and exit
+* **-m, --medium** - Image storage type: sd, mmc, nand, onand, qspi, srom (default: sd)
+* **-?, --help**   - Show help message and exit
 
 ##### Example:
 
@@ -84,6 +86,8 @@ $ imxim extract u-boot.imx
 Image successfully extracted into dir: u-boot.imx.ex
 ```
 
+<br>
+
 #### $ imxim create [OPTIONS] ADDRESS INFILE OUTFILE
 
 Create new IMX image from attached raw u-boot image and DCD and/or CSF
@@ -91,7 +95,7 @@ Create new IMX image from attached raw u-boot image and DCD and/or CSF
 ##### options:
 * **-d, --dcd** - DCD File
 * **-c, --csf** - CSF File
-* **-t, --type** - Image storage type: nand, spi or sd (default: sd)
+* **-m, --medium** - Image storage type: sd, mmc, nand, onand, qspi, srom (default: sd)
 * **-?, --help** - Show help message and exit
 
 ##### Example:
