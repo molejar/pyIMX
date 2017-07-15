@@ -50,7 +50,7 @@ $ imxim info u-boot.imx
 
  Start:  0x877FF800
  Length: 380928 Bytes
- Plugin: 0x00000000
+ Plugin: NO
 
 ############################################################
 # DCD (Device Config Data)
@@ -75,7 +75,7 @@ Write Data Command (Ops: WRITE_VALUE, Bytes: 4)
 Extract the IMX image content into a directory "file_name.ex"
 
 ##### options:
-* **-m, --medium** - Image storage type: sd, mmc, nand, onand, qspi, srom (default: sd)
+* **-m, --offset** - IVT offset (default: 1024)
 * **-?, --help**   - Show help message and exit
 
 ##### Example:
@@ -88,14 +88,19 @@ Image successfully extracted into dir: u-boot.imx.ex
 
 <br>
 
-#### $ imxim create [OPTIONS] ADDRESS INFILE OUTFILE
+#### $ imxim create [OPTIONS] ADDRESS DCDFILE APPFILE OUTFILE
 
-Create new IMX image from attached raw u-boot image and DCD and/or CSF
+Create new IMX image from attached files:
+
+**ADDRESS** - Start address of image in target memory<br>
+**DCDFILE** - DCD file in TXT or BIN format<br>
+**APPFILE** - APP file (u-boot.bin or barebox.bin)<br>
+**OUTFILE** - Output file name with extension *.imx<br>
 
 ##### options:
-* **-d, --dcd** - DCD File
-* **-c, --csf** - CSF File
-* **-m, --medium** - Image storage type: sd, mmc, nand, onand, qspi, srom (default: sd)
+* **-c, --csf** - CSF file
+* **-m, --offset** - IVT offset (default: 1024)
+* **-p, --plugin** - Plugin image (default: False)
 * **-?, --help** - Show help message and exit
 
 ##### Example:

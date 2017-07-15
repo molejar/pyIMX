@@ -37,17 +37,17 @@ class BootImage(object):
 
     @property
     def address(self):
-        return self._ivt.ivt_addr
+        return self._address
 
     @address.setter
     def address(self, value):
-        self._ivt.ivt_addr = value
+        self._address = value
 
     @property
     def offset(self):
         return self._offset
 
-    @address.setter
+    @offset.setter
     def offset(self, value):
         self._offset = value
 
@@ -74,7 +74,7 @@ class BootImage(object):
 
     @dcd.setter
     def dcd(self, value):
-        assert isinstance(value, SegDCD), "Value type not a segment DCD !"
+        assert isinstance(value, SegDCD), "Value type not a DCD segment !"
         self._dcd = value
 
     @property
@@ -83,7 +83,7 @@ class BootImage(object):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a segment CSF !"
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
         self._csf = value
 
     @property
@@ -107,7 +107,7 @@ class BootImage(object):
     def __init__(self, address=0, app=None, dcd=None, csf=None, offset=0x400, plugin=False, version=0x41):
         '''
         Initialize boot image object
-        :param address: The start address in target memory
+        :param address: The start address of image in target memory
         :param app: The application image as bytes array
         :param dcd: The DCD segment as SegDCD object
         :param csf: The CSF segment as SegCSF object
@@ -116,13 +116,14 @@ class BootImage(object):
         :param version: The version of boot image format
         :return: BootImage object
         '''
-        self._ivt = SegIVT(ivt_addr = address + offset, version = version)
+        self._ivt = SegIVT(version)
         self._bdt = SegBDT()
         self._app = SegAPP(app)
         self._dcd = dcd if dcd else SegDCD()
         self._csf = csf if csf else SegCSF()
         self._plg = plugin
         self._offset = offset
+        self._address = address
 
     def __str__(self):
         return self.info()
@@ -138,10 +139,10 @@ class BootImage(object):
         tmp_val = self._ivt.space + self._bdt.space + self._dcd.size
         head_size = 0xC00 if self._offset not in self.HEAD_SIZE else self.HEAD_SIZE[self._offset]
         self._dcd.padding = head_size - tmp_val
-        # TODO: Check calculation of APP padding
         tmp_val = self._app.size % self.APP_ALIGN
         self._app.padding = self.APP_ALIGN - tmp_val if tmp_val > 0 else 0
         # Set IVT section
+        self._ivt.ivt_addr = self._address + self._offset
         self._ivt.bdt_addr = self._ivt.ivt_addr + self._ivt.space
         if self._dcd.enabled:
             self._ivt.dcd_addr = self._ivt.bdt_addr + self._bdt.space
@@ -159,13 +160,6 @@ class BootImage(object):
         self._bdt.start  = self._ivt.ivt_addr - self._offset
         self._bdt.length = self.size + self._offset
         self._bdt.plugin = 1 if self._plg else 0
-        # TODO: Remove debug code
-        #msg  = "IVT -> size: {0:d}, padding: {1:d}\n".format(self._ivt.size, self._ivt.padding)
-        #msg += "BDT -> size: {0:d}, padding: {1:d}\n".format(self._bdt.size, self._bdt.padding)
-        #msg += "DCD -> size: {0:d}, padding: {1:d}\n".format(self._dcd.size, self._dcd.padding)
-        #msg += "APP -> size: {0:d}, padding: {1:d}\n".format(self._app.size, self._app.padding)
-        #msg += "CSF -> size: {0:d}, padding: {1:d}\n".format(self._csf.size, self._csf.padding)
-        #print(msg)
 
     def info(self):
         self._update()
@@ -211,6 +205,7 @@ class BootImage(object):
             self._ivt.padding = (self._ivt.bdt_addr - self._ivt.ivt_addr) - self._ivt.size
             self._bdt.parse(data, (offset + self._ivt.bdt_addr) - self._ivt.ivt_addr)
             self._offset = self._ivt.ivt_addr - self._bdt.start
+            self._address = self._bdt.start
 
             if self._ivt.dcd_addr > self._ivt.ivt_addr:
                 self._bdt.padding = (self._ivt.dcd_addr - self._ivt.bdt_addr) - self._bdt.size
@@ -231,13 +226,6 @@ class BootImage(object):
                 self._app.data = data[img_start:img_end]
                 self._app.padding = (len(data) - offset) - img_end
 
-            # TODO: Remove debug code
-            #msg  = "IVT -> size: {0:d}, padding: {1:d}\n".format(self._ivt.size, self._ivt.padding)
-            #msg += "BDT -> size: {0:d}, padding: {1:d}\n".format(self._bdt.size, self._bdt.padding)
-            #msg += "DCD -> size: {0:d}, padding: {1:d}\n".format(self._dcd.size, self._dcd.padding)
-            #msg += "APP -> size: {0:d}, padding: {1:d}\n".format(self._app.size, self._app.padding)
-            #msg += "CSF -> size: {0:d}, padding: {1:d}\n".format(self._csf.size, self._csf.padding)
-            #print(msg)
         else:
             raise Exception('No a IMX Boot image !')
 
@@ -287,11 +275,12 @@ class KernelImage(object):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a segment CSF !"
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
         self._csf = value
 
-    def __init__(self, addr=0, app=None, csf=None, ver=0x41):
-        self._ivt = SegIVT(img_addr=addr, version=ver)
+    def __init__(self, address=0, app=None, csf=None, version=0x41):
+        self._ivt = SegIVT(version)
+        self._ivt.app_addr = address
         self._app = SegAPP(app)
         self._dcd = SegDCD()
         self._csf = csf if csf else SegCSF()

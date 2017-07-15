@@ -73,19 +73,22 @@ def cli():
     click.echo()
 
 
-# IMX Image: List image content
-@cli.command(short_help="List image content")
+# IMX Image: List IMX boot image content
+@cli.command(short_help="List IMX boot image content")
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help="File Offset")
 @click.argument('file', nargs=1, type=click.Path(exists=True))
 def info(offset, file):
-    """ List image content """
+    """ List IMX boot image content """
     try:
         data = bytearray(os.path.getsize(file) - offset)
+
         with open(file, 'rb') as f:
             f.seek(offset)
             f.readinto(data)
+
         img = imx.BootImage()
         img.parse(data)
+
         click.echo(str(img))
 
     except Exception as e:
@@ -93,78 +96,98 @@ def info(offset, file):
         sys.exit(ERROR_CODE)
 
 
-# IMX Image: Create new image from attached file
-@cli.command(short_help="Create new image from attached file")
+# IMX Image: Create new IMX boot image from attached files
+@cli.command(short_help="Create new IMX boot image from attached files")
 @click.argument('address', nargs=1, type=UINT)
-@click.argument('infile', nargs=1, type=click.Path(exists=True))
+@click.argument('dcdfile', nargs=1, type=click.Path(exists=True))
+@click.argument('appfile', nargs=1, type=click.Path(exists=True))
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
-@click.option('-d', '--dcd', type=click.Path(exists=True), help="DCD File")
 @click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File")
 @click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
 @click.option('-p/', '--plugin/', is_flag=True, default=False, show_default=True, help="Plugin Image")
-def create(address, infile, outfile, offset, plugin, dcd=None, csf=None):
-    """ Create new image from attached file """
+def create(address, dcdfile, appfile, outfile, offset, plugin, csf=None):
+    """ Create new IMX boot image from attached files """
+    try:
+        img = imx.BootImage(address = address, offset = offset, plugin = plugin)
 
-    #try:
-    img = imx.BootImage(address = address, offset = offset, plugin= plugin)
+        # Open and import application image
+        with open(appfile, 'rb') as f:
+            img.app = f.read()
 
-    with open(infile, 'rb') as f:
-        img.app = f.read()
-
-    if dcd:
-        if dcd.lower().endswith(('.txt', '.dcd', '.yaml')):
+        # Open and import DCD segment
+        if dcdfile.lower().endswith(('.txt', '.dcd', '.yaml')):
             raise NotImplementedError()
         else:
-            with open(dcd, 'rb') as f:
+            with open(dcdfile, 'rb') as f:
                 img.dcd.parse(f.read())
-    if csf:
-        raise NotImplementedError()
 
-    with open(outfile, 'wb') as f:
-        f.write(img.export())
+        # Open and import CSF segment
+        if csf:
+            raise NotImplementedError('CSF support will be added later')
 
-    #except Exception as e:
-    #    click.echo(str(e) if str(e) else "Unknown Error !")
-    #    sys.exit(ERROR_CODE)
-
-    click.secho("Image successfully created: %s" % outfile)
-
-
-# IMX Image: Extract image content
-@cli.command(short_help="Extract image content")
-@click.argument('file', nargs=1, type=click.Path(exists=True))
-@click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
-def extract(file, offset):
-    """ Extract image content """
-
-    try:
-        # Create IMX image instance
-        img = imx.BootImage(offset = offset)
-        # Open and parse IMX image
-        with open(file, 'rb') as f:
-            img.parse(f.read())
-        # Create extraction dir
-        file_path, file_name = os.path.split(file)
-        out_path = os.path.normpath(os.path.join(file_path, file_name + ".ex"))
-        os.makedirs(out_path, exist_ok=True)
-        # Save U-Boot Image
-        with open(os.path.join(out_path, 'u-boot.bin'), 'wb') as f:
-            f.write(img.app)
-        # Save DCD Section
-        if img.dcd.enabled:
-            with open(os.path.join(out_path, 'dcd.bin'), 'wb') as f:
-                f.write(img.dcd.export())
-        # Save CSF Section
-        if img.csf.enabled:
-            #with open(os.path.join(out_path, 'csf.bin'), 'wb') as f:
-            #    f.write(img.csf.export())
-            pass
+        # Save as IMX Boot image
+        with open(outfile, 'wb') as f:
+            f.write(img.export())
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho("Image successfully extracted into dir: %s" % out_path)
+    click.secho(" Image successfully created:\n %s\n" % outfile)
+
+
+# IMX Image: Extract IMX boot image content
+@cli.command(short_help="Extract IMX boot image content")
+@click.argument('file', nargs=1, type=click.Path(exists=True))
+@click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
+def extract(file, offset):
+    """ Extract IMX boot image content """
+    try:
+        # Create IMX image instance
+        img = imx.BootImage(offset = offset)
+
+        # Open and parse IMX image
+        with open(file, 'rb') as f:
+            img.parse(f.read())
+
+        msg  = "---------------------------\n"
+        msg += "     Image Description\n"
+        msg += "---------------------------\n"
+        msg += "Start Address: 0x{0:08X}\n".format(img.address)
+        msg += "IVT Offset:    0x{0:X}\n".format(img.offset)
+
+        # Create extraction dir
+        file_path, file_name = os.path.split(file)
+        out_path = os.path.normpath(os.path.join(file_path, file_name + ".ex"))
+        os.makedirs(out_path, exist_ok=True)
+
+        # Save APP Segment
+        with open(os.path.join(out_path, 'app.bin'), 'wb') as f:
+            msg += "APP Segment:   app.bin\n"
+            f.write(img.app)
+
+        # Save DCD Segment
+        if img.dcd.enabled:
+            msg += "DCD Segment:   dcd.bin\n"
+            with open(os.path.join(out_path, 'dcd.bin'), 'wb') as f:
+                f.write(img.dcd.export())
+
+        # Save CSF Segment
+        if img.csf.enabled:
+            #msg += "CSF Segment:   csf.bin\n"
+            #with open(os.path.join(out_path, 'csf.bin'), 'wb') as f:
+            #    f.write(img.csf.export())
+            pass
+
+        # Save image info into nfo.txt file
+        with open(os.path.join(out_path, 'nfo.txt'), 'w') as f:
+            f.write(msg)
+
+    except Exception as e:
+        click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
+
+    click.secho(" Image successfully extracted into directory:\n %s\n" % out_path)
 
 
 def main():

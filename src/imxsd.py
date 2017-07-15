@@ -888,8 +888,8 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 f.readinto(data)
                 img.parse(data)
 
-            if addr is None:
-                addr = img.address
+            if not addr:
+                addr = img.address + img.offset
 
             if init:
                 if ocram == 0:

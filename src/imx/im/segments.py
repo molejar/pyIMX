@@ -132,21 +132,19 @@ class SegIVT(BaseSegment):
     def size(self):
         return self._header.length
 
-    def __init__(self, ivt_addr=0, img_addr=0, version=0x41):
+    def __init__(self, version):
         '''
-
-        :param ivt_addr:
-        :param img_addr:
-        :param version:
+        Initialize IVT segment
+        :param version: The version of IVT and Image format
         '''
         super().__init__()
         self._header = Header(SegTag.HAB_TAG_IVT, version)
         self._header.length = self._header.size + calcsize(self.FORMAT)
-        self._app = img_addr
+        self._app = 0
         self._rs1 = 0
         self._dcd = 0
         self._bdt = 0
-        self._ivt = ivt_addr
+        self._ivt = 0
         self._csf = 0
         self._rs2 = 0
 
@@ -422,7 +420,7 @@ class SegCSF(BaseSegment):
 
     def __init__(self, enabled=False, param=0):
         super().__init__()
-        self.enabled = enabled
+        self._enabled = enabled
         self._header = Header(SegTag.HAB_TAG_CSF, param)
         self._commands = []
         self._command_types = (
@@ -497,6 +495,7 @@ class SegCSF(BaseSegment):
             if not passed:
                 raise CorruptedException("at position: " + hex(offset + cmd_offset))
         self._enabled = True
+        # TODO: Parse CSF blob
         for cmd in self._commands:
             if isinstance(cmd, CmdInstallKey):
                 header = Header(SegTag.HAB_TAG_CRT)
