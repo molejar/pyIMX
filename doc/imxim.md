@@ -9,18 +9,18 @@ Usage
 For printing a general info of usage this tool execute `imxim -?`.
 
 ```sh
-    $ Usage: imxim [OPTIONS] COMMAND [ARGS]...
-    $
-    $ IMX Image Manager, ver.: 0.0.1
-    $
-    $ Options:
-    $  -v, --version  Show the version and exit.
-    $  -?, --help     Show this message and exit.
-    $
-    $ Commands:
-    $  info     List image content
-    $  create   Create new image from attached files
-    $  extract  Extract image content
+ $ Usage: imxim [OPTIONS] COMMAND [ARGS]...
+
+ IMX Image Manager, ver.: 0.0.1
+
+ Options:
+  -v, --version  Show the version and exit.
+  -?, --help     Show this message and exit.
+
+ Commands:
+  info     List image content
+  create   Create new image from attached files
+  extract  Extract image content
 ```
 
 ## Commands
@@ -32,7 +32,7 @@ Print the IMX image content in readable format
 ##### Example:
 
 ```sh
-$ imxim info u-boot.imx
+ $ imxim info u-boot.imx
 
 ############################################################
 # IVT (Image Vector Table)
@@ -48,8 +48,8 @@ $ imxim info u-boot.imx
 # BDT (Boot Data Table)
 ############################################################
 
- Start:  0x877FF800
- Length: 380928 Bytes
+ Start:  0x877FF000
+ Length: 372736 Bytes
  Plugin: NO
 
 ############################################################
@@ -75,15 +75,17 @@ Write Data Command (Ops: WRITE_VALUE, Bytes: 4)
 Extract the IMX image content into a directory "file_name.ex"
 
 ##### options:
-* **-m, --offset** - IVT offset (default: 1024)
+* **-o, --offset** - IVT offset (default: 1024)
 * **-?, --help**   - Show help message and exit
 
 ##### Example:
 
 ```sh
-$ imxim extract u-boot.imx
+ $ imxim extract u-boot.imx
 
-Image successfully extracted into dir: u-boot.imx.ex
+ Image successfully extracted
+ Path: u-boot.imx.ex
+
 ```
 
 <br>
@@ -99,13 +101,16 @@ Create new IMX image from attached files:
 
 ##### options:
 * **-c, --csf** - CSF file
-* **-m, --offset** - IVT offset (default: 1024)
+* **-o, --offset** - IVT offset (default: 1024)
 * **-p, --plugin** - Plugin image (default: False)
 * **-?, --help** - Show help message and exit
 
 ##### Example:
 
 ```sh
-$ imxim create ...
+ $ imxim create 0x877FF000 dcd.bin u-boot.bin u-boot.imx
+
+ Image successfully created
+ Path: u-boot.imx
 
 ```

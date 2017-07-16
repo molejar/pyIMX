@@ -43,7 +43,7 @@ Read detailed information's about the SoC and HAB Log from connected i.MX/Vybrid
 ##### Example (IMX7D):
 
 ```sh
-$ imxsd info
+ $ imxsd info
 
  DEVICE: SE Blank ULT1 (0x15A2, 0x0076)
 

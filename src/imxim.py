@@ -133,7 +133,7 @@ def create(address, dcdfile, appfile, outfile, offset, plugin, csf=None):
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho(" Image successfully created:\n %s\n" % outfile)
+    click.secho(" Image successfully created\n Path: %s\n" % outfile)
 
 
 # IMX Image: Extract IMX boot image content
@@ -187,7 +187,7 @@ def extract(file, offset):
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho(" Image successfully extracted into directory:\n %s\n" % out_path)
+    click.secho(" Image successfully extracted\n Path: %s\n" % out_path)
 
 
 def main():
