@@ -107,29 +107,38 @@ def parse_dcd(text_file):
 
     for line in text_file.split('\n'):
         line = line.rstrip('\0')
-        if not line:
+        # ignore comments
+        if not line or line.startswith('#'):
             continue
-        if line.startswith('#'):
-            continue
+        # Split line and validate command
         cmd_line = line.split(' ')
         if cmd_line[0] not in cmds:
             continue
-
+        # Parse command
         if cmd_line[0] == 'Nop':
             if cmd is not None:
                 dcd.append(cmd)
                 cmd = None
+
             dcd.append(imx.CmdNop())
+
         elif cmd_line[0] == 'Unlock':
             if cmd is not None:
                 dcd.append(cmd)
                 cmd = None
+
             if cmd_line[1] not in engines:
-                raise SyntaxError()
+                raise SyntaxError("Unlock CMD: wrong engine")
+
             engine = engines[cmd_line[1]]
-            data   = [int(value,0) for value in cmd_line[2:]]
+            data   = [int(value, 0) for value in cmd_line[2:]]
             dcd.append(imx.CmdUnlock(engine, data))
+
         elif cmds[cmd_line[0]][0] == 'write':
+
+            if len(cmd_line) < 4:
+                raise SyntaxError("Write CMD: too weak arguments")
+
             ops   = cmds[cmd_line[0]][1]
             bytes = int(cmd_line[1])
             addr  = int(cmd_line[2], 0)
@@ -145,6 +154,9 @@ def parse_dcd(text_file):
 
             cmd.append(addr, value)
         else:
+            if len(cmd_line) < 4:
+                raise SyntaxError("Check CMD: too weak arguments")
+
             if cmd is not None:
                 dcd.append(cmd)
                 cmd = None

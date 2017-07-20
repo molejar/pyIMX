@@ -304,7 +304,7 @@ class CmdCheckData(object):
 
     @property
     def size(self):
-        return self._header.length
+        return 12 if self._count is None else 16
 
     def __init__(self, bytes=4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
         assert bytes in (1, 2, 4), "Unsupported Value !"
@@ -339,6 +339,7 @@ class CmdCheckData(object):
             self._count = None
 
     def export(self):
+        self._header.length = self.size
         raw_data = self._header.export()
         if self._count is None:
             raw_data += pack(">LL", self._address, self._mask)
@@ -527,7 +528,7 @@ class CmdUnlock(object):
 
     @property
     def size(self):
-        return self._header.length
+        return self._header.size + len(self._data) * 4
 
     def __init__(self, engine = EnumEngine.HAB_ENG_ANY, data=None):
         assert EnumEngine.CheckValue(engine), "uncorrected value !"
@@ -564,17 +565,14 @@ class CmdUnlock(object):
         assert type(value) is int, "value must be INT type"
         assert 0 <= value < 0xFFFFFFFF, "value out of range"
         self._data.append(value)
-        self._header.length += 4
 
     def pop(self, index):
         assert 0 <= index < len(self._data)
         val = self._data.pop(index)
-        self._header.length -= 4
         return val
 
     def clear(self):
         self._data.clear()
-        self._header.length = self._header.size
 
     def parse(self, data, offset=0):
         self._header.parse(data, offset)
@@ -586,6 +584,7 @@ class CmdUnlock(object):
             index += 4
 
     def export(self):
+        self._header.length = self.size
         raw_data = self._header.export()
         for val in self._data:
             raw_data += pack(">L", val)

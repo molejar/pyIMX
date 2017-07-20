@@ -116,19 +116,39 @@ Create new IMX image from attached files:
 
 ```
 
-## DCD File
+## DCD file
 
-#### Write Commands
-* **WriteValue BYTES ADDRESS VALUE**
-* **ClearBitMask BYTES ADDRESS VALUE**
-* **SetBitMask BYTES ADDRESS VALUE**
+The segment with device configuration data (DCD) can be specified in readable text format with following syntax:
 
-#### Check Commands
-* **CheckAllClear BYTES ADDRESS MASK [COUNT]**
-* **CheckAllSet BYTES ADDRESS MASK [COUNT]**
-* **CheckAnyClear BYTES ADDRESS MASK [COUNT]**
-* **CheckAnySet BYTES ADDRESS MASK [COUNT]**
+```
+# comment
+command0 arg0 arg1 ...
+command1 arg0 arg1 ...
+...
+```
 
-#### Other Commands
+
+#### Supported commands
+* **WriteValue** *BYTES ADDRESS VALUE*
+* **ClearBitMask** *BYTES ADDRESS VALUE*
+* **SetBitMask** *BYTES ADDRESS VALUE*
+* **CheckAllClear** *BYTES ADDRESS MASK [COUNT]*
+* **CheckAllSet** *BYTES ADDRESS MASK [COUNT]*
+* **CheckAnyClear** *BYTES ADDRESS MASK [COUNT]*
+* **CheckAnySet** *BYTES ADDRESS MASK [COUNT]*
+* **Unlock** *ENGINE VALUE [VALUE]*
 * **Nop**
-* **Unlock ENGINE VALUE [VALUE]**
+
+##### Example:
+```
+# IMX DCD Content
+WriteValue 4 0x30340004 0x4F400005
+WriteValue 4 0x30391000 0x00000002
+WriteValue 4 0x307A0000 0x01040001
+WriteValue 4 0x307A01A0 0x80400003
+... 
+
+CheckAnyClear 4 0x307900C4 0x00000001
+... 
+
+```
