@@ -65,15 +65,6 @@ class IntEnum(int, Enum):
 ## Enums
 ########################################################################################################################
 
-
-@unique
-class EnumBytes(IntEnum):
-    ''' help '''
-    BYTES_4 = 4
-    BYTES_2 = 2
-    BYTES_1 = 1
-
-
 @unique
 class EnumWriteOps(IntEnum):
     ''' help '''
@@ -182,9 +173,9 @@ class CmdWriteData(object):
 
     @bytes.setter
     def bytes(self, value):
-        assert EnumBytes.CheckValue(value), "Unsupported Value !"
+        assert value in (1, 2, 4), "Unsupported Value !"
         self._header.param &= ~0x7
-        self._header.param |= int(value)
+        self._header.param |= value
 
     @property
     def ops(self):
@@ -200,17 +191,29 @@ class CmdWriteData(object):
     def size(self):
         return self._header.length
 
+    def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE):
+        assert bytes in (1, 2, 4), "Unsupported Value !"
+        assert EnumWriteOps.CheckValue(ops), "Unsupported Value !"
+        self._header = Header(tag=CmdTag.HAB_CMD_WRT_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
+        self._wrdata = []
+
     def __str__(self):
         return self.info()
 
     def __repr__(self):
         return self.info()
 
-    def __init__(self, bytes=EnumBytes.BYTES_4, ops=EnumWriteOps.WRITE_VALUE):
-        assert EnumBytes.CheckValue(bytes), "Unsupported Value !"
-        assert EnumWriteOps.CheckValue(ops), "Unsupported Value !"
-        self._header = Header(tag=CmdTag.HAB_CMD_WRT_DAT, param=((ops & 0x3) << 3) | (bytes & 0x7))
-        self._wrdata = []
+    def __len__(self):
+        len(self._wrdata)
+
+    def __getitem__(self, key):
+        return self._wrdata[key]
+
+    def __setitem__(self, key, value):
+        self._wrdata[key] = value
+
+    def __iter__(self):
+        return self._wrdata.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
@@ -261,7 +264,7 @@ class CmdCheckData(object):
 
     @bytes.setter
     def bytes(self, value):
-        assert EnumBytes.CheckValue(value), "uncorrected value !"
+        assert value in (1, 2, 4), "Unsupported Value !"
         self._header.param &= ~0x7
         self._header.param |= int(value)
 
@@ -303,19 +306,19 @@ class CmdCheckData(object):
     def size(self):
         return self._header.length
 
+    def __init__(self, bytes=4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
+        assert bytes in (1, 2, 4), "Unsupported Value !"
+        assert EnumCheckOps.CheckValue(ops), "uncorrected value !"
+        self._header = Header(tag=CmdTag.HAB_CMD_CHK_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
+        self._address = address
+        self._mask = mask
+        self._count = count
+
     def __str__(self):
         return self.info()
 
     def __repr__(self):
         return self.info()
-
-    def __init__(self, bytes=EnumBytes.BYTES_4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
-        assert EnumBytes.CheckValue(bytes), "uncorrected value !"
-        assert EnumCheckOps.CheckValue(ops), "uncorrected value !"
-        self._header = Header(tag=CmdTag.HAB_CMD_CHK_DAT, param=((ops & 0x3) << 3) | (bytes & 0x7))
-        self._address = address
-        self._mask = mask
-        self._count = count
 
     def info(self):
         msg  = "-" * 60 + "\n"
@@ -536,6 +539,18 @@ class CmdUnlock(object):
 
     def __repr__(self):
         return self.info()
+
+    def __len__(self):
+        len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"

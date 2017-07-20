@@ -76,12 +76,13 @@ Extract the IMX image content into a directory "file_name.ex"
 
 ##### options:
 * **-o, --offset** - IVT offset (default: 1024)
+* **-f, --format** - DCD and CSF section output format: txt or bin (default: bin)
 * **-?, --help**   - Show help message and exit
 
 ##### Example:
 
 ```sh
- $ imxim extract u-boot.imx
+ $ imxim extract -f txt u-boot.imx
 
  Image successfully extracted
  Path: u-boot.imx.ex
@@ -114,3 +115,20 @@ Create new IMX image from attached files:
  Path: u-boot.imx
 
 ```
+
+## DCD File
+
+#### Write Commands
+* **WriteValue BYTES ADDRESS VALUE**
+* **ClearBitMask BYTES ADDRESS VALUE**
+* **SetBitMask BYTES ADDRESS VALUE**
+
+#### Check Commands
+* **CheckAllClear BYTES ADDRESS MASK [COUNT]**
+* **CheckAllSet BYTES ADDRESS MASK [COUNT]**
+* **CheckAnyClear BYTES ADDRESS MASK [COUNT]**
+* **CheckAnySet BYTES ADDRESS MASK [COUNT]**
+
+#### Other Commands
+* **Nop**
+* **Unlock ENGINE VALUE [VALUE]**
