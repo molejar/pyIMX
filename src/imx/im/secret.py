@@ -91,7 +91,7 @@ class Certificate(object):
         return self._header.length
 
     def __init__(self, param=0, data=None):
-        self._header = Header(tag=SegTag.HAB_TAG_CRT, param=param)
+        self._header = Header(tag=SegTag.CRT, param=param)
         self._data = data
 
     def __str__(self):
@@ -127,7 +127,7 @@ class Signature(object):
         return self._header.length
 
     def __init__(self, param=0, data=None):
-        self._header = Header(tag=SegTag.HAB_TAG_SIG, param=param)
+        self._header = Header(tag=SegTag.SIG, param=param)
         self._data = data
 
     def __str__(self):

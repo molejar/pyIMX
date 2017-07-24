@@ -16,7 +16,8 @@
 from struct import pack, unpack_from, calcsize
 
 from .header import Header, SegTag, UnparsedException, CorruptedException
-from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData
+from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData,\
+                      EnumWriteOps, EnumCheckOps, EnumEngine
 from .secret import SecretKeyBlob, Certificate, Signature
 
 
@@ -138,7 +139,7 @@ class SegIVT(BaseSegment):
         :param version: The version of IVT and Image format
         '''
         super().__init__()
-        self._header = Header(SegTag.HAB_TAG_IVT, version)
+        self._header = Header(SegTag.IVT, version)
         self._header.length = self._header.size + calcsize(self.FORMAT)
         self._app = 0
         self._rs1 = 0
@@ -319,7 +320,7 @@ class SegDCD(BaseSegment):
     def __init__(self, enabled=False, param=0x41):
         super().__init__()
         self._enabled = enabled
-        self._header = Header(SegTag.HAB_TAG_DCD, param)
+        self._header = Header(SegTag.DCD, param)
         self._header.length = self._header.size
         self._commands = []
         self._command_types = (CmdWriteData, CmdCheckData, CmdNop, CmdUnlock)
@@ -358,6 +359,124 @@ class SegDCD(BaseSegment):
     def clear(self):
         self._commands.clear()
         self._header.length = self._header.size
+
+    def load(self, txt_data):
+        cmds = {
+            'WriteValue': ('write', int(EnumWriteOps.WRITE_VALUE)),
+            'ClearBitMask': ('write', int(EnumWriteOps.CLEAR_BITMASK)),
+            'SetBitMask': ('write', int(EnumWriteOps.SET_BITMASK)),
+            'CheckAllClear': ('check', int(EnumCheckOps.ALL_CLEAR)),
+            'CheckAllSet': ('check', int(EnumCheckOps.ALL_SET)),
+            'CheckAnyClear': ('check', int(EnumCheckOps.ANY_CLEAR)),
+            'CheckAnySet': ('check', int(EnumCheckOps.ANY_SET)),
+            'Unlock': None,
+            'Nop': None
+        }
+        cmd = None
+        cnt = 0
+
+        # remove all buffered commands
+        self.clear()
+
+        for line in txt_data.split('\n'):
+            line = line.rstrip('\0')
+            # increment line counter
+            cnt += 1
+            # ignore comments
+            if not line or line.startswith('#'):
+                continue
+            # Split line and validate command
+            cmd_line = line.split()
+            if cmd_line[0] not in cmds:
+                continue
+            # Parse command
+            if cmd_line[0] == 'Nop':
+                if cmd is not None:
+                    self.append(cmd)
+                    cmd = None
+
+                self.append(CmdNop())
+
+            elif cmd_line[0] == 'Unlock':
+                if cmd is not None:
+                    self.append(cmd)
+                    cmd = None
+
+                if cmd_line[1] not in EnumEngine.get_names():
+                    raise SyntaxError("Unlock CMD: wrong engine parameter at line %d" % (cnt - 1))
+
+                engine = EnumEngine.str_to_value(cmd_line[1])
+                data = [int(value, 0) for value in cmd_line[2:]]
+                self.append(CmdUnlock(engine, data))
+
+            elif cmds[cmd_line[0]][0] == 'write':
+                if len(cmd_line) < 4:
+                    raise SyntaxError("Write CMD: not enough arguments at line %d" % (cnt - 1))
+
+                ops = cmds[cmd_line[0]][1]
+                bytes = int(cmd_line[1])
+                addr = int(cmd_line[2], 0)
+                value = int(cmd_line[3], 0)
+
+                if cmd is not None:
+                    if cmd.ops != ops or cmd.bytes != bytes:
+                        self.append(cmd)
+                        cmd = None
+
+                if cmd is None:
+                    cmd = CmdWriteData(bytes, ops)
+
+                cmd.append(addr, value)
+
+            else:
+                if len(cmd_line) < 4:
+                    raise SyntaxError("Check CMD: not enough arguments at line %d" % (cnt - 1))
+
+                if cmd is not None:
+                    self.append(cmd)
+                    cmd = None
+
+                ops = cmds[cmd_line[0]][1]
+                bytes = int(cmd_line[1])
+                addr = int(cmd_line[2], 0)
+                mask = int(cmd_line[3], 0)
+                count = int(cmd_line[4], 0) if len(cmd_line) > 4 else None
+                self.append(CmdCheckData(bytes, ops, addr, mask, count))
+
+        if cmd is not None:
+            self.append(cmd)
+
+        if self._commands:
+            self._enabled = True
+
+    def store(self, txt_data=None):
+        write_ops = ('WriteValue', 'WriteValue', 'ClearBitMask', 'SetBitMask')
+        check_ops = ('CheckAllClear', 'CheckAllSet', 'CheckAnyClear', 'CheckAnySet')
+        if txt_data is None:
+            txt_data = ""
+
+        for cmd in self._commands:
+            if type(cmd) is CmdWriteData:
+                for (address, value) in cmd:
+                    txt_data += "{0:s} {1:d} 0x{2:08X} 0x{3:08X}\n".format(write_ops[cmd.ops],cmd.bytes,address,value)
+
+            elif type(cmd) is CmdCheckData:
+                txt_data += "{0:s} {1:d} 0x{2:08X} 0x{3:08X}".format(check_ops[cmd.ops],cmd.bytes,cmd.address,cmd.mask)
+                txt_data += "{0:d}\n".format(cmd.count) if cmd.count else "\n"
+
+            elif type(cmd) is CmdUnlock:
+                txt_data += "Unlock {0:s}".format(EnumEngine.value_to_str(cmd.engine))
+                for value in cmd:
+                    txt_data += " 0x{0:08X}".format(value)
+                txt_data += '\n'
+
+            else:
+                txt_data += "Nop\n"
+
+            # Split with new line every group of commands
+            txt_data += '\n'
+
+        return txt_data
 
     def parse(self, data, offset=0):
         self._header.parse(data, offset)
@@ -421,7 +540,7 @@ class SegCSF(BaseSegment):
     def __init__(self, enabled=False, param=0):
         super().__init__()
         self._enabled = enabled
-        self._header = Header(SegTag.HAB_TAG_CSF, param)
+        self._header = Header(SegTag.CSF, param)
         self._commands = []
         self._command_types = (
             CmdWriteData,
@@ -498,13 +617,13 @@ class SegCSF(BaseSegment):
         # TODO: Parse CSF blob
         for cmd in self._commands:
             if isinstance(cmd, CmdInstallKey):
-                header = Header(SegTag.HAB_TAG_CRT)
+                header = Header(SegTag.CRT)
                 header.parse(data, offset + cmd.keydat)
                 #print(header)
                 index = offset + cmd.keydat + header.size
                 #print(data[index:index+header.length])
             elif isinstance(cmd, CmdAuthData):
-                header = Header(SegTag.HAB_TAG_SIG)
+                header = Header(SegTag.SIG)
                 header.parse(data, offset + cmd.auth_start)
                 #print(header)
                 index = offset + cmd.auth_start + header.size

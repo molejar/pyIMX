@@ -13,7 +13,7 @@
 # COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 # OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from .commands import EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumProtocol, EnumInsKey, EnumAuth,  EnumEngine, \
+from .commands import EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumProtocol, EnumInsKey, EnumAuthDat,  EnumEngine, \
                       EnumItm, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, \
                       CmdAuthData
 from .segments import SegIVT, SegBDT, SegAPP, SegDCD, SegCSF
@@ -43,7 +43,7 @@ __all__ = [
     'EnumAlgorithm',
     'EnumProtocol',
     'EnumInsKey',
-    'EnumAuth',
+    'EnumAuthDat',
     'EnumEngine',
     'EnumItm'
 ]

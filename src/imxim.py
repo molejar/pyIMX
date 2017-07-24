@@ -22,159 +22,6 @@ import imx
 
 
 ########################################################################################################################
-## Local methods
-########################################################################################################################
-
-def export_dcd(dcd_obj):
-    assert isinstance(dcd_obj, imx.SegDCD)
-
-    engines = {
-        int(imx.EnumEngine.HAB_ENG_ANY):    'ANY',
-        int(imx.EnumEngine.HAB_ENG_SCC):    'SCC',
-        int(imx.EnumEngine.HAB_ENG_RTIC):   'RTIC',
-        int(imx.EnumEngine.HAB_ENG_SAHARA): 'SAHARA',
-        int(imx.EnumEngine.HAB_ENG_CSU):    'CSU',
-        int(imx.EnumEngine.HAB_ENG_SRTC):   'SRTC',
-        int(imx.EnumEngine.HAB_ENG_DCP):    'DCP',
-        int(imx.EnumEngine.HAB_ENG_CAAM):   'CAAM',
-        int(imx.EnumEngine.HAB_ENG_SNVS):   'SNVS',
-        int(imx.EnumEngine.HAB_ENG_OCOTP):  'OCOTP',
-        int(imx.EnumEngine.HAB_ENG_DTCP):   'DTCP',
-        int(imx.EnumEngine.HAB_ENG_ROM):    'ROM',
-        int(imx.EnumEngine.HAB_ENG_HDCP):   'HDCP',
-        int(imx.EnumEngine.HAB_ENG_SW):     'SW'
-    }
-    write_ops = ('WriteValue', 'WriteValue', 'ClearBitMask', 'SetBitMask')
-    check_ops = ('CheckAllClear', 'CheckAllSet', 'CheckAnyClear', 'CheckAnySet')
-    text_file = "# IMX DCD Content\n\n"
-
-    for cmd in dcd_obj:
-        if type(cmd)  is imx.CmdWriteData:
-            for (address, value) in cmd:
-                text_file += "{0:s} {1:d} 0x{2:08X} 0x{3:08X}\n".format(write_ops[cmd.ops], cmd.bytes, address, value)
-            text_file += '\n'
-        elif type(cmd)  is imx.CmdCheckData:
-            text_file += "{0:s} {1:d} 0x{2:08X} 0x{3:08X}".format(check_ops[cmd.ops], cmd.bytes, cmd.address, cmd.mask)
-            if cmd.count:
-                text_file += "{0:d}\n".format(cmd.count)
-            else:
-                text_file += "\n"
-            text_file += '\n'
-        elif type(cmd) is imx.CmdUnlock:
-            text_file += "Unlock {0:s}".format(engines[cmd.engine])
-            for value in cmd:
-                text_file += " 0x{0:08X}".format(value)
-            text_file += '\n\n'
-        else:
-            text_file += "Nop\n\n"
-
-    return text_file
-
-
-def parse_dcd(text_file):
-
-    cmds = {
-        'WriteValue':    ('write', int(imx.EnumWriteOps.WRITE_VALUE)),
-        'ClearBitMask':  ('write', int(imx.EnumWriteOps.CLEAR_BITMASK)),
-        'SetBitMask':    ('write', int(imx.EnumWriteOps.SET_BITMASK)),
-        'CheckAllClear': ('check', int(imx.EnumCheckOps.ALL_CLEAR)),
-        'CheckAllSet':   ('check', int(imx.EnumCheckOps.ALL_SET)),
-        'CheckAnyClear': ('check', int(imx.EnumCheckOps.ANY_CLEAR)),
-        'CheckAnySet':   ('check', int(imx.EnumCheckOps.ANY_SET)),
-        'Unlock':        None,
-        'Nop':           None
-    }
-
-    engines = {
-        'ANY':    int(imx.EnumEngine.HAB_ENG_ANY),
-        'SCC':    int(imx.EnumEngine.HAB_ENG_SCC),
-        'RTIC':   int(imx.EnumEngine.HAB_ENG_RTIC),
-        'SAHARA': int(imx.EnumEngine.HAB_ENG_SAHARA),
-        'CSU':    int(imx.EnumEngine.HAB_ENG_CSU),
-        'SRTC':   int(imx.EnumEngine.HAB_ENG_SRTC),
-        'DCP':    int(imx.EnumEngine.HAB_ENG_DCP),
-        'CAAM':   int(imx.EnumEngine.HAB_ENG_CAAM),
-        'SNVS':   int(imx.EnumEngine.HAB_ENG_SNVS),
-        'OCOTP':  int(imx.EnumEngine.HAB_ENG_OCOTP),
-        'DTCP':   int(imx.EnumEngine.HAB_ENG_DTCP),
-        'ROM':    int(imx.EnumEngine.HAB_ENG_ROM),
-        'HDCP':   int(imx.EnumEngine.HAB_ENG_HDCP),
-        'SW':     int(imx.EnumEngine.HAB_ENG_SW)
-    }
-
-    dcd = imx.SegDCD(True)
-    cmd = None
-
-    for line in text_file.split('\n'):
-        line = line.rstrip('\0')
-        # ignore comments
-        if not line or line.startswith('#'):
-            continue
-        # Split line and validate command
-        cmd_line = line.split(' ')
-        if cmd_line[0] not in cmds:
-            continue
-        # Parse command
-        if cmd_line[0] == 'Nop':
-            if cmd is not None:
-                dcd.append(cmd)
-                cmd = None
-
-            dcd.append(imx.CmdNop())
-
-        elif cmd_line[0] == 'Unlock':
-            if cmd is not None:
-                dcd.append(cmd)
-                cmd = None
-
-            if cmd_line[1] not in engines:
-                raise SyntaxError("Unlock CMD: wrong engine")
-
-            engine = engines[cmd_line[1]]
-            data   = [int(value, 0) for value in cmd_line[2:]]
-            dcd.append(imx.CmdUnlock(engine, data))
-
-        elif cmds[cmd_line[0]][0] == 'write':
-
-            if len(cmd_line) < 4:
-                raise SyntaxError("Write CMD: too weak arguments")
-
-            ops   = cmds[cmd_line[0]][1]
-            bytes = int(cmd_line[1])
-            addr  = int(cmd_line[2], 0)
-            value = int(cmd_line[3], 0)
-
-            if cmd is not None:
-                if cmd.ops != ops or cmd.bytes != bytes:
-                    dcd.append(cmd)
-                    cmd = None
-
-            if cmd is None:
-                cmd = imx.CmdWriteData(bytes, ops)
-
-            cmd.append(addr, value)
-        else:
-            if len(cmd_line) < 4:
-                raise SyntaxError("Check CMD: too weak arguments")
-
-            if cmd is not None:
-                dcd.append(cmd)
-                cmd = None
-
-            ops   = cmds[cmd_line[0]][1]
-            bytes = int(cmd_line[1])
-            addr  = int(cmd_line[2], 0)
-            mask  = int(cmd_line[3], 0)
-            count = int(cmd_line[4], 0) if len(cmd_line) > 4 else None
-            dcd.append(imx.CmdCheckData(bytes, ops, addr, mask, count))
-
-    if cmd is not None:
-        dcd.append(cmd)
-
-    return dcd
-
-
-########################################################################################################################
 ## New argument types
 ########################################################################################################################
 
@@ -267,10 +114,10 @@ def create(address, dcdfile, appfile, outfile, offset, plugin, csf=None):
         with open(appfile, 'rb') as f:
             img.app = f.read()
 
-        # Open and import DCD segment
+        # Open and load/parse DCD segment
         if dcdfile.lower().endswith('.txt'):
             with open(dcdfile, 'r') as f:
-                img.dcd = parse_dcd(f.read())
+                img.dcd.load(f.read())
         else:
             with open(dcdfile, 'rb') as f:
                 img.dcd.parse(f.read())
@@ -327,7 +174,7 @@ def extract(file, offset, format):
             if format == 'txt':
                 msg += "DCD Segment:   dcd.txt\n"
                 with open(os.path.join(out_path, 'dcd.txt'), 'w') as f:
-                    f.write(export_dcd(img.dcd))
+                    f.write(img.dcd.store())
             else:
                 msg += "DCD Segment:   dcd.bin\n"
                 with open(os.path.join(out_path, 'dcd.bin'), 'wb') as f:

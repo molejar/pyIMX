@@ -136,7 +136,7 @@ command1 arg0 arg1 ...
 * **CheckAllSet** *BYTES ADDRESS MASK [COUNT]*
 * **CheckAnyClear** *BYTES ADDRESS MASK [COUNT]*
 * **CheckAnySet** *BYTES ADDRESS MASK [COUNT]*
-* **Unlock** *ENGINE VALUE [VALUE]*
+* **Unlock** *ENGINE [VALUE0, VALUE1, ...]*
 * **Nop**
 
 ##### Example:

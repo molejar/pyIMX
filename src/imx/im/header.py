@@ -23,26 +23,28 @@ from struct import pack, unpack_from, calcsize
 
 @unique
 class SegTag(IntEnum):
-    HAB_TAG_IVT     = 0xD1  # Image Vector Table
-    HAB_TAG_DCD     = 0xD2  # Device Configuration Data
-    HAB_TAG_CSF     = 0xD4  # Command Sequence File
-    HAB_TAG_CRT     = 0xD7  # Certificate
-    HAB_TAG_SIG     = 0xD8  # Signature
-    HAB_TAG_EVT     = 0xDB  # Event
-    HAB_TAG_RVT     = 0xDD  # ROM Vector Table
-    HAB_TAG_WRP     = 0x81  # Wrapped Key
-    HAB_TAG_MAC     = 0xAC  # Message Authentication Code
+    # Segments Tag
+    IVT     = 0xD1  # Image Vector Table
+    DCD     = 0xD2  # Device Configuration Data
+    CSF     = 0xD4  # Command Sequence File
+    CRT     = 0xD7  # Certificate
+    SIG     = 0xD8  # Signature
+    EVT     = 0xDB  # Event
+    RVT     = 0xDD  # ROM Vector Table
+    WRP     = 0x81  # Wrapped Key
+    MAC     = 0xAC  # Message Authentication Code
 
 @unique
 class CmdTag(IntEnum):
-    HAB_CMD_SET     = 0xB1  # Set
-    HAB_CMD_INS_KEY = 0xBE  # Install Key
-    HAB_CMD_AUT_DAT = 0xCA  # Authenticate Data
-    HAB_CMD_WRT_DAT = 0xCC  # Write Data
-    HAB_CMD_CHK_DAT = 0xCF  # Check Data
-    HAB_CMD_NOP     = 0xC0  # No Operation
-    HAB_CMD_INIT    = 0xB4  # Initialize
-    HAB_CMD_UNLK    = 0xB2  # Unlock
+    # Commands Tag
+    SET     = 0xB1  # Set
+    INS_KEY = 0xBE  # Install Key
+    AUT_DAT = 0xCA  # Authenticate Data
+    WRT_DAT = 0xCC  # Write Data
+    CHK_DAT = 0xCF  # Check Data
+    NOP     = 0xC0  # No Operation
+    INIT    = 0xB4  # Initialize
+    UNLK    = 0xB2  # Unlock
 
 
 ########################################################################################################################
