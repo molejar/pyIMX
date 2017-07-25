@@ -225,7 +225,7 @@ class CmdWriteData(object):
         msg += "Write Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumWriteOps.value_to_str(self.ops), self.bytes)
         msg += "-" * 60 + "\n"
         for cmd in self._wrdata:
-            msg += "- ADDR: 0x{0:08X}, VAL: 0x{1:08X}\n".format(cmd[0], cmd[1])
+            msg += "- Address: 0x{0:08X}, Value: 0x{1:08X}\n".format(cmd[0], cmd[1])
         return msg
 
     def append(self, address, value):
@@ -329,9 +329,9 @@ class CmdCheckData(object):
         msg  = "-" * 60 + "\n"
         msg += "Check Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumCheckOps.value_to_str(self.ops), self.bytes)
         msg += "-" * 60 + "\n"
-        msg += "- ADDR: 0x{0:08X}, MASK: 0x{1:08X}".format(self._address, self._mask)
+        msg += "- Address: 0x{0:08X}, Mask: 0x{1:08X}".format(self._address, self._mask)
         if self.count:
-            msg += ", COUNT: {0:d}".format(self._count)
+            msg += ", Count: {0:d}".format(self._count)
         msg += "\n"
         return msg
 
@@ -483,8 +483,10 @@ class CmdInitialize(object):
         msg  = "-" * 60 + "\n"
         msg += "Initialize Command (Engine: {0:s})\n".format(EnumEngine.value_to_str(self.engine))
         msg += "-" * 60 + "\n"
+        cnt = 0
         for val in self._data:
-            msg += "- VAL: 0x{0:08X}\n".format(val)
+            msg += " {0:02d}) Value: 0x{1:08X}\n".format(cnt, val)
+            cnt += 1
         return msg
 
     def append(self, value):
@@ -562,8 +564,10 @@ class CmdUnlock(object):
         msg  = "-" * 60 + "\n"
         msg += "Unlock Command (Engine: {0:s})\n".format(EnumEngine.value_to_str(self.engine))
         msg += "-" * 60 + "\n"
+        cnt = 0
         for val in self._data:
-            msg += "- VAL: 0x{0:08X}\n".format(val)
+            msg += " {0:02d}) Value: 0x{1:08X}\n".format(cnt, val)
+            cnt += 1
         return msg
 
     def append(self, value):

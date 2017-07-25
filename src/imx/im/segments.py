@@ -372,8 +372,10 @@ class SegDCD(BaseSegment):
             'Unlock': None,
             'Nop': None
         }
-        cmd = None
-        cnt = 0
+
+        line_cnt = 0
+        cmd_write = None
+        cmd_mline = False
 
         # remove all buffered commands
         self.clear()
@@ -381,70 +383,81 @@ class SegDCD(BaseSegment):
         for line in txt_data.split('\n'):
             line = line.rstrip('\0')
             # increment line counter
-            cnt += 1
+            line_cnt += 1
             # ignore comments
             if not line or line.startswith('#'):
                 continue
-            # Split line and validate command
-            cmd_line = line.split()
-            if cmd_line[0] not in cmds:
+            # check if multi-line command
+            if cmd_mline:
+                cmd += line.split()
+                cmd_mline = False
+            else:
+                cmd = line.split()
+                if cmd[0] not in cmds:
+                    continue
+            #
+            if cmd[-1] == '\\':
+                cmd = cmd[:-1]
+                cmd_mline = True
                 continue
+            # ----------------------------
             # Parse command
-            if cmd_line[0] == 'Nop':
-                if cmd is not None:
-                    self.append(cmd)
-                    cmd = None
+            # ----------------------------
+            if cmd[0] == 'Nop':
+                if cmd_write is not None:
+                    self.append(cmd_write)
+                    cmd_write = None
 
                 self.append(CmdNop())
 
-            elif cmd_line[0] == 'Unlock':
-                if cmd is not None:
-                    self.append(cmd)
-                    cmd = None
+            elif cmd[0] == 'Unlock':
+                if cmd_write is not None:
+                    self.append(cmd_write)
+                    cmd_write = None
 
-                if cmd_line[1] not in EnumEngine.get_names():
-                    raise SyntaxError("Unlock CMD: wrong engine parameter at line %d" % (cnt - 1))
+                if cmd[1] not in EnumEngine.get_names():
+                    raise SyntaxError("Unlock CMD: wrong engine parameter at line %d" % (line_cnt - 1))
 
-                engine = EnumEngine.str_to_value(cmd_line[1])
-                data = [int(value, 0) for value in cmd_line[2:]]
+                engine = EnumEngine.str_to_value(cmd[1])
+                data = [int(value, 0) for value in cmd[2:]]
                 self.append(CmdUnlock(engine, data))
 
-            elif cmds[cmd_line[0]][0] == 'write':
-                if len(cmd_line) < 4:
-                    raise SyntaxError("Write CMD: not enough arguments at line %d" % (cnt - 1))
+            elif cmds[cmd[0]][0] == 'write':
+                if len(cmd) < 4:
+                    raise SyntaxError("Write CMD: not enough arguments at line %d" % (line_cnt - 1))
 
-                ops = cmds[cmd_line[0]][1]
-                bytes = int(cmd_line[1])
-                addr = int(cmd_line[2], 0)
-                value = int(cmd_line[3], 0)
+                ops = cmds[cmd[0]][1]
+                bytes = int(cmd[1])
+                addr = int(cmd[2], 0)
+                value = int(cmd[3], 0)
 
-                if cmd is not None:
-                    if cmd.ops != ops or cmd.bytes != bytes:
-                        self.append(cmd)
-                        cmd = None
+                if cmd_write is not None:
+                    if cmd_write.ops != ops or cmd_write.bytes != bytes:
+                        self.append(cmd_write)
+                        cmd_write = None
 
-                if cmd is None:
-                    cmd = CmdWriteData(bytes, ops)
+                if cmd_write is None:
+                    cmd_write = CmdWriteData(bytes, ops)
 
-                cmd.append(addr, value)
+                cmd_write.append(addr, value)
 
             else:
-                if len(cmd_line) < 4:
-                    raise SyntaxError("Check CMD: not enough arguments at line %d" % (cnt - 1))
+                if len(cmd) < 4:
+                    raise SyntaxError("Check CMD: not enough arguments at line %d" % (line_cnt - 1))
 
-                if cmd is not None:
-                    self.append(cmd)
-                    cmd = None
+                if cmd_write is not None:
+                    self.append(cmd_write)
+                    cmd_write = None
 
-                ops = cmds[cmd_line[0]][1]
-                bytes = int(cmd_line[1])
-                addr = int(cmd_line[2], 0)
-                mask = int(cmd_line[3], 0)
-                count = int(cmd_line[4], 0) if len(cmd_line) > 4 else None
+                ops = cmds[cmd[0]][1]
+                bytes = int(cmd[1])
+                addr = int(cmd[2], 0)
+                mask = int(cmd[3], 0)
+                count = int(cmd[4], 0) if len(cmd) > 4 else None
                 self.append(CmdCheckData(bytes, ops, addr, mask, count))
 
-        if cmd is not None:
-            self.append(cmd)
+        if cmd_write is not None:
+            self.append(cmd_write)
 
         if self._commands:
             self._enabled = True
@@ -466,8 +479,14 @@ class SegDCD(BaseSegment):
 
             elif type(cmd) is CmdUnlock:
                 txt_data += "Unlock {0:s}".format(EnumEngine.value_to_str(cmd.engine))
+                cnt = 1
                 for value in cmd:
+                    if cnt > 6:
+                        txt_data += " \\\n"
+                        cnt = 0
                     txt_data += " 0x{0:08X}".format(value)
+                    cnt += 1
+
                 txt_data += '\n'
 
             else:
@@ -480,23 +499,23 @@ class SegDCD(BaseSegment):
 
     def parse(self, data, offset=0):
         self._header.parse(data, offset)
-        element_offset = self._header.size
-        while element_offset < self._header.length:
+        cmd_offset = self._header.size
+        while cmd_offset < self._header.length:
             passed = False
             for command_type in self._command_types:
                 command = command_type()
                 try:
-                    command.parse(data, offset + element_offset)
+                    command.parse(data, offset + cmd_offset)
                 except UnparsedException:
                     passed = False
                     del command
                     continue
                 self._commands.append(command)
-                element_offset += command.size
+                cmd_offset += command.size
                 passed = True
                 break
             if not passed:
-                raise CorruptedException
+                raise CorruptedException("at position: " + hex(offset + cmd_offset))
         self.enabled = True
 
     def export(self, padding=False):

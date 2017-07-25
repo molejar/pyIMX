@@ -98,9 +98,13 @@ The example of IMX boot image manager API usage:
     # Print extracted DCD info
     print(dcd)
 
-    # Save extracted DCD content into raw image
+    # Save extracted DCD content as raw image
     with open('dcd.img', 'wb') as f:
         f.write(dcd.export())
+
+    # Save extracted DCD content as readable text file
+    with open('dcd.txt', 'w') as f:
+        f.write(dcd.store())
 ```
 
 The example of IMX serial downloader API usage:
