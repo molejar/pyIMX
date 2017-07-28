@@ -3,7 +3,7 @@ pyIMX
 
 This repository collects a useful tools and python modules targeted for [IMX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors).
 
-> This project is still in alpha phase. Please, test it and report the issues.
+> This project is still in developing phase. Please, test it and report the issues.
 
 Dependencies
 ------------

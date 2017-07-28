@@ -61,8 +61,8 @@ VERSION = imx.__version__
 
 # Short description of imxim tool
 DESCRIP = (
-    "IMX Image Manager, ver.: " + VERSION + "\n\n"
-    "NOTE: This tool is still in deep development. Please, be carefully with it usage !\n"
+    "IMX Image Manager, ver.: " + VERSION + " Beta\n\n"
+    "NOTE: Development version, be carefully with it usage !\n"
 )
 
 

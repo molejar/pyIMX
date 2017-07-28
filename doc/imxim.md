@@ -121,23 +121,36 @@ Create new IMX image from attached files:
 The segment with device configuration data (DCD) can be specified in readable text format with following syntax:
 
 ```
-# comment
+# Comment line must staring with '#'
 command0 arg0 arg1 ...
 command1 arg0 arg1 ...
 ...
+# Long commands can be slit into more lines with '\' char
+commandN arg0 arg1 arg2 \
+arg3 arg4 arg5 arg6
 ```
 
 
 #### Supported commands
 * **WriteValue** *BYTES ADDRESS VALUE*
-* **ClearBitMask** *BYTES ADDRESS VALUE*
-* **SetBitMask** *BYTES ADDRESS VALUE*
+* **ClearBitMask** *BYTES ADDRESS MASK*
+* **SetBitMask** *BYTES ADDRESS MASK*
 * **CheckAllClear** *BYTES ADDRESS MASK [COUNT]*
 * **CheckAllSet** *BYTES ADDRESS MASK [COUNT]*
 * **CheckAnyClear** *BYTES ADDRESS MASK [COUNT]*
 * **CheckAnySet** *BYTES ADDRESS MASK [COUNT]*
 * **Unlock** *ENGINE [VALUE0, VALUE1, ...]*
 * **Nop**
+
+#### Description of arguments
+* *BYTES* - The size of access into memory cell or register. Supported are three options: 1, 2 and 4 bytes.
+* *ADDRESS* - The absolute address off memory cell or register inside SoC linear address space.
+* *VALUE* - The value in supported format.
+* *MASK* - The value of bit-mask.
+* *COUNT* - The number of repeated checks. This argument is optional.
+* *ENGINE* - The type of engine which will be unlocked in string format. Supported are this options: 'ANY', 'SCC', 'RTIC', 'SAHARA', 'CSU', 'SRTC', 'DCP', 'CAAM', 'SNVS', 'OCOTP', 'DTCP', 'ROM', 'HDCP', 'SW'
+
+> Arguments: *ADDRESS*, *VALUE* and *MASK* can be specified in decimal (654...), binary (0b01101...) or hex (0x105...) format.
 
 ##### Example:
 ```

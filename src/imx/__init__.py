@@ -21,7 +21,7 @@ from .sd import SerialDownloader, \
                 SD_GenericError, SD_CommandError, SD_ConnectionError, SD_DataError, SD_SecureError, SD_TimeoutError
 
 __author__ = 'Martin Olejar <martin.olejar@gmail.com>'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __status__ = 'Development'
 __all__ = [
     # IMX Modules

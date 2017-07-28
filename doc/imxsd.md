@@ -13,10 +13,14 @@ For printing a general info of usage this tool execute `imxsd -?`.
  $ imxsd -?
  Usage: imxsd [OPTIONS] COMMAND [ARGS]...
 
-   IMX Serial Downloader, ver.: 0.0.1
+   IMX Serial Downloader, ver.: 0.0.2 Beta
+
+   NOTE: Development version, be carefully with it usage !
 
  Options:
-   -r, --pid UNSIGNED INT     USB Product ID [optional]
+   -t, --target [MX6SX|MX6UL|MX6SDL|MX6DQP|MX6ULL|MX6SL|MX7SD|MX6SLL|VYBRID]
+                              Select specific target [optional]
+   -p, --pid UNSIGNED INT     USB product ID of unknown target [optional]
    -d, --debug INTEGER RANGE  Debug level (0-off, 1-info, 2-debug)
    -v, --version              Show the version and exit.
    -?, --help                 Show this message and exit.

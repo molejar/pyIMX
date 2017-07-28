@@ -338,7 +338,7 @@ def parse_hablog_mx6(data):
                   bootType = logValue & 0xff
             elif logValue in logNamesDouble:
                 retmsg += " %02d. (0x%08X) -> %s\n" % (logLoop, logValue, logNamesDouble[logValue])
-                logLoop = logLoop + 1
+                logLoop += 1
                 logData = struct.unpack_from('I', data, logLoop * 4)[0]
                 if logValue == 0x00090000:
                     retmsg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % (logLoop, logData, logData & 0xff,
@@ -350,7 +350,7 @@ def parse_hablog_mx6(data):
             else:
                 retmsg += " Log Buffer Code not found\n"
 
-            logLoop = logLoop + 1
+            logLoop += 1
 
     return retmsg
 
@@ -460,11 +460,11 @@ def parse_hablog_mx7(data):
             else:
                 retmsg += " %02d. Log Buffer Code not found\n"
             if logValue in logNamesAddress :
-                logLoop = logLoop + 1
+                logLoop += 1
                 logData = struct.unpack_from('I', data, logLoop * 4)[0]
                 retmsg += " %02d. (0x%08X) -> Address: 0x%08X\n" % (logLoop, logData, logData)
             if logValue in logNamesHAB:
-                logLoop = logLoop + 1
+                logLoop += 1
                 logData = struct.unpack_from('I', data, logLoop * 4)[0]
                 retmsg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % (logLoop, logData, logData & 0xff,
                                                                                 logNamesHABstatus[logData & 0xff])
@@ -473,7 +473,7 @@ def parse_hablog_mx7(data):
             if logValue in logNamesError:
                 retmsg += "                     Error Code: 0x%06X\n" % (logValueFull & 0xffffff)
             if logValue in logNamesTick:
-                logLoop = logLoop + 1
+                logLoop += 1
                 logData = struct.unpack_from('I', data, logLoop * 4)[0]
                 retmsg += " %02d. (0x%08X) -> Tick: 0x%08X\n" % (logLoop, logData, logData)
 
@@ -530,17 +530,21 @@ VERSION = imx.__version__
 
 # Short description of imxsd tool
 DESCRIP = (
-    "IMX Serial Downloader, ver.: " + VERSION + "\n\n"
-    "NOTE: This tool is still in deep development. Please, be carefully with it usage !\n"
+    "IMX Serial Downloader, ver.: " + VERSION + " Beta\n\n"
+    "NOTE: Development version, be carefully with it usage !\n"
 )
+
+# Supported Targets
+TARGETS = imx.SerialDownloader.HID_PID.keys()
 
 
 @click.group(context_settings=dict(help_option_names=['-?', '--help']), help=DESCRIP)
-@click.option('-r', '--pid', type=UINT, default=None, help='USB Product ID [optional]')
+@click.option('-t', '--target', type=click.Choice(TARGETS), default=None, help='Select specific target [optional]')
+@click.option('-p', '--pid', type=UINT, default=None, help='USB product ID of unknown target [optional]')
 @click.option('-d', '--debug', type=click.IntRange(0, 2, True), default=0, help="Debug level (0-off, 1-info, 2-debug)")
 @click.version_option(VERSION, '-v', '--version')
 @click.pass_context
-def cli(ctx, pid=None, debug=0):
+def cli(ctx, target=None, pid=None, debug=0):
 
     if debug > 0:
         FORMAT = "[%(asctime)s.%(msecs)03d %(levelname)-5s] %(message)s"
@@ -548,6 +552,9 @@ def cli(ctx, pid=None, debug=0):
         logging.basicConfig(format=FORMAT, datefmt='%M:%S', level=loglevel[debug])
 
     ctx.obj['DEBUG'] = debug
+
+    if target is not None:
+        pid = imx.SerialDownloader.HID_PID[target]
 
     devs = imx.SerialDownloader.scanUSB(pid)
     if devs:
