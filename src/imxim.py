@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright (c) 2017 Martin Olejar
 #
@@ -56,10 +56,10 @@ UINT = UInt()
 # Application error code
 ERROR_CODE = 1
 
-# The version of IMX module
+# Application version
 VERSION = imx.__version__
 
-# Short description of imxim tool
+# Application description
 DESCRIP = (
     "IMX Image Manager, ver.: " + VERSION + " Beta\n\n"
     "NOTE: Development version, be carefully with it usage !\n"

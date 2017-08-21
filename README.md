@@ -1,7 +1,7 @@
 pyIMX
 =====
 
-This repository collects a useful tools and python modules targeted for [IMX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors).
+This repository collects a useful tools and python module targeted for [IMX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-based-portfolio/i.mx-applications-processors).
 
 > This project is still in developing phase. Please, test it and report the issues.
 
@@ -13,6 +13,8 @@ Dependencies
 - [PyWinUSB](https://github.com/rene-aguirre/pywinusb) - Python package that simplifies USB-HID communications on Windows OS.
 - [PyUSB](https://walac.github.io/pyusb/) - Python package to access USB devices in Linux OS.
 - [pyserial](https://github.com/pyserial/pyserial) - Python package for communication over Serial port in Linux and Windows OS.
+- [pyYAML](http://pyyaml.org/wiki/PyYAML) - YAML parser and emitter for the Python programming language.
+- [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for for manipulating with U-Boot images and environment variables.
 
 Installation
 ------------
@@ -134,9 +136,10 @@ The example of IMX serial downloader API usage:
         flasher.disconnect()
 ```
 
-Python IMX module is distributed with two command-line utilities (tools):
-* [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool for manipulation with `*.imx` boot image
-* [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+Python IMX module is distributed with following command-line utilities (tools):
+* [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
+* [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+* [imxsb](doc/imxsb.md) - a tool for managed boot (IMX Smart Boot)
 
 TODO
 ----
