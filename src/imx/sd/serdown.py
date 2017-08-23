@@ -127,7 +127,7 @@ class SerialDownloader(object):
         self._uart_dev = None
 
     @staticmethod
-    def scanUSB(pid=None):
+    def scan_usb(pid=None):
         """ IMX SD: Scan commected USB devices
         :param: pid The PID value of USB device
         :rtype : object
@@ -145,10 +145,11 @@ class SerialDownloader(object):
         return usb_devs
 
     @staticmethod
-    def scanUART():
+    def scan_uart():
         return UARTIF.available_ports()
 
-    def is_connected(self):
+    @property
+    def opened(self):
         """ IMX SD: Check if device connected
         """
         if self._usb_dev is not None:
@@ -156,14 +157,14 @@ class SerialDownloader(object):
         else:
             return False
 
-    def getTargetName(self):
+    def get_target_name(self):
         if self._usb_dev:
             for name, val in self.HID_PID.items():
                 if self._usb_dev.pid == val:
                     return name
 
-    def connectUSB(self, dev):
-        """ IMX SD: Connect by USB
+    def open_usb(self, dev):
+        """ IMX SD: Connect to device by USB
         """
         if dev is not None:
             logging.info('Connect: %s', dev.getInfo())
@@ -175,21 +176,21 @@ class SerialDownloader(object):
             logging.info('USB Disconnected !')
             return False
 
-    def connectUART(self, port, baudrate):
-        """ IMX SD: Connect by UART """
+    def open_uart(self, port, baudrate):
+        """ IMX SD: Connect to device by UART """
         if port is not None:
             self._uart_dev = UARTIF()
             self._uart_dev.open(port, baudrate)
             if self._uart_dev.ping():
                 return True
             else:
-                self.disconnect()
+                self.close()
                 return False
         else:
             logging.info('UART Disconnected !')
             return False
 
-    def disconnect(self):
+    def close(self):
         """ IMX SD: Disconnect USB/RS232 device """
         if self._usb_dev:
             self._usb_dev.close()
@@ -364,7 +365,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WRITE')
 
-    def writeCSF(self, address, data):
+    def write_csf(self, address, data):
         """ IMX SD: Write CSF Data at specified address
         :param address: Start Address
         :param data: The CSF data in bytearray type
@@ -375,7 +376,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WCSF')
 
-    def writeDCD(self, address, data):
+    def write_dcd(self, address, data):
         """ IMX SD: Write DCD values at specified address
         :param address: Start Address
         :param data: The DCD data in bytearray type
@@ -386,7 +387,7 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WDCD')
 
-    def writeFile(self, address, data):
+    def write_file(self, address, data):
         """ IMX SD: Write File/Data at specified address
         :param address: Start Address
         :param data: The image data in bytearray type
@@ -397,14 +398,14 @@ class SerialDownloader(object):
         self._check_secinfo()
         self._check_status('WFILE')
 
-    def skipDCD(self):
+    def skip_dcd(self):
         """ IMX SD: Skip DCD Header from loaded file """
         logging.info('TX-CMD: SkipDCD')
         self._send_cmd('SKIPDCD')
         self._check_secinfo()
         self._check_status('SKIPDCD')
 
-    def readStatus(self):
+    def read_status(self):
         """ IMX SD: Read Status
         :return status value
         """
@@ -415,7 +416,7 @@ class SerialDownloader(object):
         logging.info('RX-CMD: 0x%08X', status)
         return status
 
-    def jumpAndRun(self, address):
+    def jump_and_run(self, address):
         """ IMX SD: Jump to specified address and run
         :param address: Destination address
         """

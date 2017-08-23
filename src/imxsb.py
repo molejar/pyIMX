@@ -397,10 +397,13 @@ def cli(ctx, file):
 
 
 # info command
-@cli.command(short_help="Get data file info")
+@cli.command(short_help="Get list of all boot options")
 @click.pass_context
 def info(ctx):
+    ''' Get list of all boot options '''
+
     smx = ctx.obj['SMX']
+
     num = 0
     #click.echo(" ")
     for name, desc in smx.list():
@@ -409,62 +412,74 @@ def info(ctx):
 
 
 # run command
-@cli.command(short_help="Start Controlled Boot")
+@cli.command(short_help="Run selected boot script")
 @click.option('-s', '--sid', type=click.INT, help="Script index")
 @click.pass_context
 def run(ctx, sid=None):
+    ''' Run selected boot script '''
+
     smx = ctx.obj['SMX']
-    #try:
-    # get target USB PID
-    pid = imx.SerialDownloader.HID_PID[smx.target]
-    # scan for USB target
-    devs = imx.SerialDownloader.scanUSB(pid)
-    if not devs:
-        raise Exception("%s device not connected !" % smx.target)
-    # select boot script
-    if sid is None or sid > smx.count():
-        num = 0
-        #click.echo(" ")
-        for name, desc in smx.list():
-            click.secho("%d) %s (%s)" % (num, name, desc))
-            num += 1
-        click.echo("\nUse: ", nl=False)
-        c = input()
-        sid = int(c, 10)
-        click.echo()
-    # load script
-    script = smx.get_script(sid)
-    # connect target
     flasher = imx.SerialDownloader()
-    flasher.connectUSB(devs[0])
-    # execute script
-    num = 1
-    for cmd in script:
-        # print command info
-        click.secho("%d/%d) %s" % (num, len(script), cmd['DESC']))
+    error_flg = False
 
-        if cmd['NAME'] == 'WREG':
-            flasher.write(cmd['ADDR'], cmd['VALUE'], cmd['BYTES'])
+    try:
+        # get target USB PID
+        pid = imx.SerialDownloader.HID_PID[smx.target]
+        # scan for USB target
+        devs = imx.SerialDownloader.scan_usb(pid)
+        if not devs:
+            raise Exception("%s device not connected !" % smx.target)
+        # select boot script
+        if sid is None or sid > smx.count():
+            num = 0
+            #click.echo(" ")
+            for name, desc in smx.list():
+                click.secho("%d) %s (%s)" % (num, name, desc))
+                num += 1
+            click.echo("\nUse: ", nl=False)
+            c = input()
+            sid = int(c, 10)
+            click.echo()
+        # load script
+        script = smx.get_script(sid)
+        # connect target
+        flasher.open_usb(devs[0])
+        # execute script
+        num = 1
+        for cmd in script:
+            # print command info
+            click.secho("%d/%d) %s" % (num, len(script), cmd['DESC']))
 
-        elif cmd['NAME'] == 'WDCD':
-            flasher.writeDCD(cmd['ADDR'], cmd['DATA'])
+            if cmd['NAME'] == 'WREG':
+                flasher.write(cmd['ADDR'], cmd['VALUE'], cmd['BYTES'])
 
-        elif cmd['NAME'] == 'WIMG':
-            flasher.writeFile(cmd['ADDR'], cmd['DATA'])
+            elif cmd['NAME'] == 'WDCD':
+                flasher.write_dcd(cmd['ADDR'], cmd['DATA'])
 
-        elif cmd['NAME'] == 'SDCD':
-            flasher.skipDCD()
+            elif cmd['NAME'] == 'WIMG':
+                flasher.write_file(cmd['ADDR'], cmd['DATA'])
 
-        elif cmd['NAME'] == 'JRUN':
-            flasher.jumpAndRun(cmd['ADDR'])
+            elif cmd['NAME'] == 'SDCD':
+                flasher.skip_dcd()
 
-        else:
-            raise Exception("Command: %s not defined" % cmd['NAME'])
+            elif cmd['NAME'] == 'JRUN':
+                flasher.jump_and_run(cmd['ADDR'])
 
-        num += 1
+            else:
+                raise Exception("Command: %s not defined" % cmd['NAME'])
+
+            num += 1
+
+    except Exception as e:
+        error_flg = True
+        error_msg = str(e) if str(e) else "Unknown Error !"
 
     # disconnect target
-    flasher.disconnect()
+    flasher.close()
+
+    if error_flg:
+        click.echo(error_msg)
+        sys.exit(ERROR_CODE)
 
 
 def main():

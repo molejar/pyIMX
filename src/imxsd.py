@@ -556,7 +556,7 @@ def cli(ctx, target=None, pid=None, debug=0):
     if target is not None:
         pid = imx.SerialDownloader.HID_PID[target]
 
-    devs = imx.SerialDownloader.scanUSB(pid)
+    devs = imx.SerialDownloader.scan_usb(pid)
     if devs:
         index = 0
         if len(devs) > 1:
@@ -607,9 +607,9 @@ def info(ctx):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Get Connected Device Name
-        dev_name = flasher.getTargetName()
+        dev_name = flasher.get_target_name()
         if dev_name is None:
             raise Exception('Not Connected or Unsupported Device')
         # Get Connected Device PID Value
@@ -692,7 +692,7 @@ def info(ctx):
         click.echo(" ---------------------------------------------------------")
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if error:
         click.echo(error_msg)
@@ -723,7 +723,7 @@ def read(ctx, address, length, size, compress, file):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Read data from IMX Device
         data = flasher.read(address, length, int(size))
     except imx.SD_GenericError as e:
@@ -734,7 +734,7 @@ def read(ctx, address, length, size, compress, file):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if file is None:
@@ -779,7 +779,7 @@ def rreg(ctx, address, count, size, format):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Read data from IMX Device
         data = flasher.read(address, int(count * reg_size), int(size))
     except Exception as e:
@@ -790,7 +790,7 @@ def rreg(ctx, address, count, size, format):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if format == 'b':
         val_format = '0b{2:0' + str(reg_size*8) + 'b}'
@@ -840,7 +840,7 @@ def wreg(ctx, address, value, size, bytes):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Write value into register from IMX Device
         flasher.write(address, value, bytes, int(size))
     except Exception as e:
@@ -851,7 +851,7 @@ def wreg(ctx, address, value, size, bytes):
           error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
@@ -886,7 +886,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Load image
         if file.lower().endswith('.imx'):
             img = imx.BootImage()
@@ -904,7 +904,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
 
                 click.echo(' - Init DDR')
                 dcd = img.dcd.export()
-                flasher.writeDCD(ocram, dcd)
+                flasher.write_dcd(ocram, dcd)
         else:
             if addr is None:
                 raise Exception('Argument: -a/--addr must be specified !')
@@ -918,16 +918,16 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
         click.secho(" - Writing %s, please wait !" % file)
         if ctx.obj['DEBUG']: click.echo()
         # Write data from image into device
-        flasher.writeFile(addr, data)
+        flasher.write_file(addr, data)
         # Skip DCD header if set
         if file.lower().endswith('.imx') and skipdcd:
             click.echo(' - Skip DCD content')
-            flasher.skipDCD()
+            flasher.skip_dcd()
             if ctx.obj['DEBUG']: click.echo()
         # Run loaded uboot.imx image
         if file.lower().endswith('.imx') and run:
             click.secho(' - Jump to ADDR: 0x%08X and RUN' % addr)
-            flasher.jumpAndRun(addr)
+            flasher.jump_and_run(addr)
 
     except Exception as e:
         error = True
@@ -937,7 +937,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
@@ -984,10 +984,10 @@ def wdcd(ctx, address, file, offset):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         click.secho(' - Writing DCD from %s, please wait !' % file)
         # Write value into register from IMX Device
-        flasher.writeDCD(address, data)
+        flasher.write_dcd(address, data)
     except Exception as e:
         error = True
         if ctx.obj['DEBUG']:
@@ -996,7 +996,7 @@ def wdcd(ctx, address, file, offset):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
@@ -1036,10 +1036,10 @@ def wcsf(ctx, address, file, offset):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         click.secho(' - Writing %s, please wait !' % file)
         # Write value into register from IMX Device
-        flasher.writeCSF(address, data)
+        flasher.write_csf(address, data)
     except Exception as e:
         error = True
         if ctx.obj['DEBUG']:
@@ -1048,7 +1048,7 @@ def wcsf(ctx, address, file, offset):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
@@ -1075,9 +1075,9 @@ def jump(ctx, address):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Write value into register from IMX Device
-        flasher.jumpAndRun(address)
+        flasher.jump_and_run(address)
     except Exception as e:
         error = True
         if ctx.obj['DEBUG']:
@@ -1086,7 +1086,7 @@ def jump(ctx, address):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
@@ -1112,9 +1112,9 @@ def stat(ctx):
     try:
         click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.connectUSB(ctx.obj['DEVICE'])
+        flasher.open_usb(ctx.obj['DEVICE'])
         # Read Status from IMX Device
-        status = flasher.readStatus()
+        status = flasher.read_status()
     except Exception as e:
         error = True
         if ctx.obj['DEBUG']:
@@ -1123,7 +1123,7 @@ def stat(ctx):
             error_msg = ' - ERROR: %s' % str(e)
 
     # Disconnect IMX Device
-    flasher.disconnect()
+    flasher.close()
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()

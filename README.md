@@ -115,34 +115,34 @@ The example of IMX serial downloader API usage:
     import imx
 
     # scan for connected USB devs
-    devs = imx.SerialDownloader.scanUSB()
+    devs = imx.SerialDownloader.scan_usb()
 
     if devs:
         # Create Flasher instance
         flasher = imx.SerialDownloader()
 
         # Connect IMX Device
-        flasher.connectUSB(devs[0])
+        flasher.open_usb(devs[0])
 
         # Read data from IMX Device (i.MX7D OCRAM)
         data = flasher.read(0x910000, 100, 8)
 
         # Write boot image data into IMX Device (i.MX7D OCRAM)
-        flasher.writeFile(0x910000, data)
+        flasher.write_file(0x910000, data)
 
         ...
 
         # Disconnect IMX Device
-        flasher.disconnect()
+        flasher.close()
 ```
 
 Python IMX module is distributed with following command-line utilities (tools):
 * [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
 * [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
-* [imxsb](doc/imxsb.md) - a tool for managed boot (IMX Smart Boot)
+* [imxsb](doc/imxsb.md) - a tool for managed boot of IMX device caled as "IMX Smart-Boot"
 
 TODO
 ----
 
 * Add image security features (sign and encryption)
-* Finish serial interface support in IMX serial downloader module
+* Complete serial interface support in IMX serial downloader module
