@@ -333,7 +333,7 @@ class SMX(object):
                 data['APPSEG'] = self.get_data(data['APPSEG'])
 
             if path is None and data is None:
-                raise Exception("The path/data must be defined for %s segment" % name)
+                raise Exception("The path/data must be defined in %s segment" % name)
 
             if   type == 'IMX':
                 self._data.append(DatSegIMX(name, desc, addr, path, data, eval, mark, mode))
@@ -343,8 +343,10 @@ class SMX(object):
                 self._data.append(DatSegUFW(name, desc, addr, path, data, eval, mark, mode))
             elif type == 'UST':
                 self._data.append(DatSegUST(name, desc, addr, path, data))
-            else:
+            elif type == 'BIN':
                 self._data.append(DatSegBIN(name, desc, addr, path, data))
+            else:
+                raise Exception("Unsupported type in %s segment" % name)
 
         # load scripts
         if yaml_data["BODY"]:
@@ -436,7 +438,7 @@ def run(ctx, sid=None):
             for name, desc in smx.list():
                 click.secho("%d) %s (%s)" % (num, name, desc))
                 num += 1
-            click.echo("\nUse: ", nl=False)
+            click.echo("\nRun: ", nl=False)
             c = input()
             sid = int(c, 10)
             click.echo()
@@ -471,8 +473,8 @@ def run(ctx, sid=None):
             num += 1
 
     except Exception as e:
-        error_flg = True
         error_msg = str(e) if str(e) else "Unknown Error !"
+        error_flg = True
 
     # disconnect target
     flasher.close()

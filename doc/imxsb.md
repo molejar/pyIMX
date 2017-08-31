@@ -54,13 +54,11 @@ This command execute boot process via selected boot option from attached SMX fil
  ...
 ```
 
-## SMX File Description
+## SMX File
 
-The SMX file is collecting all the information's of IMX boot process in one place: paths to images, DCD data, global variables, boot scripts and etc.
-Thanks to YAML syntax is human-readable and easy modifiable. The content of SMX file is split into four sections: `HEAD`, `VARS`, `DATA` and `BODY`.
-
-> Comments in SMX file start with the hash character `#` and extend to the end of the physical line. A comment may appear at the start of a line or
-following whitespace characters.
+The SMX file is a standard text file which collect all information's about IMX boot process: paths to images, DCD data, global variables, boot scripts and etc.
+Thanks to YAML syntax is human-readable and easy modifiable. Comments in SMX file start with the hash character `#` and extend to the end of the physical line.
+A comment may appear at the start of a line or following whitespace characters. The content of SMX file is split into four sections: `HEAD`, `VARS`, `DATA` and `BODY`.
 
 #### HEAD Section:
 
@@ -97,6 +95,44 @@ More details you can found in YAML documentation.
 
 Collects all data and paths to images used in scripts from `BODY` section.
 
+Attributes used in all data segment:
+
+* **DESC** - The description of data segment (optional)
+* **ADDR** - The absolute address inside SoC OCT or DDR memory (optional)
+* **TYPE** - The data type (optional)
+* **DATA or FILE** - The data itself or path to image (required)
+
+Optional attributes for IMX boot image and U-Boot raw image only:
+
+* **MODE** - Environment variables insert mode: disabled, merge or replace (optional)
+* **MARK** - Environment variables start mark in u-boot image (default: 'bootdelay=')
+* **EVAL** - Environment variables itself
+
+Supported data types:
+
+* **IMX** - IMX boot image (*.imx)
+* **DCD** - Device configuration data
+* **UFW** - U-Boot raw image (*.bin)
+* **UST** - U-Boot script
+* **BIN** - Binary data (used as default type if not specified)
+
+Example of data segment:
+
+```
+DATA:
+    UBOOT_IMX_FILE:
+        DESC: U-Boot Image
+        TYPE: IMX
+        FILE: imx7d/u-boot.imx
+        # Environment variables insert mode (disabled, merge or replace)
+        MODE: merge
+        # Environment variables start mark in u-boot image
+        MARK: bootcmd=
+        # Environment variables
+        EVAL: |
+            bootdelay = 0
+            bootcmd = echo Running bootscript ...; source 0x83100000
+```
 
 #### BODY Section:
 
@@ -135,13 +171,13 @@ BODY:
         # Load Device Tree Blob
         WIMG KERNEL_DTB_FILE
         # Load RAMDisk Image
-        #WIMG MFG_INITRAMFS
+        WIMG INITRAMFS_IMG
         # Start Boot
         JRUN UBOOT_IMX_FILE
 ```
 
 
-## SMX File Example
+## The example of SMX File
 
 ```
 HEAD:
@@ -215,35 +251,53 @@ DATA:
     UBOOT_IMX_FILE:
         DESC: U-Boot Image
         TYPE: IMX
-        FILE: imx7d/imx7d_u-boot.imx
+        FILE: imx7d/u-boot.imx
+
+    UBOOT_IMX_FILE1:
+        DESC: U-Boot Image
+        TYPE: IMX
+        FILE: imx7d/u-boot.imx
         # Environment variables insert mode (disabled, merge or replace)
         MODE: merge
         # Environment variables start mark in u-boot image
-        MARK: bootdelay=
+        MARK: bootcmd=
         # Environment variables
         EVAL: |
-            bootdelay = 9
-            console = ttymxc1
+            bootdelay = 0
+            bootcmd = echo Running bootscript ...; source 0x83100000
+
+    UBOOT_IMX_FILE2:
+        DESC: U-Boot Image
+        TYPE: IMX
+        FILE: imx7d/u-boot.imx
+        # Environment variables insert mode (disabled, merge or replace)
+        MODE: merge
+        # Environment variables start mark in u-boot image
+        MARK: bootcmd=
+        # Environment variables
+        EVAL: |
+            bootdelay = 0
+            bootcmd = echo Running bootscript ...; source
 
     KERNEL_IMAGE:
         DESC: Kernel Image
         ADDR: 0x80800000
-        FILE: imx7d/imx7d_zImage
+        FILE: imx7d/zImage
 
     KERNEL_DTB_FILE:
         DESC: Device Tree Blob
         ADDR: 0x83000000
-        FILE: imx7d/imx7d_sdb.dtb
+        FILE: imx7d/imx7d-sdb.dtb
 
-    MFG_INITRAMFS:
+    INITRAMFS_IMG:
         DESC: RAMDisk Image
         ADDR: 0x83800000
-        FILE: initramfs.u-boot
+        FILE: initramfs.bin
 
-    UBOOT_SCRIPT:
-        DESC: U-Boot Script
-        ADDR: 0x80800000
-        TYPE: SCRIPT
+    UBOOT_SCRIPT1:
+        DESC: U-Boot Script 1
+        ADDR: 0x83100000
+        TYPE: UST
         DATA: |
             echo '>> Run NetBoot Script ...'
             setenv autoload 'no'
@@ -251,7 +305,38 @@ DATA:
             # ----------------------------------
             # configurable data
             # ----------------------------------
-            setenv serverip 192.168.1.162
+            setenv serverip 192.168.1.203
+            setenv hostname 'imx7dsb'
+            setenv netdev  'eth0'
+            setenv nfsroot '/srv/nfs/imx7d'
+            # ----------------------------------
+            # chip specific data
+            # ----------------------------------
+            setenv fdtaddr 0x83000000
+            setenv imgaddr 0x80800000
+            # ----------------------------------
+            # network boot scripts
+            # ----------------------------------
+            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
+            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
+            setenv netboot 'echo Booting from net ...; run netargs; run imgload; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
+            # ----------------------------------
+            # boot command
+            # ----------------------------------
+            run netboot
+
+    UBOOT_SCRIPT2:
+        DESC: U-Boot Script
+        ADDR: 0x80800000
+        TYPE: UST
+        DATA: |
+            echo '>> Run NetBoot Script ...'
+            setenv autoload 'no'
+            dhcp
+            # ----------------------------------
+            # configurable data
+            # ----------------------------------
+            setenv serverip 192.168.1.203
             setenv hostname 'imx7dsb'
             setenv netdev  'eth0'
             setenv nfsroot '/srv/nfs/imx7d'
@@ -268,6 +353,7 @@ DATA:
             setenv imgload 'tftp ${imgaddr} ${imgfile}'
             setenv fdtload 'tftp ${fdtaddr} ${fdtfile}'
             setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
+            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
             setenv netboot 'echo Booting from net ...; run netargs; run imgload; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
             # ----------------------------------
             # boot command
@@ -275,9 +361,8 @@ DATA:
             run netboot
 
 BODY:
-    # Script 0
     - NAME: InitRAMFS Boot
-      DESC: Boot into MFG RAMDisk
+      DESC: Boot from RAMDisk image
       CMDS: |
         # Init DDR
         WDCD DCD_TXT
@@ -290,39 +375,37 @@ BODY:
         # Load Device Tree Blob
         WIMG KERNEL_DTB_FILE
         # Load RAMDisk Image
-        #WIMG MFG_INITRAMFS
+        WIMG INITRAMFS_IMG
         # Start Boot
         JRUN UBOOT_IMX_FILE
 
-    # Script 1
     - NAME: Network Boot 0
       DESC: Mount RootFS via NFS
       CMDS: |
         # Init DDR
         WDCD DCD_TXT
         # Load U-Boot Image
-        WIMG UBOOT_IMX
+        WIMG UBOOT_IMX_FILE1
         SDCD
         # Load U-Boot Script
-        WIMG UBOOT_SCRIPT
+        WIMG UBOOT_SCRIPT1
         # Load Kernel Image
         WIMG KERNEL_IMAGE
         # Load Device Tree Blob
         WIMG KERNEL_DTB_FILE
         # Start Boot
-        JRUN UBOOT_IMX_FILE
+        JRUN UBOOT_IMX_FILE1
 
-    # Script 2
     - NAME: Network Boot 1
       DESC: Load kernel and DTB over TFTP and mount RootFS via NFS
       CMDS: |
         # Init DDR
         WDCD DCD_TXT
         # Load U-Boot Image
-        WIMG UBOOT_IMX
+        WIMG UBOOT_IMX_FILE2
         SDCD
         # Load U-Boot Script
-        WIMG UBOOT_SCRIPT
+        WIMG UBOOT_SCRIPT2
         # Start Boot
-        JRUN UBOOT_IMX_FILE
+        JRUN UBOOT_IMX_FILE2
 ```
