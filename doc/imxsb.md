@@ -319,7 +319,7 @@ DATA:
             # ----------------------------------
             setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
             # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
-            setenv netboot 'echo Booting from net ...; run netargs; run imgload; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
+            setenv netboot 'echo Booting from net ...; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
             # ----------------------------------
             # boot command
             # ----------------------------------

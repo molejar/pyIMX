@@ -251,15 +251,17 @@ class SMX(object):
 
                 if type(dseg) is DatSegDCD:
                     data = dseg.data
+                    desc = 'Write {}'.format(dseg.description)
                     if addr is None:
                         addr = dseg.address
                 else:
                     data = dseg.get_dcd_data()
+                    desc = 'Write DCD from {}'.format(dseg.description)
 
                 if addr is None:
                     raise Exception("Address not defined")
 
-                cmd = {'NAME': 'WDCD', 'ADDR': addr, 'DATA': data, 'DESC': 'Write {}'.format(dseg.description)}
+                cmd = {'NAME': 'WDCD', 'ADDR': addr, 'DATA': data, 'DESC': desc}
 
             elif line[0] == 'WIMG':
                 dseg = self.get_data(line[1])
