@@ -14,6 +14,7 @@ Dependencies
 - [PyUSB](https://walac.github.io/pyusb/) - Python package to access USB devices in Linux OS.
 - [pyserial](https://github.com/pyserial/pyserial) - Python package for communication over Serial port in Linux and Windows OS.
 - [pyYAML](http://pyyaml.org/wiki/PyYAML) - YAML parser and emitter for the Python programming language.
+- [Jinja2](https://pypi.python.org/pypi/Jinja2) - A small but fast and easy to use stand-alone template engine.
 - [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for for manipulating with U-Boot images and environment variables.
 
 Installation

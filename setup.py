@@ -21,7 +21,7 @@ from setuptools import setup, find_packages
 sys.path.insert(0, './src')
 import imx
 
-requirements = ['click>=6.0', 'pyserial>=3.0', 'uboot>=0.0.7', 'PyYAML>=3.10']
+requirements = ['click>=6.0', 'pyserial>=3.0', 'uboot>=0.0.7', 'PyYAML>=3.10', 'Jinja2>=2.6']
 
 if sys.platform.startswith('linux'):
     requirements.extend([

@@ -35,7 +35,10 @@ This command print a list of all boot options from attached SMX file.
 ```sh
  $ imxsb imx7d.smx info
 
- ...
+ 0) InitRAMFS Boot (Boot from RAMDisk image)
+ 1) Network Boot 0 (Mount RootFS via NFS)
+ 2) Network Boot 1 (Load kernel and DTB over TFTP and mount RootFS via NFS)
+
 ```
 
 <br>
@@ -51,7 +54,19 @@ This command execute boot process via selected boot option from attached SMX fil
 ```sh
  $ imxsb imx7d.smx run 0
 
- ...
+ 0) InitRAMFS Boot (Boot from RAMDisk image)
+ 1) Network Boot 0 (Mount RootFS via NFS)
+ 2) Network Boot 1 (Load kernel and DTB over TFTP and mount RootFS via NFS)
+
+ Run: 0
+
+ 1/7) Write Device Configuration Data
+ 2/7) Write U-Boot Image (imx7d_sbd/u-boot.imx)
+ 3/7) Skip DCD Segment in IMX image
+ 4/7) Write Kernel Image (imx7d_sbd/zImage)
+ 5/7) Write Device Tree Blob (imx7d_sbd/imx7d-sdb.dtb)
+ 6/7) Write RAMDisk Image (initramfs.bin)
+ 7/7) Start Boot ...
 ```
 
 ## SMX File
@@ -80,16 +95,26 @@ HEAD:
 
 #### VARS Section:
 
-Collects all variables used in `DATA` section. The syntax for defining a variable is following:
+Collects all variables used in `DATA` and `BODY` section. 
+
+The syntax for defining a variable is following:
 
 ```
 VARS:
-    &<variable_name> <variable_value>
-    ...
+    #   <name>: <value>
+    OCRAM_ADDR: 0x00910000
 ```
 
-More details you can found in YAML documentation.
+The syntax for using a variable in `DATA` or `BODY` section is following:
 
+```
+DATA:
+    DCD_TXT:
+        DESC: Device Configuration Data
+        ADDR: "{{ OCRAM_ADDR }}"
+        TYPE: DCD
+        FILE: imx7d_sbd/dcd_micron_1gb.txt
+```
 
 #### DATA Section:
 
@@ -177,235 +202,4 @@ BODY:
 ```
 
 
-## The example of SMX File
-
-```
-HEAD:
-  NAME: MCIMX7SABRE
-  DESC: Development Board Sabre SD for IMX7D
-  CHIP: MX7SD
-
-VARS:
-    &OCRAM_ADDR 0x00910000
-
-DATA:
-    DCD_TXT:
-        DESC: Device Configuration Data
-        ADDR: *OCRAM_ADDR
-        TYPE: DCD
-        DATA: |
-            # DDR init
-            WriteValue    4 0x30340004 0x4F400005
-            WriteValue    4 0x30391000 0x00000002
-            WriteValue    4 0x307A0000 0x01040001
-            WriteValue    4 0x307A01A0 0x80400003
-            WriteValue    4 0x307A01A4 0x00100020
-            WriteValue    4 0x307A01A8 0x80100004
-            WriteValue    4 0x307A0064 0x00400046
-            WriteValue    4 0x307A0490 0x00000001
-            WriteValue    4 0x307A00D0 0x00020083
-            WriteValue    4 0x307A00D4 0x00690000
-            WriteValue    4 0x307A00DC 0x09300004
-            WriteValue    4 0x307A00E0 0x04080000
-            WriteValue    4 0x307A00E4 0x00100004
-            WriteValue    4 0x307A00F4 0x0000033F
-            WriteValue    4 0x307A0100 0x09081109
-            WriteValue    4 0x307A0104 0x0007020D
-            WriteValue    4 0x307A0108 0x03040407
-            WriteValue    4 0x307A010C 0x00002006
-            WriteValue    4 0x307A0110 0x04020205
-            WriteValue    4 0x307A0114 0x03030202
-            WriteValue    4 0x307A0120 0x00000803
-            WriteValue    4 0x307A0180 0x00800020
-            WriteValue    4 0x307A0184 0x02000100
-            WriteValue    4 0x307A0190 0x02098204
-            WriteValue    4 0x307A0194 0x00030303
-            WriteValue    4 0x307A0200 0x00000016
-            WriteValue    4 0x307A0204 0x00171717
-            WriteValue    4 0x307A0214 0x04040404
-            WriteValue    4 0x307A0218 0x0F040404
-            WriteValue    4 0x307A0240 0x06000604
-            WriteValue    4 0x307A0244 0x00000001
-            WriteValue    4 0x30391000 0x00000000
-            WriteValue    4 0x30790000 0x17420F40
-            WriteValue    4 0x30790004 0x10210100
-            WriteValue    4 0x30790010 0x00060807
-            WriteValue    4 0x307900B0 0x1010007E
-            WriteValue    4 0x3079009C 0x00000D6E
-            WriteValue    4 0x30790020 0x08080808
-            WriteValue    4 0x30790030 0x08080808
-            WriteValue    4 0x30790050 0x01000010
-            WriteValue    4 0x30790050 0x00000010
-            WriteValue    4 0x307900C0 0x0E407304
-            WriteValue    4 0x307900C0 0x0E447304
-            WriteValue    4 0x307900C0 0x0E447306
-            CheckAnyClear 4 0x307900C4 0x00000001
-            WriteValue    4 0x307900C0 0x0E447304
-            WriteValue    4 0x307900C0 0x0E407304
-            WriteValue    4 0x30384130 0x00000000
-            WriteValue    4 0x30340020 0x00000178
-            WriteValue    4 0x30384130 0x00000002
-            WriteValue    4 0x30790018 0x0000000F
-            CheckAnyClear 4 0x307A0004 0x00000001
-
-    UBOOT_IMX_FILE:
-        DESC: U-Boot Image
-        TYPE: IMX
-        FILE: imx7d/u-boot.imx
-
-    UBOOT_IMX_FILE1:
-        DESC: U-Boot Image
-        TYPE: IMX
-        FILE: imx7d/u-boot.imx
-        # Environment variables insert mode (disabled, merge or replace)
-        MODE: merge
-        # Environment variables start mark in u-boot image
-        MARK: bootcmd=
-        # Environment variables
-        EVAL: |
-            bootdelay = 0
-            bootcmd = echo Running bootscript ...; source 0x83100000
-
-    UBOOT_IMX_FILE2:
-        DESC: U-Boot Image
-        TYPE: IMX
-        FILE: imx7d/u-boot.imx
-        # Environment variables insert mode (disabled, merge or replace)
-        MODE: merge
-        # Environment variables start mark in u-boot image
-        MARK: bootcmd=
-        # Environment variables
-        EVAL: |
-            bootdelay = 0
-            bootcmd = echo Running bootscript ...; source
-
-    KERNEL_IMAGE:
-        DESC: Kernel Image
-        ADDR: 0x80800000
-        FILE: imx7d/zImage
-
-    KERNEL_DTB_FILE:
-        DESC: Device Tree Blob
-        ADDR: 0x83000000
-        FILE: imx7d/imx7d-sdb.dtb
-
-    INITRAMFS_IMG:
-        DESC: RAMDisk Image
-        ADDR: 0x83800000
-        FILE: initramfs.bin
-
-    UBOOT_SCRIPT1:
-        DESC: U-Boot Script 1
-        ADDR: 0x83100000
-        TYPE: UST
-        DATA: |
-            echo '>> Run NetBoot Script ...'
-            setenv autoload 'no'
-            dhcp
-            # ----------------------------------
-            # configurable data
-            # ----------------------------------
-            setenv serverip 192.168.1.203
-            setenv hostname 'imx7dsb'
-            setenv netdev  'eth0'
-            setenv nfsroot '/srv/nfs/imx7d'
-            # ----------------------------------
-            # chip specific data
-            # ----------------------------------
-            setenv fdtaddr 0x83000000
-            setenv imgaddr 0x80800000
-            # ----------------------------------
-            # network boot scripts
-            # ----------------------------------
-            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
-            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
-            setenv netboot 'echo Booting from net ...; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
-            # ----------------------------------
-            # boot command
-            # ----------------------------------
-            run netboot
-
-    UBOOT_SCRIPT2:
-        DESC: U-Boot Script
-        ADDR: 0x80800000
-        TYPE: UST
-        DATA: |
-            echo '>> Run NetBoot Script ...'
-            setenv autoload 'no'
-            dhcp
-            # ----------------------------------
-            # configurable data
-            # ----------------------------------
-            setenv serverip 192.168.1.203
-            setenv hostname 'imx7dsb'
-            setenv netdev  'eth0'
-            setenv nfsroot '/srv/nfs/imx7d'
-            setenv imgfile '/imx7d/zImage'
-            setenv fdtfile '/imx7d/imx7d-sdb.dtb'
-            # ----------------------------------
-            # chip specific data
-            # ----------------------------------
-            setenv fdtaddr 0x83000000
-            setenv imgaddr 0x80800000
-            # ----------------------------------
-            # network boot scripts
-            # ----------------------------------
-            setenv imgload 'tftp ${imgaddr} ${imgfile}'
-            setenv fdtload 'tftp ${fdtaddr} ${fdtfile}'
-            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
-            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
-            setenv netboot 'echo Booting from net ...; run netargs; run imgload; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
-            # ----------------------------------
-            # boot command
-            # ----------------------------------
-            run netboot
-
-BODY:
-    - NAME: InitRAMFS Boot
-      DESC: Boot from RAMDisk image
-      CMDS: |
-        # Init DDR
-        WDCD DCD_TXT
-        # Load U-Boot Image
-        WIMG UBOOT_IMX_FILE
-        # Skip DCD Segment from loaded U-Boot image
-        SDCD
-        # Load Kernel Image
-        WIMG KERNEL_IMAGE
-        # Load Device Tree Blob
-        WIMG KERNEL_DTB_FILE
-        # Load RAMDisk Image
-        WIMG INITRAMFS_IMG
-        # Start Boot
-        JRUN UBOOT_IMX_FILE
-
-    - NAME: Network Boot 0
-      DESC: Mount RootFS via NFS
-      CMDS: |
-        # Init DDR
-        WDCD DCD_TXT
-        # Load U-Boot Image
-        WIMG UBOOT_IMX_FILE1
-        SDCD
-        # Load U-Boot Script
-        WIMG UBOOT_SCRIPT1
-        # Load Kernel Image
-        WIMG KERNEL_IMAGE
-        # Load Device Tree Blob
-        WIMG KERNEL_DTB_FILE
-        # Start Boot
-        JRUN UBOOT_IMX_FILE1
-
-    - NAME: Network Boot 1
-      DESC: Load kernel and DTB over TFTP and mount RootFS via NFS
-      CMDS: |
-        # Init DDR
-        WDCD DCD_TXT
-        # Load U-Boot Image
-        WIMG UBOOT_IMX_FILE2
-        SDCD
-        # Load U-Boot Script
-        WIMG UBOOT_SCRIPT2
-        # Start Boot
-        JRUN UBOOT_IMX_FILE2
-```
+Here is example of complete IMX Smart-Boot description file: [example.smx](example.smx)

@@ -1,11 +1,29 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2017 Martin Olejar
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+# Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
 import os
+import re
 import sys
 import imx
 import yaml
 import uboot
 import click
+import jinja2
 
 
 ########################################################################################################################
@@ -59,9 +77,9 @@ class DatSegIMX(DatSegBase):
             if self._eval is not None and self._mode != 'disabled':
                 d = self._update_env(d)
         else:
-            img = imx.BootImage(address = self._data['STADDR'], offset = self._data['OFFSET'])
-            img.app = self._data['APPSEG'].img
-            img.dcd = self._data['DCDSEG'].get()
+            app = self._data['APPSEG'].data
+            dcd = self._data['DCDSEG'].get_obj()
+            img = imx.BootImage(self._data['STADDR'], app, dcd, None, self._data['OFFSET'])
             d = img.export()
 
         return d
@@ -98,7 +116,7 @@ class DatSegDCD(DatSegBase):
         dcd.load(txt_data)
         return dcd.export()
 
-    def get(self):
+    def get_obj(self):
         dcd = imx.SegDCD()
 
         if self._data is None:
@@ -219,21 +237,23 @@ class SMX(object):
                 cmd = {'NAME': 'SDCD', 'DESC': 'Skip DCD Segment in IMX image'}
 
             elif line[0] == 'JRUN':
-                assert len(line) == 2
+                assert len(line) == 2, "Command JRUN require one argument"
 
                 try:
-                    addr = int(line[1], 10)
+                    addr = int(line[1], 0)
                 except:
                     dseg = self.get_data(line[1])
+                    if dseg is None:
+                        raise Exception("DATA->%s doesn't exist" % line[1])
                     addr = dseg.get_ivt_address()
 
                 if addr is None:
-                    raise Exception("Address not defined")
+                    raise Exception("ADDR not defined in DATA->%s" % dseg.name)
 
                 cmd = {'NAME': 'JRUN', 'ADDR': addr, 'DESC': 'Start Boot ...'}
 
             elif line[0] == 'WREG':
-                assert len(line) == 4
+                assert len(line) == 4, "Command WREG require three arguments"
 
                 bts  = int(line[1], 10)
                 addr = int(line[2], 0)
@@ -245,7 +265,7 @@ class SMX(object):
             elif line[0] == 'WDCD':
                 dseg = self.get_data(line[1])
                 if dseg is None:
-                    raise Exception("Data not defined")
+                    raise Exception("DATA->%s doesn't exist" % line[1])
 
                 addr = int(line[2], 0) if len(line) == 3 else None
 
@@ -259,47 +279,55 @@ class SMX(object):
                     desc = 'Write DCD from {}'.format(dseg.description)
 
                 if addr is None:
-                    raise Exception("Address not defined")
+                    raise Exception("ADDR not defined in DATA->%s" % dseg.name)
 
                 cmd = {'NAME': 'WDCD', 'ADDR': addr, 'DATA': data, 'DESC': desc}
 
             elif line[0] == 'WIMG':
                 dseg = self.get_data(line[1])
                 if dseg is None:
-                    raise Exception("Data not defined")
+                    raise Exception("DATA->%s doesn't exist" % line[1])
 
                 addr = int(line[2], 0) if len(line) == 3 else dseg.address
                 if type(dseg) is DatSegIMX and addr is None:
                     addr = dseg.get_ivt_address()
 
                 if addr is None:
-                    raise Exception("Address not defined")
+                    raise Exception("Address not defined in DATA->%s" % dseg.name)
 
                 cmd = {'NAME': 'WIMG', 'ADDR': addr, 'DATA': dseg.data, 'DESC': 'Write {}'.format(dseg.description)}
 
             else:
-                raise Exception("Unsupported command: %s" % line[0])
+                raise Exception("Not valid command: %s" % line[0])
 
             script.append(cmd)
 
         return script
 
     def open(self, yaml_file):
-        # set path variable
-        self._path = os.path.abspath(os.path.dirname(yaml_file))
 
         # load yaml_file
-        yaml_data  = yaml.load(open(yaml_file))
+        with open(yaml_file, 'r') as f:
+            text_data = f.read()
+
+        # parse yaml_file
+        yaml_data = yaml.load(text_data)
+        if 'VARS' in yaml_data:
+            vars = yaml_data['VARS']
+            tmp = jinja2.Template(text_data)
+            text_data = tmp.render(vars)
+            yaml_data = yaml.load(text_data)
+
+        # verify if all variables have been defined
+        #if re.search("\{\{.*x.*\}\}", text_data) is not None: raise Exception("Some variables are not defined !")
+
+        # store path to yaml_file
+        self._path = os.path.abspath(os.path.dirname(yaml_file))
 
         # validate segments in file
-        if not 'HEAD' in yaml_data:
-            raise Exception("HEAD segment doesnt exist inside file: %s" % yaml_file)
-
-        if not 'DATA' in yaml_data:
-            raise Exception("DATA segment doesnt exist inside file: %s" % yaml_file)
-
-        if not 'BODY' in yaml_data:
-            raise Exception("BODY segment doesnt exist inside file: %s" % yaml_file)
+        if not 'HEAD' in yaml_data: raise Exception("HEAD segment doesn't exist inside file: %s" % yaml_file)
+        if not 'DATA' in yaml_data: raise Exception("DATA segment doesn't exist inside file: %s" % yaml_file)
+        if not 'BODY' in yaml_data: raise Exception("BODY segment doesn't exist inside file: %s" % yaml_file)
 
         # parse head
         self._name   = yaml_data['HEAD']['NAME']
@@ -309,14 +337,18 @@ class SMX(object):
         # parse data
         for name, dseg in yaml_data["DATA"].items():
 
-            desc = dseg['DESC'] if 'DESC' in dseg else ""
-            addr = dseg['ADDR'] if 'ADDR' in dseg else None
-            type = dseg['TYPE'] if 'TYPE' in dseg else 'BIN'
-            data = dseg['DATA'] if 'DATA' in dseg else None
-            eval = dseg['EVAL'] if 'EVAL' in dseg else None
-            mark = dseg['MARK'] if 'MARK' in dseg else 'bootdelay='
-            mode = dseg['MODE'] if 'MODE' in dseg else 'DISABLED'
+            desc = dseg['DESC'] if 'DESC' in dseg and dseg['DESC'] else ""
+            addr = dseg['ADDR'] if 'ADDR' in dseg and dseg['ADDR'] else None
+            type = dseg['TYPE'] if 'TYPE' in dseg and dseg['TYPE'] else 'BIN'
+            data = dseg['DATA'] if 'DATA' in dseg and dseg['DATA'] else None
+            eval = dseg['EVAL'] if 'EVAL' in dseg and dseg['EVAL'] else None
+            mark = dseg['MARK'] if 'MARK' in dseg and dseg['MARK'] else 'bootdelay='
+            mode = dseg['MODE'] if 'MODE' in dseg and dseg['MODE'] else 'DISABLED'
             path = None
+
+            # we need convert address value to int if defined as variable in *.smx
+            if addr is not None and isinstance(addr, str):
+                addr = int(addr, 0)
 
             if 'FILE' in dseg:
                 for abs_path in [dseg['FILE'], os.path.join(self._path, dseg['FILE'])]:
@@ -326,16 +358,37 @@ class SMX(object):
                         break
 
                 if path is None:
-                    raise Exception("The file: %s doesnt exist" % dseg['FILE'])
+                    raise Exception("DATA->%s->FILE: \"%s\" doesnt exist" % (name, dseg['FILE']))
 
                 desc = '{} ({})'.format(desc, dseg['FILE'])
 
             if data is not None and isinstance(data, dict):
+                if not 'STADDR' in data: raise Exception("The STADDR must be defined in DATA->%s->DATA" % name)
+                if not 'DCDSEG' in data: raise Exception("The DCDSEG must be defined in DATA->%s->DATA" % name)
+                if not 'APPSEG' in data: raise Exception("The APPSEG must be defined in DATA->%s->DATA" % name)
+
+                if not data['STADDR'] or data['STADDR'] is None:
+                    raise Exception("The STADDR value is not valid in DATA->%s->DATA" % name)
+                if not data['DCDSEG'] or data['DCDSEG'] is None:
+                    raise Exception("The DCDSEG value is not valid in DATA->%s->DATA" % name)
+                if not data['APPSEG'] or data['APPSEG'] is None:
+                    raise Exception("The APPSEG value is not valid in DATA->%s->DATA" % name)
+                if 'OFFSET' in data:
+                    if not data['OFFSET'] or data['OFFSET'] is None:
+                        raise Exception("The OFFSET value is not valid in DATA->%s->DATA" % name)
+                    if isinstance(data['OFFSET'], str):
+                        data['OFFSET'] = int(data['OFFSET'], 0)
+                else:
+                    data['OFFSET'] = 0x400
+
                 data['DCDSEG'] = self.get_data(data['DCDSEG'])
                 data['APPSEG'] = self.get_data(data['APPSEG'])
+                if isinstance(data['STADDR'], str):
+                    data['STADDR'] = int(data['STADDR'], 0)
+
 
             if path is None and data is None:
-                raise Exception("The path/data must be defined in %s segment" % name)
+                raise Exception("The path/data must be defined in DATA->%s" % name)
 
             if   type == 'IMX':
                 self._data.append(DatSegIMX(name, desc, addr, path, data, eval, mark, mode))
@@ -348,7 +401,7 @@ class SMX(object):
             elif type == 'BIN':
                 self._data.append(DatSegBIN(name, desc, addr, path, data))
             else:
-                raise Exception("Unsupported type in %s segment" % name)
+                raise Exception("Unsupported DATA->%s->TYPE: %s" % (name, type))
 
         # load scripts
         if yaml_data["BODY"]:
@@ -386,17 +439,16 @@ DESCRIP = (
 @click.version_option(VERSION, '-v', '--version')
 @click.pass_context
 def cli(ctx, file):
-    # ...
-    smx = SMX()
+
     # open and load data file
+    smx = SMX()
     try:
         smx.open(file)
     except Exception as e:
-        click.secho("Error: %s\n" % str(e))
+        click.secho("\n ERROR: %s" % str(e))
         sys.exit(ERROR_CODE)
     # ...
     ctx.obj['SMX'] = smx
-
     click.echo()
 
 
@@ -417,7 +469,7 @@ def info(ctx):
 
 # run command
 @cli.command(short_help="Run selected boot script")
-@click.option('-s', '--sid', type=click.INT, help="Script index")
+@click.argument('sid', required=False, type=click.INT)
 @click.pass_context
 def run(ctx, sid=None):
     ''' Run selected boot script '''
@@ -482,7 +534,7 @@ def run(ctx, sid=None):
     flasher.close()
 
     if error_flg:
-        click.echo(error_msg)
+        click.secho(" ERROR: %s" % error_msg)
         sys.exit(ERROR_CODE)
 
 
