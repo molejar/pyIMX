@@ -119,8 +119,8 @@ class BootImage(object):
         self._ivt = SegIVT(version)
         self._bdt = SegBDT()
         self._app = SegAPP(app)
-        self._dcd = dcd if dcd else SegDCD()
-        self._csf = csf if csf else SegCSF()
+        self._dcd = SegDCD() if dcd is None else dcd
+        self._csf = SegCSF() if csf is None else csf
         self._plg = plugin
         self._offset = offset
         self._address = address

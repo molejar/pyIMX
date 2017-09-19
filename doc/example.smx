@@ -166,8 +166,8 @@ DATA:
             # ----------------------------------
             # network boot scripts
             # ----------------------------------
-            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
-            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
+            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot} ip=dhcp'
+            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
             setenv netboot 'echo Booting from net ...; run netargs; bootz ${imgaddr} - ${fdtaddr};'
             # ----------------------------------
             # boot command
@@ -201,8 +201,8 @@ DATA:
             # ----------------------------------
             setenv imgload 'tftp ${imgaddr} ${imgfile}'
             setenv fdtload 'tftp ${fdtaddr} ${fdtfile}'
-            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=dhcp'
-            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot},v3,tcp ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
+            setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot} ip=dhcp'
+            # setenv netargs 'setenv bootargs console=${console},${baudrate} root=/dev/nfs rw nfsroot=${serverip}:${nfsroot} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off'
             setenv netboot 'echo Booting from net ...; run netargs; run imgload; run fdtload; bootz ${imgaddr} - ${fdtaddr};'
             # ----------------------------------
             # boot command

@@ -193,6 +193,7 @@ Write image file into connected device. Supported extensions: *.imx, *.bin
 * **-m, --ocram** - OCRAM address, required for DDR init
 * **-i, --init** - Init DDR from *.imx image
 * **-r, --run** - Run loaded *.imx image
+* **-s, --skipdcd** - Skip DCD Header from *.imx image
 * **-?, --help** - Show help message and exit
 
 ##### Example (IMX7D):
