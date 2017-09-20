@@ -282,8 +282,7 @@ class KernelImage(object):
         self._ivt = SegIVT(version)
         self._ivt.app_addr = address
         self._app = SegAPP(app)
-        self._dcd = SegDCD()
-        self._csf = csf if csf else SegCSF()
+        self._csf = SegCSF() if csf is None else csf
 
     def __str__(self):
         return self.info()

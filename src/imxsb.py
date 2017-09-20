@@ -381,10 +381,23 @@ class SMX(object):
                 else:
                     data['OFFSET'] = 0x400
 
-                data['DCDSEG'] = self.get_data(data['DCDSEG'])
-                data['APPSEG'] = self.get_data(data['APPSEG'])
+                dcd_seg = self.get_data(data['DCDSEG'])
+                app_seg = self.get_data(data['APPSEG'])
+                
+                if dcd_seg is None:
+                    raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['DCDSEG'], name))
+                if app_seg is None:
+                    raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['APPSEG'], name))
+
+                data['DCDSEG'] = dcd_seg
+                data['APPSEG'] = app_seg
                 if isinstance(data['STADDR'], str):
                     data['STADDR'] = int(data['STADDR'], 0)
+
+
+                if data['APPSEG'] is None:
+                    raise Exception("The APPSEG value is not valid in DATA->%s->DATA" % name)
+
 
 
             if path is None and data is None:
