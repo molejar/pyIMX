@@ -383,7 +383,7 @@ class SMX(object):
 
                 dcd_seg = self.get_data(data['DCDSEG'])
                 app_seg = self.get_data(data['APPSEG'])
-                
+
                 if dcd_seg is None:
                     raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['DCDSEG'], name))
                 if app_seg is None:
@@ -393,12 +393,6 @@ class SMX(object):
                 data['APPSEG'] = app_seg
                 if isinstance(data['STADDR'], str):
                     data['STADDR'] = int(data['STADDR'], 0)
-
-
-                if data['APPSEG'] is None:
-                    raise Exception("The APPSEG value is not valid in DATA->%s->DATA" % name)
-
-
 
             if path is None and data is None:
                 raise Exception("The path/data must be defined in DATA->%s" % name)
@@ -492,10 +486,8 @@ def run(ctx, sid=None):
     error_flg = False
 
     try:
-        # get target USB PID
-        pid = imx.SerialDownloader.HID_PID[smx.target]
         # scan for USB target
-        devs = imx.SerialDownloader.scan_usb(pid)
+        devs = imx.SerialDownloader.scan_usb(smx.target)
         if not devs:
             raise Exception("%s device not connected !" % smx.target)
         # select boot script

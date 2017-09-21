@@ -82,18 +82,17 @@ class SD_SecureError(SD_GenericError):
 class SerialDownloader(object):
 
     # Supported i.MX Targets
-    HID_VID = 0x15A2
-    HID_PID = {
-        # NAME   | PID
-        'MX6DQP': 0x0054,
-        'MX6SDL': 0x0061,
-        'MX6SL':  0x0063,
-        'MX6SX':  0x0071,
-        'MX6UL':  0x007D,
-        'MX6ULL': 0x0080,
-        'MX6SLL': 0x0128,
-        'MX7SD':  0x0076,
-        'VYBRID': 0x006A
+    HID_DEV = {
+        # NAME   | VID   | PID
+        'MX6DQP': (0x15A2, 0x0054),
+        'MX6SDL': (0x15A2, 0x0061),
+        'MX6SL':  (0x15A2, 0x0063),
+        'MX6SX':  (0x15A2, 0x0071),
+        'MX6UL':  (0x15A2, 0x007D),
+        'MX6ULL': (0x15A2, 0x0080),
+        'MX6SLL': (0x15A2, 0x0128),
+        'MX7SD':  (0x15A2, 0x0076),
+        'VYBRID': (0x15A2, 0x006A)
     }
 
     # iMX Serial Downloader USB HID Reports.
@@ -127,17 +126,29 @@ class SerialDownloader(object):
         self._uart_dev = None
 
     @staticmethod
-    def scan_usb(pid=None):
+    def scan_usb(dev_name=None):
         """ IMX SD: Scan commected USB devices
-        :param: pid The PID value of USB device
+        :param: dev_name The device name (MX6DQP, MX6SDL, ...) or USB device VID:PID value
         :rtype : object
         """
         usb_devs = []
-        if pid:
-            usb_devs += USBIF.enumerate(SerialDownloader.HID_VID, pid)
+
+        if dev_name is None:
+            for key, val in SerialDownloader.HID_DEV.items():
+                usb_devs += USBIF.enumerate(val[0], val[1])
         else:
-            for key, value in SerialDownloader.HID_PID.items():
-                usb_devs += USBIF.enumerate(SerialDownloader.HID_VID, value)
+            if ':' in dev_name:
+                vid, pid = dev_name.split(':')
+                vid = int(vid, 0)
+                pid = int(pid, 0)
+            else:
+                if dev_name not in SerialDownloader.HID_DEV:
+                    raise Exception("Not supported device name: %s" % dev_name)
+
+                vid = SerialDownloader.HID_DEV[dev_name][0]
+                pid = SerialDownloader.HID_DEV[dev_name][1]
+
+            usb_devs += USBIF.enumerate(vid, pid)
 
         if usb_devs is None:
             logging.info('No Target Connected')
@@ -159,9 +170,10 @@ class SerialDownloader(object):
 
     def get_target_name(self):
         if self._usb_dev:
-            for name, val in self.HID_PID.items():
-                if self._usb_dev.pid == val:
+            for name, val in self.HID_DEV.items():
+                if self._usb_dev.vid == val[0] and self._usb_dev.pid == val[1]:
                     return name
+
 
     def open_usb(self, dev):
         """ IMX SD: Connect to device by USB

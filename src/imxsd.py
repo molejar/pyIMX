@@ -535,28 +535,26 @@ DESCRIP = (
 )
 
 # Supported Targets
-TARGETS = imx.SerialDownloader.HID_PID.keys()
+TARGETS = imx.SerialDownloader.HID_DEV.keys()
 
 
 @click.group(context_settings=dict(help_option_names=['-?', '--help']), help=DESCRIP)
-@click.option('-t', '--target', type=click.Choice(TARGETS), default=None, help='Select specific target [optional]')
-@click.option('-p', '--pid', type=UINT, default=None, help='USB product ID of unknown target [optional]')
+@click.option('-t', '--target', type=click.STRING, default=None, help='Select target MX6SX, MX6UL, ... [optional]')
 @click.option('-d', '--debug', type=click.IntRange(0, 2, True), default=0, help="Debug level (0-off, 1-info, 2-debug)")
 @click.version_option(VERSION, '-v', '--version')
 @click.pass_context
-def cli(ctx, target=None, pid=None, debug=0):
+def cli(ctx, target=None, debug=0):
 
     if debug > 0:
         FORMAT = "[%(asctime)s.%(msecs)03d %(levelname)-5s] %(message)s"
         loglevel = [logging.NOTSET, logging.INFO, logging.DEBUG]
         logging.basicConfig(format=FORMAT, datefmt='%M:%S', level=loglevel[debug])
 
-    ctx.obj['DEBUG'] = debug
+    ctx.obj['DEBUG']  = debug
+    ctx.obj['DEVICE'] = None
 
-    if target is not None:
-        pid = imx.SerialDownloader.HID_PID[target]
-
-    devs = imx.SerialDownloader.scan_usb(pid)
+    # Scan for connected target
+    devs = imx.SerialDownloader.scan_usb(target)
     if devs:
         index = 0
         if len(devs) > 1:
@@ -570,10 +568,7 @@ def cli(ctx, target=None, pid=None, debug=0):
             click.echo()
             index = int(c, 10)
 
-        # Connect IMX device
         ctx.obj['DEVICE'] = devs[index]
-    else:
-        ctx.obj['DEVICE'] = None
 
 
 # IMX SD: Read device info

@@ -79,9 +79,11 @@ A comment may appear at the start of a line or following whitespace characters. 
 
 This section contains the base information's about target device.
 
-* **NAME** - The name of arget device or developing board (optional)
+* **NAME** - The name of target device or developing board (optional)
 * **DESC** - The description of target device or developing board (optional)
 * **CHIP** - Embedded IMX processor mark: VYBRID, MX6DQP, MX6SDL, MX6SL, MX6SX, MX6UL, MX6ULL, MX6SLL, MX7SD (required)
+
+>Instead of processor mark we can use directly USB VID:PID of the device in string format: "0x15A2:0x0054". Useful for a new device which is not in list of supported devices.
 
 Example of head section:
 

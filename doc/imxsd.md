@@ -20,7 +20,6 @@ For printing a general info of usage this tool execute `imxsd -?`.
  Options:
    -t, --target [MX6SX|MX6UL|MX6SDL|MX6DQP|MX6ULL|MX6SL|MX7SD|MX6SLL|VYBRID]
                               Select specific target [optional]
-   -p, --pid UNSIGNED INT     USB product ID of unknown target [optional]
    -d, --debug INTEGER RANGE  Debug level (0-off, 1-info, 2-debug)
    -v, --version              Show the version and exit.
    -?, --help                 Show this message and exit.
@@ -37,6 +36,9 @@ For printing a general info of usage this tool execute `imxsd -?`.
    wreg  Write value into register or memory at...
 ```
 
+##### generic options:
+* **-t, --target** - Select specific target by chip name or directly put "VID:PID" number of the target  
+* **-d, --debug** - Debug level (0-off, 1-info, 2-debug)
 
 ## Commands
 
