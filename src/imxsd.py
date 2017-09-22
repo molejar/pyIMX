@@ -611,6 +611,8 @@ def info(ctx):
         dev_pid  = ctx.obj['DEVICE'].pid
         # Get Device and ROM Specific Data
         rom_info = get_rom_info(dev_name)
+        if rom_info is None:
+            raise Exception('Unknown Device Info')
         # Get ROM Release Number
         rom_release = read_rom_release(rom_info, dev_pid)
         if rom_release is None:

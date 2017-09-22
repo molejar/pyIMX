@@ -92,6 +92,7 @@ class SerialDownloader(object):
         'MX6ULL': (0x15A2, 0x0080),
         'MX6SLL': (0x15A2, 0x0128),
         'MX7SD':  (0x15A2, 0x0076),
+        'MX7ULP': (0x1FC9, 0x0126),
         'VYBRID': (0x15A2, 0x006A)
     }
 
@@ -169,10 +170,14 @@ class SerialDownloader(object):
             return False
 
     def get_target_name(self):
+        target_name = None
         if self._usb_dev:
             for name, val in self.HID_DEV.items():
                 if self._usb_dev.vid == val[0] and self._usb_dev.pid == val[1]:
-                    return name
+                    target_name = name
+                    break
+
+        return target_name
 
 
     def open_usb(self, dev):
