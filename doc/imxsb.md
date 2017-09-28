@@ -175,10 +175,9 @@ Description of arguments
 
 * *BYTES* - The size of access into memory cell or register. Supported are three options: 1, 2 and 4 bytes.
 * *ADDRESS* - The absolute address off memory cell or register inside SoC linear address space.
-* *VALUE* - The value in supported format.
-* *DCD_DATA* -
-* *IMG_DATA* -
-* *IMX_IMAGE* -
+* *VALUE* - The value number in supported format (HEX, BIN, DEC or OCTA).
+* *DCD_DATA* - The name of DCD segment from DATA section.
+* *IMG_DATA* - The name of IMAGE segment from DATA section.
 
 Example of boot script:
 
@@ -202,6 +201,5 @@ BODY:
         # Start Boot
         JRUN UBOOT_IMX_FILE
 ```
-
 
 Here is example of complete IMX Smart-Boot description file: [example.smx](example.smx)

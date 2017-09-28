@@ -15,18 +15,18 @@ VARS:
     # Target Specific Variables
     # ---------------------------------------------------------
     # OCRAM Start Address
-    OCRAM_ADDR: 0x00910000
+    OCRAM_ADDR: '0x00910000'
     # Boot Image Address (in DDR)
-    IMAGE_ADDR: 0x80800000
+    IMAGE_ADDR: '0x80800000'
     # Kernel DTB Image Address (in DDR)
-    DTBIM_ADDR: 0x83000000
+    DTBIM_ADDR: '0x83000000'
     # U-Boot Script Image Address (in DDR)
-    SCRIM_ADDR: 0x83100000
+    SCRIM_ADDR: '0x83100000'
     # ---------------------------------------------------------
     # Boot Server Variables
     # ---------------------------------------------------------
     # Server IP Address
-    SERIP_ADDR: "192.168.1.203"
+    SERIP_ADDR: '192.168.1.203'
     # Kernel Image Path
     IMAGE_PATH: '/imx7d/zImage'
     # Kernel DTB Image Path

@@ -23,22 +23,22 @@ Installation
 To install the latest development version (master branch) execute in shell the following command:
 
 ``` bash
-    $ pip3 install --pre -U https://github.com/molejar/pyIMX/archive/master.zip
+    $ pip3 install --upgrade --process-dependency-links https://github.com/molejar/pyIMX/archive/master.zip
 ```
 
 NOTE: you may run into permissions issues running these commands.
 You have a few options here:
 
-1. Run with `sudo -H` to install pyIMX and dependencies globally
-2. Specify the `--user` option to install local to your user
+1. Run with `sudo` to install pyIMX and dependencies globally
+2. Specify the `--user` option to install localy into your home directory (~/.local)
 3. Run the command in a [virtualenv](https://virtualenv.pypa.io/en/latest/) local to a specific project working set.
 
-You can also install from source by executing in shell the following commands:
+You can also install from local sources by executing in shell the following commands:
 
 ``` bash
     $ git clone https://github.com/molejar/pyIMX.git
     $ cd pyIMX
-    $ pip3 install .
+    $ pip3 install --upgrade --process-dependency-links .
 ```
 
 Usage

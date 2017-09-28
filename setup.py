@@ -42,6 +42,7 @@ setup(
     author_email='martin.olejar@gmail.com',
     url='https://github.com/molejar/pyIMX',
     platforms="Windows, Linux",
+    dependency_links = ['https://github.com/molejar/pyUBoot/archive/master.zip#egg=uboot-0.0.7'],
     install_requires=requirements,
     packages=find_packages('src'),
     include_package_data = True,
