@@ -88,7 +88,7 @@ class DatSegIMX(DatSegBase):
         super().__init__(name, desc, addr, path, data)
         self._eval = eval
         self._mark = mark
-        self._mode = mode.islower()
+        self._mode = mode.lower()
 
     def _update_env(self, data):
         env = uboot.EnvImgOld(self._mark)
@@ -131,6 +131,35 @@ class DatSegDCD(DatSegBase):
         return dcd
 
 
+class DatSegFDT(DatSegBase):
+
+    @property
+    def data(self):
+        if self._data is None:
+            with open(self._path, 'r' if self._path.lower().endswith('.dts') else 'rb') as f:
+                self._data = f.read()
+
+        if type(self._data) is str:
+            # TODO:
+            pass
+        else:
+            # TODO:
+            pass
+
+        if self._eval is not None:
+            self._data = self._update_dtb(self._data)
+
+        return self._data
+
+    def __init__(self, name, desc='', addr=None, path=None, data=None, eval=None):
+        super().__init__(name, desc, addr, path, data)
+        self._eval = eval
+
+    def _update_dtb(self, data):
+        # TODO:
+        return data
+
+
 class DatSegUST(DatSegBase):
 
     def _export(self, txt_data):
@@ -156,7 +185,7 @@ class DatSegUFW(DatSegBase):
         super().__init__(name, desc, addr, path, data)
         self._eval = eval
         self._mark = mark
-        self._mode = mode.islower()
+        self._mode = mode.lower()
 
     def _update_env(self, data):
         env = uboot.EnvImgOld(self._mark)
@@ -401,6 +430,9 @@ class SMX(object):
                 self._data.append(DatSegIMX(name, desc, addr, path, data, eval, mark, mode))
             elif type == 'DCD':
                 self._data.append(DatSegDCD(name, desc, addr, path, data))
+            elif type == 'FDT':
+                #self._data.append(DatSegFDT(name, desc, addr, path, data, eval))
+                raise NotImplementedError("FDT type is not supported yet !")
             elif type == 'UFW':
                 self._data.append(DatSegUFW(name, desc, addr, path, data, eval, mark, mode))
             elif type == 'UST':

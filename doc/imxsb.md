@@ -1,7 +1,7 @@
 IMX Smart-Boot
 ==============
 
-The `imxsb` is a tool for managed boot of embedded devices based on IMX application processors.
+The `imxsb` is a tool for managed boot of embedded devices based on IMX application processors. It fully replaces the [imx_loader](https://github.com/boundarydevices/imx_usb_loader) and adding aditional features for easy modification or fixation of IMX DCD, U-Boot Enviroment Variables and Device Tree data.
 
 Usage
 -----
@@ -11,7 +11,7 @@ For printing a general info of usage this tool execute `imxsb -?`.
 ```sh
 Usage: imxsb [OPTIONS] FILE COMMAND [ARGS]...
 
-  IMX Smart Boot, ver.: 0.0.2 Beta
+  IMX Smart Boot, ver.: 0.0.3 Beta
 
 Options:
   -v, --version  Show the version and exit.
@@ -52,7 +52,7 @@ This command execute boot process via selected boot option from attached SMX fil
 ##### Example:
 
 ```sh
- $ imxsb imx7d.smx run 0
+ $ imxsb imx7d.smx run
 
  0) InitRAMFS Boot (Boot from RAMDisk image)
  1) Network Boot 0 (Mount RootFS via NFS)
@@ -81,7 +81,7 @@ This section contains the base information's about target device.
 
 * **NAME** - The name of target device or developing board (optional)
 * **DESC** - The description of target device or developing board (optional)
-* **CHIP** - Embedded IMX processor mark: VYBRID, MX6DQP, MX6SDL, MX6SL, MX6SX, MX6UL, MX6ULL, MX6SLL, MX7SD (required)
+* **CHIP** - Embedded IMX processor mark: VYBRID, MX6DQP, MX6SDL, MX6SL, MX6SX, MX6UL, MX6ULL, MX6SLL, MX7SD, MX7ULP (required)
 
 >Instead of processor mark we can use directly USB VID:PID of the device in string format: "0x15A2:0x0054". Useful for a new device which is not in list of supported devices.
 
@@ -104,7 +104,7 @@ The syntax for defining a variable is following:
 ```
 VARS:
     #   <name>: <value>
-    OCRAM_ADDR: 0x00910000
+    OCRAM_ADDR: '0x00910000'
 ```
 
 The syntax for using a variable in `DATA` or `BODY` section is following:
@@ -122,7 +122,7 @@ DATA:
 
 Collects all data and paths to images used in scripts from `BODY` section.
 
-Attributes used in all data segment:
+Attributes used in all data segments:
 
 * **DESC** - The description of data segment (optional)
 * **ADDR** - The absolute address inside SoC OCT or DDR memory (optional)
@@ -139,7 +139,8 @@ Supported data types:
 
 * **IMX** - IMX boot image (*.imx)
 * **DCD** - Device configuration data
-* **UFW** - U-Boot raw image (*.bin)
+* **FDT** - Flattened device tree data (*.dtb, *.dts)
+* **UFW** - U-Boot firmware image (*.bin)
 * **UST** - U-Boot script
 * **BIN** - Binary data (used as default type if not specified)
 
@@ -165,11 +166,11 @@ DATA:
 
 Collects all boot options as small scripts based on following commands:
 
-* **WREG** *BYTES ADDRESS VALUE*
-* **WDCD** *DCD_DATA [ADDRESS]*
-* **WIMG** *IMG_DATA [ADDRESS]*
-* **SDCD**
-* **JRUN** *ADDRESS or IMX_IMAGE*
+* **WREG** *BYTES ADDRESS VALUE* - Write specified value into register at specified address.
+* **WDCD** *DCD_DATA [ADDRESS]* - Write device configuration data into target device OC memory.
+* **WIMG** *IMG_DATA [ADDRESS]* - Write image into target device OC or DDR memory
+* **SDCD** - Skip DCD content from loaded U-Boot image.
+* **JRUN** *ADDRESS or IMX_IMAGE* - Jump to specified address and run.
 
 Description of arguments
 
@@ -202,4 +203,4 @@ BODY:
         JRUN UBOOT_IMX_FILE
 ```
 
-Here is example of complete IMX Smart-Boot description file: [example.smx](example.smx)
+Here is an example of complete IMX Smart-Boot description file: [example.smx](example.smx)

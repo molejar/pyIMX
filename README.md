@@ -15,7 +15,7 @@ Dependencies
 - [pyserial](https://github.com/pyserial/pyserial) - Python package for communication over Serial port in Linux and Windows OS.
 - [pyYAML](http://pyyaml.org/wiki/PyYAML) - YAML parser and emitter for the Python programming language.
 - [Jinja2](https://pypi.python.org/pypi/Jinja2) - A small but fast and easy to use stand-alone template engine.
-- [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for for manipulating with U-Boot images and environment variables.
+- [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for manipulating with U-Boot images and environment variables.
 
 Installation
 ------------
@@ -23,23 +23,23 @@ Installation
 To install the latest development version (master branch) execute in shell the following command:
 
 ``` bash
-    $ pip3 install --upgrade --process-dependency-links https://github.com/molejar/pyIMX/archive/master.zip
+    $ pip3 install -U --process-dependency-links https://github.com/molejar/pyIMX/archive/master.zip
 ```
 
-NOTE: you may run into permissions issues running these commands.
-You have a few options here:
-
-1. Run with `sudo` to install pyIMX and dependencies globally
-2. Specify the `--user` option to install localy into your home directory (~/.local)
-3. Run the command in a [virtualenv](https://virtualenv.pypa.io/en/latest/) local to a specific project working set.
-
-You can also install from local sources by executing in shell the following commands:
+In case of development, install it from cloned sources by executing in shell the following commands:
 
 ``` bash
     $ git clone https://github.com/molejar/pyIMX.git
     $ cd pyIMX
-    $ pip3 install --upgrade --process-dependency-links .
+    $ pip3 install -U --process-dependency-links -e .
 ```
+
+**NOTE:** You may run into a permissions issues running these commands. Here are a few options how to fix it:
+
+1. Run with `sudo` to install pyIMX and dependencies globally
+2. Specify the `--user` option to install locally into your home directory (export "~/.local/bin" into PATH variable if haven't).
+3. Run the command in a [virtualenv](https://virtualenv.pypa.io/en/latest/) local to a specific project working set.
+
 
 Usage
 -----
