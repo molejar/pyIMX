@@ -219,9 +219,9 @@ elif os.name == "posix":
             else:
                 bmRequestType = 0x21       #Host to device request of type Class of Recipient Interface
                 bmRequest = 0x09           #Set_REPORT (HID class-specific request for transferring data over EP0)
-                wValue = 0x201             #Issuing an OUT report
+                wValue = 0x200             #Issuing an OUT report
                 wIndex = self.intf_number  #Interface number for HID
-                self.dev.ctrl_transfer(bmRequestType, bmRequest, wValue, wIndex, rawdata)
+                self.dev.ctrl_transfer(bmRequestType, bmRequest, wValue + id, wIndex, rawdata)
 
         def read(self, timeout=1000):
             """
@@ -286,8 +286,8 @@ elif os.name == "posix":
                         ep_out = ep
 
                 if usb.__version__ == '1.0.0b1':
-                    product_name = usb.util.get_string(dev, 64, 2)
                     vendor_name = usb.util.get_string(dev, 64, 1)
+                    product_name = usb.util.get_string(dev, 64, 2)
                 else:
                     vendor_name = usb.util.get_string(dev, 1)
                     product_name = usb.util.get_string(dev, 2)
