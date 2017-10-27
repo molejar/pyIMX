@@ -20,18 +20,20 @@ Dependencies
 Installation
 ------------
 
-To install the latest development version (master branch) execute in shell the following command:
+To install the latest version (master branch) execute in shell following commands:
 
 ``` bash
-    $ pip3 install -U --process-dependency-links https://github.com/molejar/pyIMX/archive/master.zip
+    $ pip3 install -r https://raw.githubusercontent.com/molejar/pyIMX/master/requirements.txt
+    $ pip3 install -U https://github.com/molejar/pyIMX/archive/master.zip
 ```
 
-In case of development, install it from cloned sources by executing in shell the following commands:
+In case of development, install it from cloned sources:
 
 ``` bash
     $ git clone https://github.com/molejar/pyIMX.git
     $ cd pyIMX
-    $ pip3 install -U --process-dependency-links -e .
+    $ pip3 install -r requirements.txt
+    $ pip3 install -U -e .
 ```
 
 **NOTE:** You may run into a permissions issues running these commands. Here are a few options how to fix it:

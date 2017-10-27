@@ -21,18 +21,14 @@ from setuptools import setup, find_packages
 sys.path.insert(0, './src')
 import imx
 
-requirements = ['click>=6.0', 'pyserial>=3.0', 'uboot>=0.0.7', 'PyYAML>=3.10', 'Jinja2>=2.6']
+requirements = ['click>=6.0', 'pyserial>=3.0', 'PyYAML>=3.10', 'Jinja2>=2.6', 'uboot>=0.0.7']
 
 if sys.platform.startswith('linux'):
-    requirements.extend([
-        'pyusb>=1.0.0b2',
-    ])
+    requirements.append('pyusb>=1.0.0b2')
 elif sys.platform.startswith('win'):
-    requirements.extend([
-        'pywinusb>=0.4.0',
-    ])
+    requirements.append('pywinusb>=0.4.0')
 else:
-    pass
+    raise Exception('Not supported platform !')
 
 setup(
     name='imx',
@@ -43,7 +39,6 @@ setup(
     url='https://github.com/molejar/pyIMX',
     platforms="Windows, Linux",
     python_requires=">=3.1",
-    dependency_links = ['https://github.com/molejar/pyUBoot/archive/master.zip#egg=uboot-0.0.7'],
     install_requires=requirements,
     packages=find_packages('src'),
     include_package_data = True,
