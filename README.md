@@ -20,7 +20,7 @@ Dependencies
 Installation
 ------------
 
-To install the latest version (master branch) execute in shell following commands:
+To install the latest version from master branch execute in shell following commands:
 
 ``` bash
     $ pip3 install -r https://raw.githubusercontent.com/molejar/pyIMX/master/requirements.txt

@@ -160,15 +160,59 @@ class DatSegFDT(DatSegBase):
         return data
 
 
-class DatSegUST(DatSegBase):
+class DatSegUEI(DatSegBase):
 
-    def _export(self, txt_data):
-        simg = uboot.ScriptImage()
-        simg.load(txt_data)
-        return simg.export()
+    @property
+    def data(self):
+        if self._uimg.ImageType == int(uboot.IMGType.MULTI):
+            if self._path is None or isinstance(self._path, list):
+                raise Exception("Paths must be defined !")
+            for path in self._path:
+                with open(path, 'rb') as f:
+                    self._uimg.append(uboot.parse_img(f.read()))
+        elif self._uimg.ImageType == int(uboot.IMGType.FIRMWARE):
+            if self._path is None:
+                raise Exception("Path must be defined !")
+            with open(self._path, 'rb') as f:
+                self._uimg.data = f.read()
+        elif self._uimg.ImageType == int(uboot.IMGType.SCRIPT):
+            if self._data is None:
+                with open(self._path, 'r') as f:
+                    self._data = f.read()
+            self._uimg.load(self._data)
+        else:
+            if self._path is None:
+                raise Exception("Path must be defined !")
+            with open(self._path, 'rb') as f:
+                self._uimg.data = f.read()
+
+        return self._uimg.export()
+
+    def __init__(self, name, desc='', addr=None, path=None, data=None, head=None):
+        super().__init__(name, desc, addr, path, data)
+        # get image type
+        if head is not None and 'IMAGE_TYPE' in head:
+            img_type = uboot.IMGType.str_to_value(head['IMAGE_TYPE'])
+        else:
+            img_type = int(uboot.IMGType.FIRMWARE)
+
+        self._uimg = uboot.new_img(img_type)
+        if head is not None and head:
+            if 'ARCH_TYPE' in head:
+                self._uimg.ArchType = uboot.ARCHType.str_to_value(head['ARCH_TYPE'])
+            if 'OS_TYPE' in head:
+                self._uimg.OsType = uboot.OSType.str_to_value(head['OS_TYPE'])
+            if 'COMPRESS' in head:
+                self._uimg.Compression = uboot.COMPRESSType.str_to_value(head['COMPRESS'])
+            if 'IMAGE_NAME' in head:
+                self._uimg.Name = head['IMAGE_NAME']
+            if 'ENTRY_ADDR' in head:
+                self._uimg.EntryAddress = head['ENTRY_ADDR']
+            if 'LOAD_ADDR' in head:
+                self._uimg.LoadAddress = head['LOAD_ADDR']
 
 
-class DatSegUFW(DatSegBase):
+class DatSegURI(DatSegBase):
 
     @property
     def data(self):
@@ -373,6 +417,7 @@ class SMX(object):
             eval = dseg['EVAL'] if 'EVAL' in dseg and dseg['EVAL'] else None
             mark = dseg['MARK'] if 'MARK' in dseg and dseg['MARK'] else 'bootdelay='
             mode = dseg['MODE'] if 'MODE' in dseg and dseg['MODE'] else 'DISABLED'
+            head = dseg['HEAD'] if 'HEAD' in dseg and dseg['HEAD'] else None
             path = None
 
             # we need convert address value to int if defined as variable in *.smx
@@ -391,7 +436,7 @@ class SMX(object):
 
                 desc = '{} ({})'.format(desc, dseg['FILE'])
 
-            if data is not None and isinstance(data, dict):
+            if type == 'IMX' and data is not None and isinstance(data, dict):
                 if not 'STADDR' in data: raise Exception("The STADDR must be defined in DATA->%s->DATA" % name)
                 if not 'DCDSEG' in data: raise Exception("The DCDSEG must be defined in DATA->%s->DATA" % name)
                 if not 'APPSEG' in data: raise Exception("The APPSEG must be defined in DATA->%s->DATA" % name)
@@ -433,10 +478,10 @@ class SMX(object):
             elif type == 'FDT':
                 #self._data.append(DatSegFDT(name, desc, addr, path, data, eval))
                 raise NotImplementedError("FDT type is not supported yet !")
-            elif type == 'UFW':
-                self._data.append(DatSegUFW(name, desc, addr, path, data, eval, mark, mode))
-            elif type == 'UST':
-                self._data.append(DatSegUST(name, desc, addr, path, data))
+            elif type == 'URI':
+                self._data.append(DatSegURI(name, desc, addr, path, data, eval, mark, mode))
+            elif type == 'UEI':
+                self._data.append(DatSegUEI(name, desc, addr, path, data, head))
             elif type == 'BIN':
                 self._data.append(DatSegBIN(name, desc, addr, path, data))
             else:

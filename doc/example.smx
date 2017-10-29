@@ -146,7 +146,8 @@ DATA:
     UBOOT_SCRIPT1:
         DESC: U-Boot Script 1
         ADDR: "{{ SCRIM_ADDR }}"
-        TYPE: UST
+        TYPE: UEI
+        HEAD: [ IMAGE_TYPE: 'script' ]
         DATA: |
             echo '>> Run NetBoot Script ...'
             setenv autoload 'no'
@@ -177,7 +178,8 @@ DATA:
     UBOOT_SCRIPT2:
         DESC: U-Boot Script 2
         ADDR: "{{ IMAGE_ADDR }}"
-        TYPE: UST
+        TYPE: UEI
+        HEAD: [ IMAGE_TYPE: 'script' ]
         DATA: |
             echo '>> Run NetBoot Script ...'
             setenv autoload 'no'

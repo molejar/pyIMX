@@ -19,6 +19,7 @@ from .header import Header, SegTag, UnparsedException, CorruptedException
 from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData,\
                       EnumWriteOps, EnumCheckOps, EnumEngine
 from .secret import SecretKeyBlob, Certificate, Signature
+from .misc import sizeof_fmt
 
 
 ########################################################################################################################
@@ -241,7 +242,7 @@ class SegBDT(BaseSegment):
         :return: string
         '''
         msg  = " Start:  0x{0:08X}\n".format(self._start)
-        msg += " Length: {0:d} Bytes\n".format(self._length)
+        msg += " Length: {0:s} ({1:d} Bytes)\n".format(sizeof_fmt(self._length), self._length)
         msg += " Plugin: {0:s}\n".format('YES' if self._plugin else 'NO')
         msg += "\n"
         return msg
