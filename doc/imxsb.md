@@ -19,7 +19,7 @@ For printing a general info of usage this tool execute `imxsb -?`.
 ```sh
 Usage: imxsb [OPTIONS] FILE COMMAND [ARGS]...
 
-  IMX Smart Boot, ver.: 0.0.3 Beta
+  IMX Smart Boot, ver.: 0.0.4 Beta
 
 Options:
   -v, --version  Show the version and exit.
@@ -92,8 +92,8 @@ This section contains the base information's about target device.
 * **DESC** - The description of target device or developing board (optional)
 * **CHIP** - Embedded IMX processor mark: VYBRID, MX6DQP, MX6SDL, MX6SL, MX6SX, MX6UL, MX6ULL, MX6SLL, MX7SD, MX7ULP (required)
 
->Instead of processor mark we can use directly USB VID:PID of the device in string format: "0x15A2:0x0054". Useful for a 
-new device which is not in list of supported devices.
+>Instead of processor mark can be used USB VID:PID of the device in string format: "0x15A2:0x0054". Useful for a new 
+device which is not in list of supported devices.
 
 Example of head section:
 
@@ -155,7 +155,7 @@ value must be defined in some of this two places. If is defined on both then the
 
 This data segment contains a data which generally initialize the SoC periphery for DDR memory. More details about DCD 
 are in reference manual of selected IMX device. The data itself can be specified as binary file or text string/file. The 
-text format of DCD data is described here: [imxim](doc/imxim.md)
+text format of DCD data is described here: [imxim](imxim.md)
 
 Example of *DCD* data segment in binary and text format:
 
@@ -221,8 +221,7 @@ DATA:
             APPSEG: UBOOT_RAW_FILE
 ```
 
->Included data segments must be defined earlier that IMX data segment else you get error that include data segment 
-doesnt exist   
+>Included data segments must be defined before IMX data segment.
 
 ##### U-Boot raw image data segment (URI)
 
