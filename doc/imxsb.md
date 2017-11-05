@@ -275,7 +275,6 @@ DATA:
         DESC: U-Boot FW
         ADDR: 0x83100000
         TYPE: UEI
-        HEAD: [ IMAGE_TYPE: 'firmware' ]
         FILE: imx7d/u-boot.bin
                  
     UBOOT_SCRIPT:
@@ -283,9 +282,9 @@ DATA:
         ADDR: 0x83100000
         TYPE: UEI
         HEAD:
-            IMAGE_TYPE: 'script'
+            IMAGE_TYPE: script
         DATA: |
-            echo '>> Run NetBoot Script ...'
+            echo '>> Network Boot ...'
             setenv autoload 'no'
             dhcp
             ...

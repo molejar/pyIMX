@@ -165,14 +165,14 @@ class DatSegUEI(DatSegBase):
     @property
     def data(self):
         if self._uimg.ImageType == int(uboot.IMGType.MULTI):
-            if self._path is None or isinstance(self._path, list):
-                raise Exception("Paths must be defined !")
+            if self._path is None or not isinstance(self._path, list):
+                raise Exception("DATA->%s->PATH must be defined !" % self._name)
             for path in self._path:
                 with open(path, 'rb') as f:
                     self._uimg.append(uboot.parse_img(f.read()))
         elif self._uimg.ImageType == int(uboot.IMGType.FIRMWARE):
             if self._path is None:
-                raise Exception("Path must be defined !")
+                raise Exception("DATA->%s->PATH must be defined !" % self._name)
             with open(self._path, 'rb') as f:
                 self._uimg.data = f.read()
         elif self._uimg.ImageType == int(uboot.IMGType.SCRIPT):
@@ -182,7 +182,7 @@ class DatSegUEI(DatSegBase):
             self._uimg.load(self._data)
         else:
             if self._path is None:
-                raise Exception("Path must be defined !")
+                raise Exception("DATA->%s->PATH must be defined !" % self._name)
             with open(self._path, 'rb') as f:
                 self._uimg.data = f.read()
 
@@ -191,7 +191,7 @@ class DatSegUEI(DatSegBase):
     def __init__(self, name, desc='', addr=None, path=None, data=None, head=None):
         super().__init__(name, desc, addr, path, data)
         # get image type
-        if head is not None and 'IMAGE_TYPE' in head:
+        if isinstance(head, dict) and 'IMAGE_TYPE' in head:
             img_type = uboot.IMGType.str_to_value(head['IMAGE_TYPE'])
         else:
             img_type = int(uboot.IMGType.FIRMWARE)
@@ -425,16 +425,36 @@ class SMX(object):
                 addr = int(addr, 0)
 
             if 'FILE' in dseg:
-                for abs_path in [dseg['FILE'], os.path.join(self._path, dseg['FILE'])]:
-                    abs_path = os.path.normpath(abs_path)
-                    if os.path.exists(abs_path):
-                        path = abs_path
-                        break
+                if isinstance(dseg['FILE'], (list, tuple)):
+                    for p in dseg['FILE']:
+                        fpath = None
+                        for abs_path in [p, os.path.join(self._path, p)]:
+                            print(abs_path)
+                            abs_path = os.path.normpath(abs_path)
+                            if os.path.exists(abs_path):
+                                fpath = abs_path
+                                break
 
-                if path is None:
-                    raise Exception("DATA->%s->FILE: \"%s\" doesnt exist" % (name, dseg['FILE']))
+                        if fpath is None:
+                            raise Exception("DATA->%s->FILE: -\"%s\" doesnt exist" % (name, p))
 
-                desc = '{} ({})'.format(desc, dseg['FILE'])
+                        if path is None:
+                            path = [ fpath ]
+                        else:
+                            path.append(fpath)
+
+                    desc = '{} ({})'.format(desc, len(path))
+                else:
+                    for abs_path in [dseg['FILE'], os.path.join(self._path, dseg['FILE'])]:
+                        abs_path = os.path.normpath(abs_path)
+                        if os.path.exists(abs_path):
+                            path = abs_path
+                            break
+
+                    if path is None:
+                        raise Exception("DATA->%s->FILE: \"%s\" doesnt exist" % (name, dseg['FILE']))
+
+                    desc = '{} ({})'.format(desc, path)
 
             if type == 'IMX' and data is not None and isinstance(data, dict):
                 if not 'STADDR' in data: raise Exception("The STADDR must be defined in DATA->%s->DATA" % name)
@@ -469,7 +489,7 @@ class SMX(object):
                     data['STADDR'] = int(data['STADDR'], 0)
 
             if path is None and data is None:
-                raise Exception("The path/data must be defined in DATA->%s" % name)
+                raise Exception("The FILE/DATA must be defined in DATA->%s" % name)
 
             if   type == 'IMX':
                 self._data.append(DatSegIMX(name, desc, addr, path, data, eval, mark, mode))

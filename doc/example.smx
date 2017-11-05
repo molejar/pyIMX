@@ -147,9 +147,10 @@ DATA:
         DESC: U-Boot Script 1
         ADDR: "{{ SCRIM_ADDR }}"
         TYPE: UEI
-        HEAD: [ IMAGE_TYPE: 'script' ]
+        HEAD:
+            IMAGE_TYPE: script
         DATA: |
-            echo '>> Run NetBoot Script ...'
+            echo '>> Network Boot ...'
             setenv autoload 'no'
             dhcp
             # ----------------------------------
@@ -179,9 +180,10 @@ DATA:
         DESC: U-Boot Script 2
         ADDR: "{{ IMAGE_ADDR }}"
         TYPE: UEI
-        HEAD: [ IMAGE_TYPE: 'script' ]
+        HEAD:
+            IMAGE_TYPE: script
         DATA: |
-            echo '>> Run NetBoot Script ...'
+            echo '>> Network Boot ...'
             setenv autoload 'no'
             dhcp
             # ----------------------------------
