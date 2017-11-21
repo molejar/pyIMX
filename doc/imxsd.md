@@ -1,4 +1,4 @@
-IMX Serial Downloader
+i.MX Serial Downloader
 =====================
 
 The `imxsd` is a tool to download and execute code on [i.MX](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors) and Vybrid SoCs through the Serial Download Protocol (SDP).

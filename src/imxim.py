@@ -99,13 +99,13 @@ def info(offset, file):
 # IMX Image: Create new IMX boot image from attached files
 @cli.command(short_help="Create new IMX boot image from attached files")
 @click.argument('address', nargs=1, type=UINT)
-@click.argument('dcdfile', nargs=1, type=click.Path(exists=True))
 @click.argument('appfile', nargs=1, type=click.Path(exists=True))
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
-@click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File")
+@click.option('-d', '--dcd', type=click.Path(exists=True), help="DCD File (*.txt or *.bin)")
+@click.option('-c', '--csf', type=click.Path(exists=True), help="CSF File (*.txt or *.bin)")
 @click.option('-o', '--offset', type=UINT, default=0x400, show_default=True, help="IVT Offset")
-@click.option('-p/', '--plugin/', is_flag=True, default=False, show_default=True, help="Plugin Image")
-def create(address, dcdfile, appfile, outfile, offset, plugin, csf=None):
+@click.option('-p/', '--plugin/', is_flag=True, default=False, help="Plugin Image if used")
+def create(address, appfile, outfile, offset, plugin, dcd, csf):
     """ Create new IMX boot image from attached files """
     try:
         img = imx.BootImage(address = address, offset = offset, plugin = plugin)
@@ -115,14 +115,15 @@ def create(address, dcdfile, appfile, outfile, offset, plugin, csf=None):
             img.app = f.read()
 
         # Open and load/parse DCD segment
-        if dcdfile.lower().endswith('.txt'):
-            with open(dcdfile, 'r') as f:
-                img.dcd.load(f.read())
-        else:
-            with open(dcdfile, 'rb') as f:
-                img.dcd.parse(f.read())
+        if dcd:
+            if dcd.lower().endswith('.txt'):
+                with open(dcd, 'r') as f:
+                    img.dcd.load(f.read())
+            else:
+                with open(dcd, 'rb') as f:
+                    img.dcd.parse(f.read())
 
-        # Open and import CSF segment
+        # Open and load/parse CSF segment
         if csf:
             raise NotImplementedError('CSF support will be added later')
 
@@ -196,6 +197,55 @@ def extract(file, offset, format):
         sys.exit(ERROR_CODE)
 
     click.secho(" Image successfully extracted\n Path: %s\n" % out_path)
+
+
+# IMX Image: Convert DCD: TXT file to BIN file
+@cli.command(short_help="Convert DCD: TXT file to BIN file")
+@click.argument('infile', nargs=1, type=click.Path(exists=True))
+@click.argument('outfile', nargs=1, type=click.Path(readable=False))
+@click.option('-v', '--version', type=UINT, default=0x41, help="DCD Version (default: 0x41)")
+def dcdbin(infile, outfile, version):
+    """ Convert DCD: TXT file to BIN file """
+    try:
+        dcd = imx.SegDCD(param=version)
+
+        # Open and load DCD TXT file
+        with open(infile, 'r') as f:
+            dcd.load(f.read())
+
+        # Save DCD as BIN file
+        with open(outfile, 'wb') as f:
+            f.write(dcd.export())
+
+    except Exception as e:
+        click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
+
+    click.secho(" DCD successfully converted\n Path: %s\n" % outfile)
+
+
+# IMX Image: Convert DCD: BIN file to TXT file
+@cli.command(short_help="Convert DCD: BIN file to TXT file")
+@click.argument('infile', nargs=1, type=click.Path(exists=True))
+@click.argument('outfile', nargs=1, type=click.Path(readable=False))
+def dcdtxt(infile, outfile):
+    """ Convert DCD: BIN file to TXT file """
+    try:
+        dcd = imx.SegDCD()
+
+        # Open and parse DCD BIN file
+        with open(infile, 'rb') as f:
+            dcd.parse(f.read())
+
+        # Save DCD as TXT File
+        with open(outfile, 'w') as f:
+            f.write(dcd.store())
+
+    except Exception as e:
+        click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
+
+    click.secho(" DCD successfully converted\n Path: %s\n" % outfile)
 
 
 def main():

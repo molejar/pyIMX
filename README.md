@@ -1,7 +1,7 @@
 pyIMX
 =====
 
-This repository collects a useful tools and python module targeted for [IMX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-based-portfolio/i.mx-applications-processors).
+This repository collects a useful tools and python module targeted for [i.MX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-based-portfolio/i.mx-applications-processors).
 
 > This project is still in developing phase. Please, test it and report the issues.
 
@@ -46,13 +46,13 @@ In case of development, install it from cloned sources:
 Usage
 -----
 
-The example of IMX boot image manager API usage:
+The example of i.MX boot image manager API usage:
 
 ``` Python
     import imx
 
     # --------------------------------------------------------------------------------
-    # Create new U-Boot IMX image
+    # Create new U-Boot i.MX image
     # --------------------------------------------------------------------------------
 
     # Create DCD segnent instance
@@ -84,7 +84,7 @@ The example of IMX boot image manager API usage:
         f.write(img.export())
 
     # --------------------------------------------------------------------------------
-    # Extract DCD from existing U-Boot IMX image
+    # Extract DCD from existing U-Boot i.MX image
     # --------------------------------------------------------------------------------
 
     # Create IMX image instance
@@ -139,13 +139,13 @@ The example of IMX serial downloader API usage:
         flasher.close()
 ```
 
-Python IMX module is distributed with following command-line utilities (tools):
+Python i.MX module is distributed with following command-line utilities (tools):
 * [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
 * [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
-* [imxsb](doc/imxsb.md) - a tool for managed boot of IMX device caled as "IMX Smart-Boot"
+* [imxsb](doc/imxsb.md) - a tool for managed boot of i.MX device caled as "i.MX Smart-Boot"
 
 TODO
 ----
 
 * Add image security features (sign and encryption)
-* Complete serial interface support in IMX serial downloader module
+* Complete serial interface support in i.MX serial downloader module

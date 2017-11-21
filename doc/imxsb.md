@@ -1,7 +1,7 @@
-IMX Smart-Boot
+i.MX Smart-Boot
 ==============
 
-The `imxsb` is a tool for managed boot of embedded devices based on IMX application processors. It fully replaces the 
+The `imxsb` is a tool for managed boot of embedded devices based on i.MX application processors. It fully replaces the 
 [imx_loader](https://github.com/boundarydevices/imx_usb_loader) and adds features for an easy modification of binary 
 sections in boot images like: 
 
@@ -79,7 +79,7 @@ This command execute boot process via selected boot option from attached SMX fil
 
 ## SMX File
 
-The SMX file is a standard text file which collect all information's about IMX boot process: paths to images, DCD data, 
+The SMX file is a standard text file which collect all information's about i.MX boot process: paths to images, DCD data, 
 global variables, boot scripts and etc. Thanks to YAML syntax is human-readable and easy modifiable. Comments in SMX file 
 start with the hash character `#` and extend to the end of the physical line. A comment may appear at the start of a line 
 or following whitespace characters. The content of SMX file is split into four sections: `HEAD`, `VARS`, `DATA` and `BODY`.

@@ -1,4 +1,4 @@
-IMX Image Manager
+i.MX Image Manager
 =================
 
 The `imxim` is a tool to for manipulation with `*.imx` image.
@@ -11,7 +11,7 @@ For printing a general info of usage this tool execute `imxim -?`.
 ```sh
  $ Usage: imxim [OPTIONS] COMMAND [ARGS]...
 
- IMX Image Manager, ver.: 0.0.1
+ IMX Image Manager, ver.: 0.0.4
 
  Options:
   -v, --version  Show the version and exit.
@@ -96,25 +96,71 @@ Extract the IMX image content into a directory "file_name.ex"
 Create new IMX image from attached files:
 
 **ADDRESS** - Start address of image in target memory<br>
-**DCDFILE** - DCD file in TXT or BIN format<br>
 **APPFILE** - APP file (u-boot.bin or barebox.bin)<br>
 **OUTFILE** - Output file name with extension *.imx<br>
 
 ##### options:
-* **-c, --csf** - CSF file
+* **-d, --dcd** - DCD file (*.txt or *.bin)
+* **-c, --csf** - CSF file (*.txt or *.bin)
 * **-o, --offset** - IVT offset (default: 1024)
-* **-p, --plugin** - Plugin image (default: False)
+* **-p, --plugin** - Plugin Image if used
 * **-?, --help** - Show help message and exit
 
 ##### Example:
 
 ```sh
- $ imxim create 0x877FF000 dcd.bin u-boot.bin u-boot.imx
+ $ imxim create -d dcd.bin 0x877FF000 u-boot.bin u-boot.imx
 
  Image successfully created
  Path: u-boot.imx
 
 ```
+
+<br>
+
+#### $ imxim dcdtxt [OPTIONS] INFILE OUTFILE
+
+Convert DCD: BIN file to TXT file
+
+**INFILE** - Input file name with extension *.bin<br>
+**OUTFILE** - Output file name with extension *.txt<br>
+
+##### options:
+* **-?, --help** - Show help message and exit
+
+##### Example:
+
+```sh
+ $ imxim dcdtxt dcd.bin dcd.txt
+
+ DCD successfully converted
+ Path: dcd.txt
+
+```
+
+<br>
+
+#### $ imxim dcdbin [OPTIONS] INFILE OUTFILE
+
+Convert DCD: TXT file to BIN file
+
+**INFILE** - Input file name with extension *.txt<br>
+**OUTFILE** - Output file name with extension *.bin<br>
+
+##### options:
+* **-v, --version** - DCD Version (default: 0x41)
+* **-?, --help** - Show help message and exit
+
+##### Example:
+
+```sh
+ $ imxim dcdbin -v 0x42 dcd.txt dcd.bin
+
+ DCD successfully converted
+ Path: dcd.bin
+
+```
+
 
 ## DCD file
 
