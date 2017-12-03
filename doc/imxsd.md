@@ -13,7 +13,7 @@ For printing a general info of usage this tool execute `imxsd -?`.
  $ imxsd -?
  Usage: imxsd [OPTIONS] COMMAND [ARGS]...
 
-   IMX Serial Downloader, ver.: 0.0.2 Beta
+   IMX Serial Downloader, ver.: 0.0.5 Beta
 
    NOTE: Development version, be carefully with it usage !
 

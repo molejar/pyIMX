@@ -23,6 +23,7 @@ import imx
 import yaml
 import uboot
 import click
+import pyfdt
 import jinja2
 
 
@@ -135,29 +136,30 @@ class DatSegFDT(DatSegBase):
 
     @property
     def data(self):
-        if self._data is None:
-            with open(self._path, 'r' if self._path.lower().endswith('.dts') else 'rb') as f:
-                self._data = f.read()
+        fdt = None
+        if self._path is not None:
+            if self._path.lower().endswith('.dts'):
+                with open(self._path, 'r') as f:
+                    fdt = pyfdt.parse_dts(f.read())
+            else:
+                with open(self._path, 'rb') as f:
+                    fdt = pyfdt.parse_dtb(f.read())
 
-        if type(self._data) is str:
-            # TODO:
-            pass
-        else:
-            # TODO:
-            pass
+        if self._data is not None:
+            if self._path is not None and self._mode != 'disabled':
+                fdt_ext = pyfdt.parse_dts(self._data)
+                fdt.merge(fdt_ext)
+            elif self._path is None:
+                fdt = pyfdt.parse_dts(self._data)
 
-        if self._eval is not None:
-            self._data = self._update_dtb(self._data)
+        if fdt is None:
+            raise Exception("DATA->%s->PATH must be defined !" % self._name)
 
-        return self._data
+        return fdt.to_dtb()
 
-    def __init__(self, name, desc='', addr=None, path=None, data=None, eval=None):
+    def __init__(self, name, desc='', addr=None, path=None, data=None, mode='DISABLED'):
         super().__init__(name, desc, addr, path, data)
-        self._eval = eval
-
-    def _update_dtb(self, data):
-        # TODO:
-        return data
+        self._mode = mode.lower()
 
 
 class DatSegUEI(DatSegBase):
@@ -496,8 +498,7 @@ class SMX(object):
             elif type == 'DCD':
                 self._data.append(DatSegDCD(name, desc, addr, path, data))
             elif type == 'FDT':
-                #self._data.append(DatSegFDT(name, desc, addr, path, data, eval))
-                raise NotImplementedError("FDT type is not supported yet !")
+                self._data.append(DatSegFDT(name, desc, addr, path, data, mode))
             elif type == 'URI':
                 self._data.append(DatSegURI(name, desc, addr, path, data, eval, mark, mode))
             elif type == 'UEI':

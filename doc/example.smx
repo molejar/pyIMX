@@ -135,8 +135,54 @@ DATA:
 
     KERNEL_DTB_FILE:
         DESC: Device Tree Blob
+        TYPE: FDT
         ADDR: "{{ DTBIM_ADDR }}"
         FILE: imx7d_sbd/imx7d-sdb.dtb
+        # insert mode (disabled, merge)
+        MODE: merge
+        # modifications in loaded file
+        DATA: |
+            // Add support for M4 core
+            / {
+                memory {
+                    linux,usable-memory = <0x80000000 0x1FF00000 0xA0000000 0x1FF00000>;
+                };
+                soc {
+                    aips-bus@30400000 {
+                        adc@30610000 {
+                            status = "disabled";
+                        };
+                        adc@30620000 {
+                            status = "disabled";
+                        };
+                    };
+                    aips-bus@30800000 {
+                        can@30A10000 {
+                            status = "disabled";
+                        };
+                        i2c@30A30000 {
+                            status = "disabled";
+                        };
+                        rpmsg {
+                            status = "ok";
+                            vdev-nums = <0x1>;
+                            reg = <0xBFFF0000 0x10000>;
+                        };
+                    };
+                    sram@901000 {
+                        reg = <0x901000 0xF000>;
+                    };
+                };
+                regulators {
+                    regulator@2 {
+                        status = "disabled";
+                    };
+                };
+                tcml@007f8000 {
+                    compatible = "fsl,m4_tcml";
+                    reg = <0x7F8000 0x8000>;
+                };
+            };
 
     INITRAMFS_IMG:
         DESC: RAMDisk Image

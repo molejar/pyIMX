@@ -9,18 +9,22 @@ Usage
 For printing a general info of usage this tool execute `imxim -?`.
 
 ```sh
- $ Usage: imxim [OPTIONS] COMMAND [ARGS]...
+ Usage: imxim [OPTIONS] COMMAND [ARGS]...
 
- IMX Image Manager, ver.: 0.0.4
+  IMX Image Manager, ver.: 0.0.5 Beta
 
- Options:
+  NOTE: Development version, be carefully with it usage !
+
+Options:
   -v, --version  Show the version and exit.
   -?, --help     Show this message and exit.
 
- Commands:
-  info     List image content
-  create   Create new image from attached files
-  extract  Extract image content
+Commands:
+  create   Create new IMX boot image from attached files
+  dcdbin   Convert DCD: TXT file to BIN file
+  dcdtxt   Convert DCD: BIN file to TXT file
+  extract  Extract IMX boot image content
+  info     List IMX boot image content
 ```
 
 ## Commands

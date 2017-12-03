@@ -7,7 +7,7 @@ sections in boot images like:
 
 * i.MX Device Configuration Data
 * U-Boot Environment Variables
-* Device Tree Data (not ready yet)
+* Device Tree Data
 
 Later will be added support for on the fly sign and encryption of loaded boot images. 
 
@@ -19,7 +19,7 @@ For printing a general info of usage this tool execute `imxsb -?`.
 ```sh
 Usage: imxsb [OPTIONS] FILE COMMAND [ARGS]...
 
-  IMX Smart Boot, ver.: 0.0.4 Beta
+  IMX Smart Boot, ver.: 0.0.5 Beta
 
 Options:
   -v, --version  Show the version and exit.
@@ -181,7 +181,32 @@ DATA:
 
 ##### Flattened device tree data segment (FDT)
 
->Not implemented yet
+This data segment cover device tree data in readable text format or binary blob format.   
+
+Optional attributes:
+
+* **MODE** - Data insert mode: disabled or merge (optional)
+* **DATA** - This attribute can be used for customizing loaded *.dtb or *.dts via `FILE` attribute. Its content will be
+merged with loaded data if `MODE: merge`
+
+Example of *FDT* data segment:
+
+```
+    KERNEL_DTB_FILE:
+        DESC: Device Tree Blob
+        TYPE: FDT
+        ADDR: 0x83000000
+        FILE: imx7d/imx7d-sdb.dtb
+        # insert mode (disabled or merge)
+        MODE: merge
+        # modifications in loaded file
+        DATA: |
+            // Add support for M4 core
+            / {
+                memory {
+                    linux,usable-memory = <0x80000000 0x1FF00000 0xA0000000 0x1FF00000>;
+                };
+```
 
 ##### IMX boot image data segment (IMX)
 

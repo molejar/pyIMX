@@ -15,7 +15,8 @@ Dependencies
 - [pyserial](https://github.com/pyserial/pyserial) - Python package for communication over Serial port in Linux and Windows OS.
 - [pyYAML](http://pyyaml.org/wiki/PyYAML) - YAML parser and emitter for the Python programming language.
 - [Jinja2](https://pypi.python.org/pypi/Jinja2) - A small but fast and easy to use stand-alone template engine.
-- [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for manipulating with U-Boot images and environment variables.
+- [pyUBoot](https://github.com/molejar/pyUBoot) - Python package for manipulation with U-Boot images and environment variables.
+- [pyFDT](https://github.com/molejar/pyFDT) - Python package for manipulation with Device Tree images.
 
 Installation
 ------------
