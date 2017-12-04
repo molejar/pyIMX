@@ -361,7 +361,7 @@ class SegDCD(BaseSegment):
         self._commands.clear()
         self._header.length = self._header.size
 
-    def load(self, txt_data):
+    def load(self, txt_data, clear_old_cmds=True):
         cmds = {
             'WriteValue': ('write', int(EnumWriteOps.WRITE_VALUE)),
             'ClearBitMask': ('write', int(EnumWriteOps.CLEAR_BITMASK)),
@@ -379,7 +379,8 @@ class SegDCD(BaseSegment):
         cmd_mline = False
 
         # remove all buffered commands
-        self.clear()
+        if clear_old_cmds:
+            self.clear()
 
         for line in txt_data.split('\n'):
             line = line.rstrip('\0')
@@ -389,6 +390,7 @@ class SegDCD(BaseSegment):
             if not line or line.startswith('#'):
                 continue
             # check if multi-line command
+            cmd = []
             if cmd_mline:
                 cmd += line.split()
                 cmd_mline = False

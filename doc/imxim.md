@@ -20,11 +20,10 @@ Options:
   -?, --help     Show this message and exit.
 
 Commands:
-  create   Create new IMX boot image from attached files
-  dcdbin   Convert DCD: TXT file to BIN file
-  dcdtxt   Convert DCD: BIN file to TXT file
-  extract  Extract IMX boot image content
   info     List IMX boot image content
+  create   Create new IMX boot image from attached files
+  extract  Extract IMX boot image content
+  dcdfc    DCD file converter (*.bin, *.txt)
 ```
 
 ## Commands
@@ -122,49 +121,31 @@ Create new IMX image from attached files:
 
 <br>
 
-#### $ imxim dcdtxt [OPTIONS] INFILE OUTFILE
+#### $ imxim dcdfc [OPTIONS] OUTFILE [INFILES]
 
-Convert DCD: BIN file to TXT file
+Convert DCD binary blob (*.bin) into readable text file (*.txt) and vice versa.
 
-**INFILE** - Input file name with extension *.bin<br>
-**OUTFILE** - Output file name with extension *.txt<br>
+**OUTFILE** - Output file name with extension *.bin or *.txt<br>
+**INFILES** - Input file name with extension *.txt or *.bin<<br>
+
+>As input can be used more files which will be merged in one output file
 
 ##### options:
+* **-o, --outfmt** - Output file format: `txt` or `bin` (default: bin)
+* **-i, --infmt** - Input file format: `txt` or `bin` (default: txt)
 * **-?, --help** - Show help message and exit
 
 ##### Example:
 
 ```sh
- $ imxim dcdtxt dcd.bin dcd.txt
+ $ imxim dcdfc -i bin -o txt dcd.txt dcd.bin
 
- DCD successfully converted
- Path: dcd.txt
+ Conversion was successful !
+ Output: dcd.txt
 
 ```
 
 <br>
-
-#### $ imxim dcdbin [OPTIONS] INFILE OUTFILE
-
-Convert DCD: TXT file to BIN file
-
-**INFILE** - Input file name with extension *.txt<br>
-**OUTFILE** - Output file name with extension *.bin<br>
-
-##### options:
-* **-v, --version** - DCD Version (default: 0x41)
-* **-?, --help** - Show help message and exit
-
-##### Example:
-
-```sh
- $ imxim dcdbin -v 0x42 dcd.txt dcd.bin
-
- DCD successfully converted
- Path: dcd.bin
-
-```
-
 
 ## DCD file
 

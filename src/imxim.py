@@ -196,56 +196,46 @@ def extract(file, offset, format):
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho(" Image successfully extracted\n Path: %s\n" % out_path)
+    click.secho(" Image successfully extracted\n Output: %s\n" % out_path)
 
 
-# IMX Image: Convert DCD: TXT file to BIN file
-@cli.command(short_help="Convert DCD: TXT file to BIN file")
-@click.argument('infile', nargs=1, type=click.Path(exists=True))
+# IMX Image: DCD file converter
+@cli.command(short_help="DCD file converter (*.bin, *.txt)")
 @click.argument('outfile', nargs=1, type=click.Path(readable=False))
-@click.option('-v', '--version', type=UINT, default=0x41, help="DCD Version (default: 0x41)")
-def dcdbin(infile, outfile, version):
-    """ Convert DCD: TXT file to BIN file """
-    try:
-        dcd = imx.SegDCD(param=version)
-
-        # Open and load DCD TXT file
-        with open(infile, 'r') as f:
-            dcd.load(f.read())
-
-        # Save DCD as BIN file
-        with open(outfile, 'wb') as f:
-            f.write(dcd.export())
-
-    except Exception as e:
-        click.echo(str(e) if str(e) else "Unknown Error !")
-        sys.exit(ERROR_CODE)
-
-    click.secho(" DCD successfully converted\n Path: %s\n" % outfile)
-
-
-# IMX Image: Convert DCD: BIN file to TXT file
-@cli.command(short_help="Convert DCD: BIN file to TXT file")
-@click.argument('infile', nargs=1, type=click.Path(exists=True))
-@click.argument('outfile', nargs=1, type=click.Path(readable=False))
-def dcdtxt(infile, outfile):
-    """ Convert DCD: BIN file to TXT file """
+@click.argument('infiles', nargs=-1, type=click.Path(exists=True))
+@click.option('-o', '--outfmt', type=click.Choice(['txt', 'bin']),
+              default='bin', show_default=True, help="Output file format")
+@click.option('-i', '--infmt', type=click.Choice(['txt', 'bin']),
+              default='txt', show_default=True, help="Input file format")
+def dcdfc(outfile, infiles, outfmt, infmt):
+    """ DCD file converter """
     try:
         dcd = imx.SegDCD()
 
-        # Open and parse DCD BIN file
-        with open(infile, 'rb') as f:
-            dcd.parse(f.read())
+        if not isinstance(infiles, (list, tuple)):
+            infiles = [infiles]
+        for file in infiles:
+            if infmt == 'bin':
+                with open(file, 'rb') as f:
+                    dcd.parse(f.read())
+            else:
+                with open(file, 'r') as f:
+                    dcd.load(f.read(), False)
 
-        # Save DCD as TXT File
-        with open(outfile, 'w') as f:
-            f.write(dcd.store())
+        if outfmt == 'bin':
+            # Save DCD as BIN File
+            with open(outfile, 'wb') as f:
+                f.write(dcd.export())
+        else:
+            # Save DCD as TXT File
+            with open(outfile, 'w') as f:
+                f.write(dcd.store())
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
         sys.exit(ERROR_CODE)
 
-    click.secho(" DCD successfully converted\n Path: %s\n" % outfile)
+    click.secho(" Conversion was successful\n Output: %s\n" % outfile)
 
 
 def main():
