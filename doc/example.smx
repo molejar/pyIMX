@@ -142,7 +142,11 @@ DATA:
         MODE: merge
         # modifications in loaded file
         DATA: |
-            // Add support for M4 core
+            // ** Add support for M4 core **
+
+            // version: 17
+            // last_comp_version: 16
+            // boot_cpuid_phys: 0
             / {
                 memory {
                     linux,usable-memory = <0x80000000 0x1FF00000 0xA0000000 0x1FF00000>;

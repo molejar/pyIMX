@@ -167,18 +167,18 @@ class DatSegUEI(DatSegBase):
 
     @property
     def data(self):
-        if self._uimg.image_type == uboot.EnumImageType.MULTI:
+        if self._uimg.header.image_type == uboot.EnumImageType.MULTI:
             if self._path is None or not isinstance(self._path, list):
                 raise Exception("DATA->%s->PATH must be defined !" % self._name)
             for path in self._path:
                 with open(path, 'rb') as f:
                     self._uimg.append(uboot.parse_img(f.read()))
-        elif self._uimg.image_type == uboot.EnumImageType.FIRMWARE:
+        elif self._uimg.header.image_type == uboot.EnumImageType.FIRMWARE:
             if self._path is None:
                 raise Exception("DATA->%s->PATH must be defined !" % self._name)
             with open(self._path, 'rb') as f:
                 self._uimg.data = f.read()
-        elif self._uimg.image_type == uboot.EnumImageType.SCRIPT:
+        elif self._uimg.header.image_type == uboot.EnumImageType.SCRIPT:
             if self._data is None:
                 with open(self._path, 'r') as f:
                     self._data = f.read()
@@ -198,7 +198,7 @@ class DatSegUEI(DatSegBase):
         elif isinstance(head, dict):
             self._uimg = uboot.new_img(**head)
         else:
-            raise Exception("UEI: Not supported head format")
+            raise Exception("UEI: Not supported \"head\" format")
 
 
 class DatSegURI(DatSegBase):
@@ -486,7 +486,7 @@ class SMX(object):
                 self._data.append(DatSegDCD(name, desc, addr, path, data))
             elif type == 'FDT':
                 obj = DatSegFDT(name, desc, addr, path, data, mode)
-                obj.root_path = os.path.dirname(self._path)
+                obj.root_path = self._path
                 self._data.append(obj)
             elif type == 'URI':
                 self._data.append(DatSegURI(name, desc, addr, path, data, eval, mark, mode))
