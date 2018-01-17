@@ -194,7 +194,7 @@ DATA:
         ADDR: "{{ SCRIM_ADDR }}"
         TYPE: UEI
         HEAD:
-            IMAGE_TYPE: script
+            image: script
         DATA: |
             echo '>> Network Boot ...'
             setenv autoload 'no'
@@ -227,7 +227,7 @@ DATA:
         ADDR: "{{ IMAGE_ADDR }}"
         TYPE: UEI
         HEAD:
-            IMAGE_TYPE: script
+            image: script
         DATA: |
             echo '>> Network Boot ...'
             setenv autoload 'no'

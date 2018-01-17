@@ -167,18 +167,18 @@ class DatSegUEI(DatSegBase):
 
     @property
     def data(self):
-        if self._uimg.ImageType == int(uboot.IMGType.MULTI):
+        if self._uimg.image_type == uboot.EnumImageType.MULTI:
             if self._path is None or not isinstance(self._path, list):
                 raise Exception("DATA->%s->PATH must be defined !" % self._name)
             for path in self._path:
                 with open(path, 'rb') as f:
                     self._uimg.append(uboot.parse_img(f.read()))
-        elif self._uimg.ImageType == int(uboot.IMGType.FIRMWARE):
+        elif self._uimg.image_type == uboot.EnumImageType.FIRMWARE:
             if self._path is None:
                 raise Exception("DATA->%s->PATH must be defined !" % self._name)
             with open(self._path, 'rb') as f:
                 self._uimg.data = f.read()
-        elif self._uimg.ImageType == int(uboot.IMGType.SCRIPT):
+        elif self._uimg.image_type == uboot.EnumImageType.SCRIPT:
             if self._data is None:
                 with open(self._path, 'r') as f:
                     self._data = f.read()
@@ -193,7 +193,12 @@ class DatSegUEI(DatSegBase):
 
     def __init__(self, name, desc='', addr=None, path=None, data=None, head=None):
         super().__init__(name, desc, addr, path, data)
-        self._uimg = uboot.new_img(head)
+        if head is None:
+            self._uimg = uboot.new_img()
+        elif isinstance(head, dict):
+            self._uimg = uboot.new_img(**head)
+        else:
+            raise Exception("UEI: Not supported head format")
 
 
 class DatSegURI(DatSegBase):
