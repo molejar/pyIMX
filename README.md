@@ -3,6 +3,10 @@ pyIMX
 
 This repository collects a useful tools and python module targeted for [i.MX Applications Processors](http://www.nxp.com/products/microcontrollers-and-processors/arm-based-portfolio/i.mx-applications-processors).
 
+* [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
+* [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+* [imxsb](doc/imxsb.md) - a tool for managed boot of i.MX device caled as "i.MX Smart-Boot"
+
 > This project is still in developing phase. Please, test it and report the issues.
 
 Dependencies
@@ -139,11 +143,6 @@ The example of IMX serial downloader API usage:
         # Disconnect IMX Device
         flasher.close()
 ```
-
-Python i.MX module is distributed with following command-line utilities (tools):
-* [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
-* [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
-* [imxsb](doc/imxsb.md) - a tool for managed boot of i.MX device caled as "i.MX Smart-Boot"
 
 TODO
 ----

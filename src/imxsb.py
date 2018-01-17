@@ -140,17 +140,17 @@ class DatSegFDT(DatSegBase):
         if self._path is not None:
             if self._path.lower().endswith('.dts'):
                 with open(self._path, 'r') as f:
-                    fdt = pyfdt.parse_dts(f.read())
+                    fdt = pyfdt.parse_dts(f.read(), os.path.dirname(self._path))
             else:
                 with open(self._path, 'rb') as f:
                     fdt = pyfdt.parse_dtb(f.read())
 
         if self._data is not None:
             if self._path is not None and self._mode != 'disabled':
-                fdt_ext = pyfdt.parse_dts(self._data)
+                fdt_ext = pyfdt.parse_dts(self._data, self.root_path)
                 fdt.merge(fdt_ext)
             elif self._path is None:
-                fdt = pyfdt.parse_dts(self._data)
+                fdt = pyfdt.parse_dts(self._data, self.root_path)
 
         if fdt is None:
             raise Exception("DATA->%s->PATH must be defined !" % self._name)
@@ -160,6 +160,7 @@ class DatSegFDT(DatSegBase):
     def __init__(self, name, desc='', addr=None, path=None, data=None, mode='DISABLED'):
         super().__init__(name, desc, addr, path, data)
         self._mode = mode.lower()
+        self.root_path = ""
 
 
 class DatSegUEI(DatSegBase):
@@ -192,26 +193,7 @@ class DatSegUEI(DatSegBase):
 
     def __init__(self, name, desc='', addr=None, path=None, data=None, head=None):
         super().__init__(name, desc, addr, path, data)
-        # get image type
-        if isinstance(head, dict) and 'IMAGE_TYPE' in head:
-            img_type = uboot.IMGType.str_to_value(head['IMAGE_TYPE'])
-        else:
-            img_type = int(uboot.IMGType.FIRMWARE)
-
-        self._uimg = uboot.new_img(img_type)
-        if head is not None and head:
-            if 'ARCH_TYPE' in head:
-                self._uimg.ArchType = uboot.ARCHType.str_to_value(head['ARCH_TYPE'])
-            if 'OS_TYPE' in head:
-                self._uimg.OsType = uboot.OSType.str_to_value(head['OS_TYPE'])
-            if 'COMPRESS' in head:
-                self._uimg.Compression = uboot.COMPRESSType.str_to_value(head['COMPRESS'])
-            if 'IMAGE_NAME' in head:
-                self._uimg.Name = head['IMAGE_NAME']
-            if 'ENTRY_ADDR' in head:
-                self._uimg.EntryAddress = head['ENTRY_ADDR']
-            if 'LOAD_ADDR' in head:
-                self._uimg.LoadAddress = head['LOAD_ADDR']
+        self._uimg = uboot.new_img(head)
 
 
 class DatSegURI(DatSegBase):
@@ -323,7 +305,7 @@ class SMX(object):
                     addr = dseg.get_ivt_address()
 
                 if addr is None:
-                    raise Exception("ADDR not defined in DATA->%s" % dseg.name)
+                    raise Exception("ADDR not defined in JRUN command")
 
                 cmd = {'NAME': 'JRUN', 'ADDR': addr, 'DESC': 'Start Boot ...'}
 
@@ -498,7 +480,9 @@ class SMX(object):
             elif type == 'DCD':
                 self._data.append(DatSegDCD(name, desc, addr, path, data))
             elif type == 'FDT':
-                self._data.append(DatSegFDT(name, desc, addr, path, data, mode))
+                obj = DatSegFDT(name, desc, addr, path, data, mode)
+                obj.root_path = os.path.dirname(self._path)
+                self._data.append(obj)
             elif type == 'URI':
                 self._data.append(DatSegURI(name, desc, addr, path, data, eval, mark, mode))
             elif type == 'UEI':

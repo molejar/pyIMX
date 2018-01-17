@@ -5,11 +5,15 @@ The `imxsb` is a tool for managed boot of embedded devices based on i.MX applica
 [imx_loader](https://github.com/boundarydevices/imx_usb_loader) and adds features for an easy modification of binary 
 sections in boot images like: 
 
-* i.MX Device Configuration Data
+* i.MX Device Configuration Data (DCD)
 * U-Boot Environment Variables
-* Device Tree Data
+* U-Boot Executable Image
+* Kernel Device Tree Data
 
 Later will be added support for on the fly sign and encryption of loaded boot images. 
+
+* i.MX Code Signing Data (CSF)
+
 
 Usage
 -----
@@ -284,13 +288,15 @@ which is defined by `HEAD` attribute.
 
 All HEAD attributes:
 
-* **IMAGE_NAME** - Image name in 32 chars (default: "-")
-* **IMAGE_TYPE** - Image type: "sdt", "firmware", "script", "multi" (default: "firmware")
-* **ENTRY_ADDR** - Entry address value (default: 0x00000000)
-* **LOAD_ADDR**  - Load address value (default: 0x00000000)
-* **ARCH_TYPE**  - Architecture type: "alpha", "arm", "x86", ... (default: "arm")
-* **OS_TYPE**    - OS type: "openbsd", "netbsd", "freebsd", "bsd4", "linux", ... (default: "linux")
-* **COMPRESS**   - Compression type: "none", "gzip", "bzip2", "lzma", "lzo", "lz4" (default: "none")
+* **nane**     - Image name in 32 chars (default: "-")
+* **eaddr**    - Entry address value (default: 0x00000000)
+* **laddr**    - Load address value (default: 0x00000000)
+* **image**    - Image type: "standalone", "firmware", "script", "multi" (default: "firmware")
+* **arch**     - Architecture type: "alpha", "arm", "x86", ... (default: "arm")
+* **os**       - OS type: "openbsd", "netbsd", "freebsd", "bsd4", "linux", ... (default: "linux")
+* **compress** - Compression type: "none", "gzip", "bzip2", "lzma", "lzo", "lz4" (default: "none")
+
+
 
 Example of *UEI* data segment:
 
@@ -307,7 +313,7 @@ DATA:
         ADDR: 0x83100000
         TYPE: UEI
         HEAD:
-            IMAGE_TYPE: script
+            image: script
         DATA: |
             echo '>> Network Boot ...'
             setenv autoload 'no'

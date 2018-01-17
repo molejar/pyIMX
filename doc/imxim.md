@@ -89,7 +89,6 @@ Extract the IMX image content into a directory "file_name.ex"
 
  Image successfully extracted
  Path: u-boot.imx.ex
-
 ```
 
 <br>
@@ -116,7 +115,6 @@ Create new IMX image from attached files:
 
  Image successfully created
  Path: u-boot.imx
-
 ```
 
 <br>
@@ -126,13 +124,13 @@ Create new IMX image from attached files:
 Convert DCD binary blob (*.bin) into readable text file (*.txt) and vice versa.
 
 **OUTFILE** - Output file name with extension *.bin or *.txt<br>
-**INFILES** - Input file name with extension *.txt or *.bin<<br>
+**INFILES** - Input file name with extension *.txt or *.bin<br>
 
 >As input can be used more files which will be merged in one output file
 
 ##### options:
-* **-o, --outfmt** - Output file format: `txt` or `bin` (default: bin)
-* **-i, --infmt** - Input file format: `txt` or `bin` (default: txt)
+* **-o, --outfmt** - Output file format: txt or bin (default: bin)
+* **-i, --infmt** - Input file format: txt or bin (default: txt)
 * **-?, --help** - Show help message and exit
 
 ##### Example:
@@ -142,7 +140,6 @@ Convert DCD binary blob (*.bin) into readable text file (*.txt) and vice versa.
 
  Conversion was successful !
  Output: dcd.txt
-
 ```
 
 <br>
@@ -194,5 +191,4 @@ WriteValue 4 0x307A01A0 0x80400003
 
 CheckAnyClear 4 0x307900C4 0x00000001
 ... 
-
 ```
