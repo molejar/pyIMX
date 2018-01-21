@@ -384,6 +384,7 @@ class SegDCD(BaseSegment):
 
         for line in txt_data.split('\n'):
             line = line.rstrip('\0')
+            line = line.lstrip(' ')
             # increment line counter
             line_cnt += 1
             # ignore comments
@@ -527,6 +528,7 @@ class SegDCD(BaseSegment):
             data = self._header.export()
             for command in self._commands:
                 data += command.export()
+
             if padding:
                 data += self._padding_export()
 

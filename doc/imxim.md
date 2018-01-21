@@ -1,7 +1,7 @@
 i.MX Image Manager
 =================
 
-The `imxim` is a tool to for manipulation with `*.imx` image.
+The `imxim` is a tool for manipulation with i.MX boot image (*.imx). 
 
 Usage
 -----
@@ -157,7 +157,6 @@ command1 arg0 arg1 ...
 commandN arg0 arg1 arg2 \
 arg3 arg4 arg5 arg6
 ```
-
 
 #### Supported commands
 * **WriteValue** *BYTES ADDRESS VALUE*

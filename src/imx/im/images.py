@@ -203,20 +203,20 @@ class BootImage(object):
 
         if imx_image:
             self._ivt.padding = (self._ivt.bdt_addr - self._ivt.ivt_addr) - self._ivt.size
-            self._bdt.parse(data, (offset + self._ivt.bdt_addr) - self._ivt.ivt_addr)
+            self._bdt.parse(data, offset + (self._ivt.bdt_addr - self._ivt.ivt_addr))
             self._offset = self._ivt.ivt_addr - self._bdt.start
             self._address = self._bdt.start
 
             if self._ivt.dcd_addr > self._ivt.ivt_addr:
                 self._bdt.padding = (self._ivt.dcd_addr - self._ivt.bdt_addr) - self._bdt.size
-                self._dcd.parse(data, (offset + self._ivt.dcd_addr) - self._ivt.ivt_addr)
+                self._dcd.parse(data, offset + (self._ivt.dcd_addr - self._ivt.ivt_addr))
                 self._dcd.padding = (self._ivt.app_addr - self._ivt.dcd_addr) - self._dcd.size
             else:
                 self._bdt.padding = (self._ivt.app_addr - self._ivt.bdt_addr) - self._bdt.size
 
             img_start = offset + (self._ivt.app_addr - self._ivt.ivt_addr)
             if self._ivt.csf_addr > self._ivt.ivt_addr:
-                csf_start = (offset + self._ivt.csf_addr) - self._ivt.ivt_addr
+                csf_start = offset + (self._ivt.csf_addr - self._ivt.ivt_addr)
                 self._app.data = data[img_start:csf_start]
                 self._app.padding = 0
                 self._csf.parse(data, csf_start)

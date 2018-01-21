@@ -81,14 +81,13 @@ def info(offset, file):
     """ List IMX boot image content """
     try:
         data = bytearray(os.path.getsize(file) - offset)
+        img = imx.BootImage()
 
         with open(file, 'rb') as f:
             f.seek(offset)
             f.readinto(data)
 
-        img = imx.BootImage()
         img.parse(data)
-
         click.echo(str(img))
 
     except Exception as e:

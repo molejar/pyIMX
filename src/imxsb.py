@@ -73,17 +73,17 @@ class DatSegIMX(DatSegBase):
     def data(self):
         if self._data is None:
             with open(self._path, 'rb') as f:
-                d = f.read()
+                blob = f.read()
 
             if self._eval is not None and self._mode != 'disabled':
-                d = self._update_env(d)
+                blob = self._update_env(blob)
         else:
             app = self._data['APPSEG'].data
-            dcd = self._data['DCDSEG'].get_obj()
+            dcd = self._data['DCDSEG'].get_obj() if 'DCDSEG' in self._data else None
             img = imx.BootImage(self._data['STADDR'], app, dcd, None, self._data['OFFSET'])
-            d = img.export()
+            blob = img.export()
 
-        return d
+        return blob
 
     def __init__(self, name, desc='', addr=None, path=None, data=None, eval=None, mark='bootdelay=', mode='DISABLED'):
         super().__init__(name, desc, addr, path, data)
@@ -447,13 +447,13 @@ class SMX(object):
 
             if type == 'IMX' and data is not None and isinstance(data, dict):
                 if not 'STADDR' in data: raise Exception("The STADDR must be defined in DATA->%s->DATA" % name)
-                if not 'DCDSEG' in data: raise Exception("The DCDSEG must be defined in DATA->%s->DATA" % name)
+                #if not 'DCDSEG' in data: raise Exception("The DCDSEG must be defined in DATA->%s->DATA" % name)
                 if not 'APPSEG' in data: raise Exception("The APPSEG must be defined in DATA->%s->DATA" % name)
 
                 if not data['STADDR'] or data['STADDR'] is None:
                     raise Exception("The STADDR value is not valid in DATA->%s->DATA" % name)
-                if not data['DCDSEG'] or data['DCDSEG'] is None:
-                    raise Exception("The DCDSEG value is not valid in DATA->%s->DATA" % name)
+                #if not data['DCDSEG'] or data['DCDSEG'] is None:
+                #    raise Exception("The DCDSEG value is not valid in DATA->%s->DATA" % name)
                 if not data['APPSEG'] or data['APPSEG'] is None:
                     raise Exception("The APPSEG value is not valid in DATA->%s->DATA" % name)
                 if 'OFFSET' in data:
@@ -464,16 +464,17 @@ class SMX(object):
                 else:
                     data['OFFSET'] = 0x400
 
-                dcd_seg = self.get_data(data['DCDSEG'])
-                app_seg = self.get_data(data['APPSEG'])
+                if 'DCDSEG' in data:
+                    dcd_seg = self.get_data(data['DCDSEG'])
+                    if dcd_seg is None:
+                        raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['DCDSEG'], name))
+                    data['DCDSEG'] = dcd_seg
 
-                if dcd_seg is None:
-                    raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['DCDSEG'], name))
+                app_seg = self.get_data(data['APPSEG'])
                 if app_seg is None:
                     raise Exception("The DATA->%s is not defined or is behind DATA->%s" % (data['APPSEG'], name))
-
-                data['DCDSEG'] = dcd_seg
                 data['APPSEG'] = app_seg
+
                 if isinstance(data['STADDR'], str):
                     data['STADDR'] = int(data['STADDR'], 0)
 
@@ -563,9 +564,9 @@ def info(ctx):
 
 # run command
 @cli.command(short_help="Run selected boot script")
-@click.argument('sid', required=False, type=click.INT)
+@click.argument('sid', required=False, type=click.INT, default=None)
 @click.pass_context
-def run(ctx, sid=None):
+def run(ctx, sid):
     ''' Run selected boot script '''
 
     smx = ctx.obj['SMX']
@@ -578,6 +579,7 @@ def run(ctx, sid=None):
         if not devs:
             raise Exception("%s device not connected !" % smx.target)
         # select boot script
+        if smx.count() == 1: sid = 0
         if sid is None or sid > smx.count():
             num = 0
             #click.echo(" ")
@@ -585,8 +587,7 @@ def run(ctx, sid=None):
                 click.secho("%d) %s (%s)" % (num, name, desc))
                 num += 1
             click.echo("\nRun: ", nl=False)
-            c = input()
-            sid = int(c, 10)
+            sid = int(input(), 10)
             click.echo()
         # load script
         script = smx.get_script(sid)
