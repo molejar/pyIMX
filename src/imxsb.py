@@ -19,11 +19,11 @@
 import os
 import re
 import sys
+import fdt
 import imx
 import yaml
 import uboot
 import click
-import pyfdt
 import jinja2
 
 
@@ -136,26 +136,26 @@ class DatSegFDT(DatSegBase):
 
     @property
     def data(self):
-        fdt = None
+        fdt_obj = None
         if self._path is not None:
             if self._path.lower().endswith('.dts'):
                 with open(self._path, 'r') as f:
-                    fdt = pyfdt.parse_dts(f.read(), os.path.dirname(self._path))
+                    fdt_obj = fdt.parse_dts(f.read(), os.path.dirname(self._path))
             else:
                 with open(self._path, 'rb') as f:
-                    fdt = pyfdt.parse_dtb(f.read())
+                    fdt_obj = fdt.parse_dtb(f.read())
 
         if self._data is not None:
             if self._path is not None and self._mode != 'disabled':
-                fdt_ext = pyfdt.parse_dts(self._data, self.root_path)
-                fdt.merge(fdt_ext)
+                fdt_ext = fdt.parse_dts(self._data, self.root_path)
+                fdt_obj.merge(fdt_ext)
             elif self._path is None:
-                fdt = pyfdt.parse_dts(self._data, self.root_path)
+                fdt_obj = fdt.parse_dts(self._data, self.root_path)
 
-        if fdt is None:
+        if fdt_obj is None:
             raise Exception("DATA->%s->PATH must be defined !" % self._name)
 
-        return fdt.to_dtb()
+        return fdt_obj.to_dtb()
 
     def __init__(self, name, desc='', addr=None, path=None, data=None, mode='DISABLED'):
         super().__init__(name, desc, addr, path, data)
