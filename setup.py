@@ -21,7 +21,7 @@ from setuptools import setup, find_packages
 sys.path.insert(0, './src')
 import imx
 
-requirements = ['click>=6.0', 'pyserial>=3.0', 'PyYAML>=3.10', 'Jinja2>=2.6']
+requirements = ['fdt>=0.1.0', 'click>=6.0', 'pyserial>=3.0', 'PyYAML>=3.10', 'Jinja2>=2.6']
 
 if sys.platform.startswith('linux'):
     requirements.append('pyusb>=1.0.0b2')

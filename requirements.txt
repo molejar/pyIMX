@@ -1,8 +1,8 @@
+fdt>=0.1.0
 click>=6.0
 PyYAML>=3.10
 Jinja2>=2.6
 pyserial>=3.0
 pyusb>=1.0.0b2; sys_platform == 'linux'
 pywinusb>=0.4.0; sys_platform == 'windows'
-https://github.com/molejar/pyFDT/archive/master.zip
 https://github.com/molejar/pyUBoot/archive/master.zip
