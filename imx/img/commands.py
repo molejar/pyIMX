@@ -1,17 +1,8 @@
-# Copyright (c) 2017 Martin Olejar, martin.olejar@gmail.com
+# Copyright (c) 2017-2018 Martin Olejar
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
-# Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# SPDX-License-Identifier: BSD-3-Clause
+# The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
+# or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
 from enum import Enum, unique
 from struct import pack, unpack_from
@@ -169,6 +160,18 @@ class EnumItm(IntEnum):
 ## HAB Commands
 ########################################################################################################################
 
+class CmdBase(object):
+
+    def __str__(self):
+        return self.info()
+
+    def __repr__(self):
+        return self.info()
+
+    def info(self):
+        pass
+
+
 class CmdWriteData(object):
     ''' Write data command '''
 
@@ -200,7 +203,7 @@ class CmdWriteData(object):
         assert bytes in (1, 2, 4), "Unsupported Value !"
         assert EnumWriteOps.check_value(ops), "Unsupported Value !"
         self._header = Header(tag=CmdTag.WRT_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
-        self._wrdata = []
+        self._data = []
 
     def __str__(self):
         return self.info()
@@ -209,55 +212,57 @@ class CmdWriteData(object):
         return self.info()
 
     def __len__(self):
-        len(self._wrdata)
+        len(self._data)
 
     def __getitem__(self, key):
-        return self._wrdata[key]
+        return self._data[key]
 
     def __setitem__(self, key, value):
-        self._wrdata[key] = value
+        self._data[key] = value
 
     def __iter__(self):
-        return self._wrdata.__iter__()
+        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
         msg += "Write Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumWriteOps.value_to_str(self.ops), self.bytes)
         msg += "-" * 60 + "\n"
-        for cmd in self._wrdata:
+        for cmd in self._data:
             msg += "- Address: 0x{0:08X}, Value: 0x{1:08X}\n".format(cmd[0], cmd[1])
         return msg
 
     def append(self, address, value):
         assert 0 <= address <= 0xFFFFFFFF, "address out of range"
         assert 0 <= value <= 0xFFFFFFFF, "value out of range"
-        self._wrdata.append([address, value])
+        self._data.append([address, value])
         self._header.length += 8
 
     def pop(self, index):
-        assert 0 <= index < len(self._wrdata)
-        cmd = self._wrdata.pop(index)
+        assert 0 <= index < len(self._data)
+        cmd = self._data.pop(index)
         self._header.length -= 8
         return cmd
 
     def clear(self):
-        self._wrdata.clear()
+        self._data.clear()
         self._header.length = self._header.size
-
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        tmp_size = self._header.size
-        while tmp_size < self._header.length:
-            assert (offset + tmp_size) < len(data)
-            tmp = unpack_from(">LL", data, offset + tmp_size)
-            self._wrdata.append(tmp)
-            tmp_size += 8
 
     def export(self):
         raw_data = self._header.export()
-        for cmd in self._wrdata:
+        for cmd in self._data:
             raw_data += pack(">LL", cmd[0], cmd[1])
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.WRT_DAT)
+        obj = cls(header.param & 0x7, (header.param >> 3) & 0x3)
+        index = header.size
+        while index < header.length:
+            (address, value) = unpack_from(">LL", data, offset + index)
+            obj.append(address, value)
+            index += 8
+        return obj
 
 
 class CmdCheckData(object):
@@ -335,22 +340,24 @@ class CmdCheckData(object):
         msg += "\n"
         return msg
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        if (self._header.length - self._header.size) > 8:
-            (self._address, self._mask, self._count) = unpack_from(">LLL", data, offset + self._header.size)
-        else:
-            (self._address, self._mask) = unpack_from(">LL", data, offset + self._header.size)
-            self._count = None
-
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
-        if self._count is None:
-            raw_data += pack(">LL", self._address, self._mask)
-        else:
-            raw_data += pack(">LLL", self._address, self._mask, self._count)
+        raw_data += pack(">LL", self._address, self._mask)
+        if self._count is not None:
+            raw_data += pack(">L",self._count)
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.CHK_DAT)
+        bytes = header.param & 0x7
+        ops = (header.param >> 3) & 0x3
+        address, mask = unpack_from(">LL", data, offset + header.size)
+        count = None
+        if (header.length - header.size) > 8:
+            count = unpack_from(">L", data, offset + header.size + 8)[0]
+        return cls(bytes, ops, address, mask, count)
 
 
 class CmdNop(object):
@@ -375,11 +382,15 @@ class CmdNop(object):
         msg += "-" * 60 + "\n"
         return msg
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-
     def export(self):
         return self._header.export()
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.NOP)
+        if header.length != header.size:
+            pass
+        return cls(header.param)
 
 
 class CmdSet(object):
@@ -398,7 +409,7 @@ class CmdSet(object):
     def size(self):
         return self._header.length
 
-    def __init__(self, itm = EnumItm.ENG, data=None):
+    def __init__(self, itm=EnumItm.ENG, data=None):
         assert EnumItm.check_value(itm), "uncorrected value !"
         self._header = Header(tag=CmdTag.SET, param=itm)
         self._data = data if data else []
@@ -436,20 +447,22 @@ class CmdSet(object):
         self._data.clear()
         self._header.length = self._header.size
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        index = self._header.size
-        while index < self._header.length:
-            assert (offset + index) < len(data)
-            (_, alg, eng, cfg) = unpack_from("4B", data, offset + index)
-            self._data.append([alg, eng, cfg])
-            index += 4
-
     def export(self):
         raw_data = self._header.export()
         for cmd in self._data:
             raw_data += pack("4B", 0x00, cmd[0], cmd[1], cmd[2])
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.SET)
+        obj = cls(header.param)
+        index = header.size
+        while index < header.length:
+            (_, alg, eng, cfg) = unpack_from("4B", data, offset + index)
+            obj.append(alg, eng, cfg)
+            index += 4
+        return obj
 
 
 class CmdInitialize(object):
@@ -505,20 +518,23 @@ class CmdInitialize(object):
         self._data.clear()
         self._header.length = self._header.size
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        index = self._header.size
-        while index < self._header.length:
-            assert (offset + index) < len(data)
-            val = unpack_from(">L", data, offset + index)
-            self._data.append(val[0])
-            index += 4
-
     def export(self):
         raw_data = self._header.export()
         for val in self._data:
             raw_data += pack(">L", val)
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.INIT)
+        obj = cls(header.param)
+        index = header.size
+        while index < header.length:
+            assert (offset + index) < len(data)
+            val = unpack_from(">L", data, offset + index)
+            obj.append(val[0])
+            index += 4
+        return obj
 
 
 class CmdUnlock(object):
@@ -583,21 +599,24 @@ class CmdUnlock(object):
     def clear(self):
         self._data.clear()
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        index = self._header.size
-        while index < self._header.length:
-            assert (offset + index) < len(data)
-            val = unpack_from(">L", data, offset + index)
-            self._data.append(val[0])
-            index += 4
-
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
         for val in self._data:
             raw_data += pack(">L", val)
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.UNLK)
+        obj = cls(header.param)
+        index = header.size
+        while index < header.length:
+            assert (offset + index) < len(data)
+            val = unpack_from(">L", data, offset + index)
+            obj.append(val[0])
+            index += 4
+        return obj
 
 
 class CmdInstallKey(object):
@@ -690,18 +709,19 @@ class CmdInstallKey(object):
         msg += "-" * 60 + "\n"
         return msg
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        (self.pcl, self.alg, self.src, self.tgt, self.keydat) = unpack_from(">BBBBL", data, offset + self._header.size)
-        offset = self._header.size + 8
-        self._crthsh = data[offset + self._header.size + 8 : offset + 8 + self._header.length]
-
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
         raw_data += pack(">BBBBL", self.pcl, self.alg, self.src, self.tgt, self.keydat)
         raw_data += self._crthsh
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.INS_KEY)
+        pcl, alg, src, tgt, keydat = unpack_from(">BBBBL", data, offset + header.size)
+        crthsh = data[offset + header.size + 8 : offset + header.size + 8 + header.length]
+        return cls(header.param, pcl, alg, src, tgt, keydat, crthsh)
 
 
 class CmdAuthData(object):
@@ -769,12 +789,7 @@ class CmdAuthData(object):
     def size(self):
         return self._header.size + 8 + 8 * len(self._blocks)
 
-    def __init__(self, flag=EnumAuthDat.CLR,
-                 key=0,
-                 pcl=EnumProtocol.SRK,
-                 eng=EnumEngine.ANY,
-                 cfg=0,
-                 auth_start=0,
+    def __init__(self, flag=EnumAuthDat.CLR, key=0, pcl=EnumProtocol.SRK, eng=EnumEngine.ANY, cfg=0, auth_start=0,
                  auth_data=None):
         self._header = Header(CmdTag.AUT_DAT, flag)
         self.key = key
@@ -815,21 +830,6 @@ class CmdAuthData(object):
     def clear(self):
         self._blocks.clear()
 
-    def parse(self, data, offset=0):
-        self._header.parse(data, offset)
-        index = self._header.size
-        (key, pcl, eng, cfg, auth_start) = unpack_from(">BBBBL", data, offset + index)
-        self.key = key
-        self.pcl = pcl
-        self.eng = eng
-        self.cfg = cfg
-        self.auth_start = auth_start
-        index += 8
-        while index < self._header.length:
-            blk = unpack_from(">2L", data, offset + index)
-            self._blocks.append(blk)
-            index += 8
-
     def export(self):
         self._header.length = self.size
         raw_data  = self._header.export()
@@ -837,3 +837,15 @@ class CmdAuthData(object):
         for blk in self._blocks:
             raw_data += pack(">2L", blk[0], blk[1])
         return raw_data
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        header = Header.parse(data, offset, CmdTag.AUT_DAT)
+        key, pcl, eng, cfg, auth_start = unpack_from(">BBBBL", data, offset + header.size)
+        obj = cls(header.param, key, pcl, eng, cfg, auth_start)
+        index = header.size + 8
+        while offset < header.length:
+            start_address, size = unpack_from(">2L", data, offset + index)
+            obj.append(start_address, size)
+            index += 8
+        return obj

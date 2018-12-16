@@ -9,9 +9,9 @@ Usage
 For printing a general info of usage this tool execute `imxim -?`.
 
 ```sh
- Usage: imxim [OPTIONS] COMMAND [ARGS]...
+Usage: imxim [OPTIONS] COMMAND [ARGS]...
 
-  IMX Image Manager, ver.: 0.0.5 Beta
+  i.MX Boot Image Manager, ver.: 0.1.0 Beta
 
   NOTE: Development version, be carefully with it usage !
 
@@ -20,10 +20,14 @@ Options:
   -?, --help     Show this message and exit.
 
 Commands:
-  info     List IMX boot image content
-  create   Create new IMX boot image from attached files
-  extract  Extract IMX boot image content
-  dcdfc    DCD file converter (*.bin, *.txt)
+  create    Create new i.MX6/7/8/RT boot image
+  create2a  Create new i.MX6/7/RT boot image from attached files
+  create2b  Create new i.MX8M boot image from attached files
+  create3a  Create new i.MX8QXP boot image from attached files
+  create3b  Create new i.MX8QM boot image from attached files
+  dcdfc     DCD file converter (*.bin, *.txt)
+  extract   Extract i.MX boot image content
+  info      List i.MX boot image content
 ```
 
 ## Commands
@@ -78,14 +82,16 @@ Write Data Command (Ops: WRITE_VALUE, Bytes: 4)
 Extract the IMX image content into a directory "file_name.ex"
 
 ##### options:
-* **-o, --offset** - IVT offset (default: 1024)
-* **-f, --format** - DCD and CSF section output format: txt or bin (default: bin)
+* **-t, --type** - Image type: auto, 67RT, 8M, 8QXP, 8QM (default: auto)
+* **-e, --embedded** - Embed DCD into image description file (default: False)
+* **-o, --offset** - Input file offset in bytes (default: 0)
+* **-s, --step** - Parsing step in bytes (default: 256)
 * **-?, --help**   - Show help message and exit
 
 ##### Example:
 
 ```sh
- $ imxim extract -f txt u-boot.imx
+ $ imxim extract u-boot.imx
 
  Image successfully extracted
  Path: u-boot.imx.ex
@@ -93,9 +99,63 @@ Extract the IMX image content into a directory "file_name.ex"
 
 <br>
 
-#### $ imxim create [OPTIONS] ADDRESS DCDFILE APPFILE OUTFILE
+#### $ imxim create [OPTIONS] INFILE OUTFILE
 
-Create new IMX image from attached files:
+Create new i.MX6/7/8/RT boot image.
+
+**INFILE** - The i.MX boot image description file (*.yml)<br>
+**OUTFILE** - The name of created i.MX boot image (*.imx)<br>
+
+##### options:
+* **-?, --help** - Show help message and exit
+
+##### Example of imx8qm-img.yml file:
+
+```
+# Device information's
+TARGET:  mx8qm
+PLUGIN:  yes
+OFFSET:  0x400
+ADDRESS: 0x80000
+VERSION: 0x43
+
+# Device Configuration Data
+DCD:
+  TYPE: TXT
+  PATH: dcd.txt
+
+# Collection of images
+IMG:
+
+  - TYPE: SCFW
+    PATH: scfw.bin
+
+  - TYPE: SCD
+    PATH: scd.bin
+
+  - TYPE: APP-A53
+    ADDR: 0x10000000
+    PATH: app_a53.bin
+
+  - TYPE: CM4-0
+    ADDR: 0x10000000
+    PATH: app_cm4.bin
+```
+
+##### Example of usage:
+
+```sh
+ $ imxim create imx8qm-img.yml imx8qm-img.imx
+
+ Image successfully created
+ Path: imx8qm-img.imx
+```
+
+<br>
+
+#### $ imxim create2a [OPTIONS] ADDRESS APPFILE OUTFILE
+
+Create new i.MX6/7/RT boot image from attached files:
 
 **ADDRESS** - Start address of image in target memory<br>
 **APPFILE** - APP file (u-boot.bin or barebox.bin)<br>
@@ -105,6 +165,7 @@ Create new IMX image from attached files:
 * **-d, --dcd** - DCD file (*.txt or *.bin)
 * **-c, --csf** - CSF file (*.txt or *.bin)
 * **-o, --offset** - IVT offset (default: 1024)
+* **-v, --version** - Header Version (default: 0x41)
 * **-p, --plugin** - Plugin Image if used
 * **-?, --help** - Show help message and exit
 
@@ -115,6 +176,72 @@ Create new IMX image from attached files:
 
  Image successfully created
  Path: u-boot.imx
+```
+
+<br>
+
+#### $ imxim create2b [OPTIONS] ADDRESS APPFILE OUTFILE
+
+Create new i.MX8M image from attached files:
+
+> This command is not functional yet !
+
+
+<br>
+
+#### $ imxim create3a [OPTIONS] SCFW OUTFILE
+
+Create new i.MX8QXP boot image from attached files:
+
+**SCFW** - System Controller Firmware *.bin<br>
+**OUTFILE** - Output file name with extension *.imx<br>
+
+##### options:
+* **-a, --app** - Application image "address|path;..."
+* **-m, --cm4** - Cortex-M4 binary "address|core|path;...", core: 0/1
+* **-d, --dcd** - DCD File (*.txt or *.bin)
+* **-s, --scd** - SCD File (*.bin)
+* **-c, --csf** - CSF File (*.txt or *.bin)
+* **-o, --offset** - IVT offset (default: 1024)
+* **-v, --version** - Header Version (default: 0x41)
+* **-p, --plugin** - Plugin Image if used
+* **-?, --help** - Show help message and exit
+
+##### Example:
+
+```sh
+ $ imxim create3a scfw.bin scfw_8qxp.imx
+
+ Image successfully created
+ Path: scfw_8qxp.imx
+```
+
+<br>
+
+#### $ imxim create3b [OPTIONS] SCFW OUTFILE
+
+Create new i.MX8QM boot image from attached files:
+
+**SCFW** - System Controller Firmware *.bin<br>
+**OUTFILE** - Output file name with extension *.imx<br>
+
+##### options:
+* **-a, --app** - Application image "address|core|path;...", core: A53/A72
+* **-m, --cm4** - Cortex-M4 binary "address|core|path;...", core: 0/1
+* **-d, --dcd** - DCD File (*.txt or *.bin)
+* **-s, --scd** - SCD File (*.bin)
+* **-c, --csf** - CSF File (*.txt or *.bin)
+* **-o, --offset** - IVT offset (default: 1024)
+* **-v, --version** - Header Version (default: 0x41)
+* **-?, --help** - Show help message and exit
+
+##### Example:
+
+```sh
+ $ imxim create3b scfw.bin scfw_8qm.imx
+
+ Image successfully created
+ Path: scfw_8qm.imx
 ```
 
 <br>

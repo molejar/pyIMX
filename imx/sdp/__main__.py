@@ -1,33 +1,23 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2017 Martin Olejar
+# Copyright (c) 2017-2018 Martin Olejar
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
-# Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# SPDX-License-Identifier: BSD-3-Clause
+# The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
+# or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
 import os
 import sys
+import imx
 import click
 import struct
 import logging
 import traceback
-import imx
 
 
 ########################################################################################################################
-## Misc
+# Misc
 ########################################################################################################################
-
 
 def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
     """ Return string array in hex dump.format
@@ -109,7 +99,7 @@ def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
 
 
 ########################################################################################################################
-## HAB Parser
+# HAB Parser
 ########################################################################################################################
 
 # mx6Codes from Analog Digprog register
@@ -129,55 +119,55 @@ def get_rom_info(dev_name):
             'RELEASE': ('01.01.01', '01.02.00', '01.03.00', '01.04.01', '01.05.02', '02.00.02'),
             'PIDADDR': (0x0001108C, 0x00011130, 0x000111E4, 0x000112A0, 0x00011330, 0x000115B8),
             'VERADDR':  0x00000048,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX6SDL':   {
             'RELEASE': ('00.00.05', '01.01.02', '01.02.02', '01.03.00'),
             'PIDADDR': (0x00010E28, 0x0001108C, 0x000111AC, 0x000111CC),
             'VERADDR':  0x00000048,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX6SL':   {
             'RELEASE': ('01.00.01', '01.02.00', '01.03.00'),
             'PIDADDR': (0x0000E0B0, 0x0000E210, 0x0000E2C2),
             'VERADDR':  0x00000048,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX6SX':  {
             'RELEASE': ('01.00.02', '01.01.01'),
             'PIDADDR': (0x00012398, 0x00013124),
             'VERADDR':  0x00000080,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX6UL':  {
             'RELEASE': ('01.00.00', '01.01.00'),
             'PIDADDR': (0x000129C4, 0x00012A04),
             'VERADDR':  0x00000080,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX6ULL': {
             'RELEASE': ('01.00.01',),
             'PIDADDR': (0x00010E84,),
             'VERADDR':  0x00000080,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'MX7SD':   {
             'RELEASE': ('01.00.05', '01.01.01'),
             'PIDADDR': (0x000130A0, 0x000130A0),
             'VERADDR':  0x00000080,
-            'DEVTYPE':  7
+            'DEVTYPE':  imx.hab.EnumDevType.IMX7
         },
         'MX6SLL': {
             'RELEASE': ('01.00.00',),
             'PIDADDR': (0x0000F884,),
             'VERADDR':  0x00000080,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
         'VIBRID': {
             'RELEASE': ('01.00.10',),
             'PIDADDR': (0x0000F884,),
             'VERADDR':  0x00000048,
-            'DEVTYPE':  6
+            'DEVTYPE':  imx.hab.EnumDevType.IMX6
         },
     }
 
@@ -250,249 +240,8 @@ def get_dev_info(dev_name, rom_ver):
     return desc, regs
 
 
-def parse_hablog_mx6(data):
-    logNamesSingle    = {0x00010000: "BOOTMODE - Internal Fuse",
-                         0x00010001: "BOOTMODE - Serial Bootloader",
-                         0x00010002: "BOOTMODE - Internal/Override",
-                         0x00010003: "BOOTMODE - Test Mode",
-                         0x00020000: "Security Mode - Fab",
-                         0x00020033: "Security Mode - Return",
-                         0x000200F0: "Security Mode - Open",
-                         0x000200CC: "Security Mode - Closed",
-                         0x00030000: "DIR_BT_DIS = 0",
-                         0x00030001: "DIR_BT_DIS = 1",
-                         0x00040000: "BT_FUSE_SEL = 0",
-                         0x00040001: "BT_FUSE_SEL = 1",
-                         0x00050000: "Primary Image Selected",
-                         0x00050001: "Secondary Image Selected",
-                         0x00060000: "NAND Boot",
-                         0x00060001: "USDHC Boot",
-                         0x00060002: "SATA Boot",
-                         0x00060003: "I2C Boot",
-                         0x00060004: "ECSPI Boot",
-                         0x00060005: "NOR Boot",
-                         0x00060006: "ONENAND Boot",
-                         0x00060007: "QSPI Boot",
-                         0x00061003: "Recovery Mode I2C",
-                         0x00061004: "Recovery Mode ECSPI",
-                         0x00061FFF: "Recovery Mode NONE",
-                         0x00062001: "MFG Mode USDHC",
-                         0x00070000: "Device INIT Call",
-                         0x000700F0: "Device INIT Pass",
-                         0x00070033: "Device INIT Fail",
-                         0x000800F0: "Device READ Data Pass",
-                         0x00080033: "Device READ Data Fail",
-                         0x000A00F0: "Plugin Image Pass",
-                         0x000A0033: "Plugin Image Fail",
-                         0x000C0000: "Serial Downloader Entry",
-                         0x000E0000: "ROMCP Patch"}
-
-    logNamesDouble    = {0x00080000: "Device READ Data Call",
-                         0x00090000: "HAB Authentication Status Code:",
-                         0x000A0000: "Plugin Image Call",
-                         0x000B0000: "Program Image Call",
-                         0x000D0000: "Serial Downloader Call"}
-
-    logNamesHABstatus = {0xF0: "Success",
-                         0x33: "Failure",
-                         0x69: "Warning",
-                         0x00: "Unknown"}
-
-    logNamesHABreason = {0x22: "Invalid Address",
-                         0x30: "Engine Failure",
-                         0x0C: "Invalid Assertion",
-                         0x28: "Out of Sequence Function Call",
-                         0x21: "Invalid Certificate",
-                         0x06: "Invalid Command",
-                         0x11: "Invalid CSF",
-                         0x27: "Invalid DCD",
-                         0x0F: "Invalid Index",
-                         0x05: "Invalid IVT",
-                         0x1D: "Invalid Key",
-                         0x1E: "Callback Function Failed",
-                         0x18: "Invalid Signature",
-                         0x17: "Invalid Data Size",
-                         0x2E: "Memory Failure",
-                         0x2B: "Poll Count Expired",
-                         0x2D: "Exhausted Storage Region",
-                         0x12: "Algorithm Unsupported",
-                         0x03: "Command Unsupported",
-                         0x0a: "Engine Unsupported",
-                         0x24: "Configuration Item Unsupported",
-                         0x1B: "Key Unsupported",
-                         0x14: "Protocol Unsupported",
-                         0x09: "Unsuitable State",
-                         0x00: "Unknown"}
-
-    retmsg = ''
-    logLoop = 0
-    while logLoop < 64:
-        logValue = struct.unpack_from('I', data, logLoop * 4)[0]
-
-        if logValue == 0x0:
-            break
-        else:
-            if logValue in logNamesSingle:
-                retmsg += " %02d. (0x%08X) -> %s\n" % (logLoop, logValue, logNamesSingle[logValue])
-                if logValue & 0xffff0000 == 0x00060000:
-                  bootType = logValue & 0xff
-            elif logValue in logNamesDouble:
-                retmsg += " %02d. (0x%08X) -> %s\n" % (logLoop, logValue, logNamesDouble[logValue])
-                logLoop += 1
-                logData = struct.unpack_from('I', data, logLoop * 4)[0]
-                if logValue == 0x00090000:
-                    retmsg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % (logLoop, logData, logData & 0xff,
-                                                                                    logNamesHABstatus[logData & 0xff])
-                    retmsg += "                     HAB Reason Code: 0x%02X  %s\n" % ((logData >> 8) & 0xff,
-                                                                             logNamesHABreason[(logData >> 8) & 0xff])
-                else:
-                    retmsg += " %02d. (0x%08X) -> Address: 0x%08X\n" % (logLoop, logData, logData)
-            else:
-                retmsg += " Log Buffer Code not found\n"
-
-            logLoop += 1
-
-    return retmsg
-
-
-def parse_hablog_mx7(data):
-    logNamesAll    = {0x10: "BOOTMODE - Internal Fuse",
-                      0x11: "BOOTMODE - Serial Bootloader ",
-                      0x12: "BOOTMODE - Internal/Override ",
-                      0x13: "BOOTMODE - Test Mode ",
-                      0x20: "Security Mode - Fab ",
-                      0x21: "Security Mode - Return ",
-                      0x22: "Security Mode - Open ",
-                      0x23: "Security Mode - Closed ",
-                      0x30: "DIR_BT_DIS = 0 ",
-                      0x31: "DIR_BT_DIS = 1 ",
-                      0x40: "BT_FUSE_SEL = 0 ",
-                      0x41: "BT_FUSE_SEL = 1 ",
-                      0x50: "Primary Image Selected ",
-                      0x51: "Secondary Image Selected ",
-                      0x60: "NAND Boot ",
-                      0x61: "USDHC Boot ",
-                      0x62: "SATA Boot ",
-                      0x63: "I2C Boot ",
-                      0x64: "ECSPI Boot ",
-                      0x65: "NOR Boot ",
-                      0x66: "ONENAND Boot ",
-                      0x67: "QSPI Boot ",
-                      0x70: "Recovery Mode I2C ",
-                      0x71: "Recovery Mode ECSPI ",
-                      0x72: "Recovery Mode NONE ",
-                      0x73: "MFG Mode USDHC ",
-                      0xB1: "Plugin Image Pass ",
-                      0xBF: "Plugin Image Fail ",
-                      0xD0: "Serial Downloader Entry ",
-                      0xE0: "ROMCP Patch ",
-                      0x80: "Device INIT Call ",
-                      0x81: "Device INIT Pass ",
-                      0x91: "Device READ Data Pass ",
-                      0xA0: "HAB Authentication Status Code:  ",
-                      0x90: "Device READ Data Call ",
-                      0xB0: "Plugin Image Call ",
-                      0xC0: "Program Image Call ",
-                      0xD1: "Serial Downloader Call ",
-                      0x8F: "Device INIT Fail ",
-                      0x9F: "Device READ Data Fail "}
-
-    logNamesError  = {0x8F: "Device INIT Fail ",
-                      0x9F: "Device READ Data Fail ",
-                      0xBF: "Plugin Image Fail "}
-
-    logNamesTick   = {0x80: "Device INIT Call ",
-                      0x81: "Device INIT Pass ",
-                      0x8F: "Device INIT Fail ",
-                      0x91: "Device READ Data Pass ",
-                      0x9F: "Device READ Data Fail ",
-                      0xB0: "Plugin Image Call ",
-                      0xC0: "Program Image Call "}
-
-    logNamesAddress ={0x90: "Device READ Data Call ",
-                      0xB0: "Plugin Image Call ",
-                      0xC0: "Program Image Call ",
-                      0xD1: "Serial Downloader Call "}
-
-    logNamesHAB    = {0xA0: "HAB Authentication Status Code "}
-
-    logNamesHABstatus = {0xF0: "Success",
-                         0x33: "Failure",
-                         0x69: "Warning",
-                         0x00: "Unknown"}
-
-    logNamesHABreason = {0x22: "Invalid Address",
-                         0x30: "Engine Failure",
-                         0x0C: "Invalid Assertion",
-                         0x28: "Out of Sequence Function Call",
-                         0x21: "Invalid Certificate",
-                         0x06: "Invalid Command",
-                         0x11: "Invalid CSF",
-                         0x27: "Invalid DCD",
-                         0x0F: "Invalid Index",
-                         0x05: "Invalid IVT",
-                         0x1D: "Invalid Key",
-                         0x1E: "Callback Function Failed",
-                         0x18: "Invalid Signature",
-                         0x17: "Invalid Data Size",
-                         0x2E: "Memory Failure",
-                         0x2B: "Poll Count Expired",
-                         0x2D: "Exhausted Storage Region",
-                         0x12: "Algorithm Unsupported",
-                         0x03: "Command Unsupported",
-                         0x0a: "Engine Unsupported",
-                         0x24: "Configuration Item Unsupported",
-                         0x1B: "Key Unsupported",
-                         0x14: "Protocol Unsupported",
-                         0x09: "Unsuitable State",
-                         0x00: "Unknown"}
-    retmsg = ''
-    logLoop = 0
-    while logLoop < 64:
-        logValueFull = struct.unpack_from('I', data, logLoop * 4)[0]
-        logValue = (logValueFull >> 24) & 0xff
-
-        if logValue == 0x0:
-            break
-        else:
-            if logValue in logNamesAll:
-                retmsg += " %02d. (0x%08X) -> %s\n" % (logLoop, logValueFull, logNamesAll[logValue])
-            else:
-                retmsg += " %02d. Log Buffer Code not found\n"
-            if logValue in logNamesAddress :
-                logLoop += 1
-                logData = struct.unpack_from('I', data, logLoop * 4)[0]
-                retmsg += " %02d. (0x%08X) -> Address: 0x%08X\n" % (logLoop, logData, logData)
-            if logValue in logNamesHAB:
-                logLoop += 1
-                logData = struct.unpack_from('I', data, logLoop * 4)[0]
-                retmsg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % (logLoop, logData, logData & 0xff,
-                                                                                logNamesHABstatus[logData & 0xff])
-                retmsg += "                     HAB Reason Code: 0x%02X  %s\n" % ((logData >> 8) & 0xff,
-                                                                         logNamesHABreason[(logData >> 8) & 0xff])
-            if logValue in logNamesError:
-                retmsg += "                     Error Code: 0x%06X\n" % (logValueFull & 0xffffff)
-            if logValue in logNamesTick:
-                logLoop += 1
-                logData = struct.unpack_from('I', data, logLoop * 4)[0]
-                retmsg += " %02d. (0x%08X) -> Tick: 0x%08X\n" % (logLoop, logData, logData)
-
-            logLoop = logLoop + 1
-
-    return retmsg
-
-
-def parse_hablog(dev_type, data):
-  if dev_type == 6:
-    return parse_hablog_mx6(data)
-  elif dev_type == 7:
-    return parse_hablog_mx7(data)
-  else:
-    return "\n Not Implemented Log Parser \n"
-
-
 ########################################################################################################################
-## New argument types
+# New argument types
 ########################################################################################################################
 
 class UInt(click.ParamType):
@@ -519,7 +268,7 @@ UINT = UInt()
 
 
 ########################################################################################################################
-## CLI
+# Command Line Interface
 ########################################################################################################################
 
 # Application error code
@@ -530,12 +279,37 @@ VERSION = imx.__version__
 
 # Application description
 DESCRIP = (
-    "IMX Serial Downloader, ver.: " + VERSION + " Beta\n\n"
+    "i.MX Serial Downloader, ver.: " + VERSION + " Beta\n\n"
     "NOTE: Development version, be carefully with it usage !\n"
 )
 
-# Supported Targets
-TARGETS = imx.SerialDownloader.HID_DEV.keys()
+
+# helper method
+def scan_usb(device_name):
+    # Scan for connected devices
+
+    fsls = imx.sdp.scan_usb(device_name)
+
+    if fsls:
+        index = 0
+
+        if len(fsls) > 1:
+            i = 0
+            click.echo('')
+            for fsl in fsls:
+                click.secho(" %d) %s" % (i, fsl.usbd.info))
+                i += 1
+            click.echo('\n Select: ', nl=False)
+            c = input()
+            click.echo()
+            index = int(c, 10)
+
+        click.secho("\n DEVICE: %s\n" % fsls[index].usbd.info)
+        return fsls[index]
+
+    else:
+        click.echo("\n - No i.MX board detected !")
+        sys.exit(ERROR_CODE)
 
 
 @click.group(context_settings=dict(help_option_names=['-?', '--help']), help=DESCRIP)
@@ -543,7 +317,7 @@ TARGETS = imx.SerialDownloader.HID_DEV.keys()
 @click.option('-d', '--debug', type=click.IntRange(0, 2, True), default=0, help="Debug level (0-off, 1-info, 2-debug)")
 @click.version_option(VERSION, '-v', '--version')
 @click.pass_context
-def cli(ctx, target=None, debug=0):
+def cli(ctx, target, debug):
 
     if debug > 0:
         FORMAT = "[%(asctime)s.%(msecs)03d %(levelname)-5s] %(message)s"
@@ -551,31 +325,13 @@ def cli(ctx, target=None, debug=0):
         logging.basicConfig(format=FORMAT, datefmt='%M:%S', level=loglevel[debug])
 
     ctx.obj['DEBUG']  = debug
-    ctx.obj['DEVICE'] = None
-
-    # Scan for connected target
-    devs = imx.SerialDownloader.scan_usb(target)
-    if devs:
-        index = 0
-        if len(devs) > 1:
-            i = 0
-            click.echo('')
-            for dev in devs:
-                click.secho(" %d) %s" % (i, dev.getInfo()))
-                i += 1
-            click.echo('\n Select: ', nl=False)
-            c = input()
-            click.echo()
-            index = int(c, 10)
-
-        ctx.obj['DEVICE'] = devs[index]
+    ctx.obj['TARGET'] = target
 
 
-# IMX SD: Read device info
-@cli.command(help = "Read detailed information's about HAB and Chip from connected IMX device")
+@cli.command(short_help="Read i.MX device info")
 @click.pass_context
 def info(ctx):
-    ''' Read device info '''
+    ''' Read detailed information's about HAB and Chip from connected IMX device'''
 
     error = False
 
@@ -592,23 +348,18 @@ def info(ctx):
                 return release[i]
         return None
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Get Connected Device Name
-        dev_name = flasher.get_target_name()
+        dev_name = flasher.device_name
         if dev_name is None:
             raise Exception('Not Connected or Unsupported Device')
         # Get Connected Device PID Value
-        dev_pid  = ctx.obj['DEVICE'].pid
+        dev_pid  = flasher.usbd.pid
         # Get Device and ROM Specific Data
         rom_info = get_rom_info(dev_name)
         if rom_info is None:
@@ -685,7 +436,7 @@ def info(ctx):
         click.secho(" ANALOG DIGPROG: 0x%08x" % digprog_val)
         click.echo()
         click.echo(" HAB Log Info --------------------------------------------\n")
-        click.echo(parse_hablog(rom_info['DEVTYPE'], log_data))
+        click.echo(imx.hab.parse_hab_log(rom_info['DEVTYPE'], log_data))
         click.echo(" ---------------------------------------------------------")
 
     # Disconnect IMX Device
@@ -696,9 +447,7 @@ def info(ctx):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Read Memory/Regs command
-@cli.command(help = "Read raw data from specified address in connected IMX device. "
-                    "The address value must be aligned to selected access size !")
+@cli.command(short_help="Read raw data from i.MX memory")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('length', nargs=1, type=UINT)
 @click.option('-s', '--size', type=click.Choice(['8', '16', '32']), default='32', show_default=True, help="Access Size")
@@ -706,24 +455,20 @@ def info(ctx):
 @click.option('-f', '--file', type=click.Path(readable=False), help="Output file name")
 @click.pass_context
 def read(ctx, address, length, size, compress, file):
-    ''' Read data from IMX regs or memory '''
+    ''' Read raw data from specified address in connected IMX device.
+        The address value must be aligned to selected access size !
+    '''
 
     error = False
-
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Read data from IMX Device
         data = flasher.read(address, length, int(size))
-    except imx.SD_GenericError as e:
+    except imx.sdp.SdpGenericError as e:
         error = True
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
@@ -740,43 +485,35 @@ def read(ctx, address, length, size, compress, file):
         else:
             with open(file, "wb") as f:
                 f.write(data)
-                f.close()
 
-            if not error:
-                if ctx.obj['DEBUG']: click.echo()
-                click.secho(" - Successfully saved into: %s." % file)
-
-    if error:
+            if ctx.obj['DEBUG']: click.echo()
+            click.secho(" - Successfully saved into: %s." % file)
+    else:
+        # Print Error Message and exit
         click.echo(error_msg)
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Read Register command
-@cli.command(help = "Read value of register or memory at specified address from connected IMX device. "
-                    "The address value must be aligned to selected access size !")
+@cli.command(short_help="Read value from i.MX register")
 @click.argument('address', nargs=1, type=UINT)
 @click.option('-c', '--count', type=UINT, default=0x1, show_default=True, help="Count of Regs")
 @click.option('-s', '--size', type=click.Choice(['8', '16', '32']), default='32', show_default=True, help='Access Size')
 @click.option('-f', '--format', type=click.Choice(['b', 'x', 'd']), default='x', show_default=True, help='Value Format')
 @click.pass_context
 def rreg(ctx, address, count, size, format):
-    ''' Read value from IMX register '''
+    ''' Read value of register or memory at specified address from connected i.MX device.
+        The address value must be aligned to selected access size !
+    '''
 
     error = False
-
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     reg_size = int(size) // 8
 
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Read data from IMX Device
         data = flasher.read(address, int(count * reg_size), int(size))
     except Exception as e:
@@ -797,9 +534,8 @@ def rreg(ctx, address, count, size, format):
         val_format = '{2:d}'
 
     if not error:
-        if ctx.obj['DEBUG'] > 0:
-            click.echo()
         i = 0
+        if ctx.obj['DEBUG']: click.echo()
         while i < (count * reg_size):
             reg_addr = address + i
             reg_val  = data[i]; i += 1
@@ -814,30 +550,25 @@ def rreg(ctx, address, count, size, format):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Write Register command
-@cli.command(help = "Write value into register or memory at specified address in connected IMX device. "
-                    "The address value must be aligned to selected access size !")
+@cli.command(short_help="Write value into i.MX register")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('value', nargs=1, type=UINT)
 @click.option('-s', '--size', type=click.Choice(['8', '16', '32']), default='32', show_default=True, help='Access Size')
 @click.option('-b', '--bytes', type=click.IntRange(1, 4, True), default=4, show_default=True, help='Count of Bytes')
 @click.pass_context
 def wreg(ctx, address, value, size, bytes):
-    ''' Write value into IMX register '''
+    ''' Write value into register or memory at specified address in connected IMX device.
+        The address value must be aligned to selected access size !
+    '''
 
     error = False
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Write value into register from IMX Device
         flasher.write(address, value, bytes, int(size))
     except Exception as e:
@@ -858,41 +589,35 @@ def wreg(ctx, address, value, size, bytes):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Write File command
-@cli.command(help = "Write U-Boot image file into connected device and RUN it")
+@cli.command(short_help="Write image into i.MX device and RUN it")
 @click.argument('file', nargs=1, type=click.Path(exists=True))
-@click.option('-a', '--addr', type=UINT, help='Start Address (required for *.bin)')
+@click.option('-a', '--addr', type=UINT, default=None, help='Start Address (required for *.bin)')
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.option('-m', '--ocram', type=UINT, default=0, help='IMX OCRAM Address, required for DDR init')
-@click.option('-i/','--init/', is_flag=True, default=False, help='Init DDR from *.imx image')
-@click.option('-r/','--run/', is_flag=True, default=False, help='Run loaded *.imx image')
-@click.option('-s/','--skipdcd/', is_flag=True, default=False, help='Skip DCD Header from *.imx image')
+@click.option('-i/','--init/', is_flag=True, default=False, help='Init DDR from *.imx img')
+@click.option('-r/','--run/', is_flag=True, default=False, help='Run loaded *.imx img')
+@click.option('-s/','--skipdcd/', is_flag=True, default=False, help='Skip DCD Header from *.imx img')
 @click.pass_context
 def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
-    ''' Write image file (uboot.imx, uImage, ...) '''
+    ''' Write image file (uboot.imx, uImage, ...) into i.MX device and RUN it '''
 
     error = False
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
-        # Load image
+        flasher.open()
+        # Load img
         if file.lower().endswith('.imx'):
-            img = imx.BootImage()
             data = bytearray(os.path.getsize(file))
             with open(file, 'rb') as f:
                 f.readinto(data)
-                img.parse(data)
 
-            if not addr:
+            img = imx.img.parse(data)
+
+            if addr is None:
                 addr = img.address + img.offset
 
             if init:
@@ -914,15 +639,17 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
 
         click.secho(" - Writing %s, please wait !" % file)
         if ctx.obj['DEBUG']: click.echo()
-        # Write data from image into device
+        # Write data from img into device
         flasher.write_file(addr, data)
         # Skip DCD header if set
         if file.lower().endswith('.imx') and skipdcd:
             click.echo(' - Skip DCD content')
             flasher.skip_dcd()
             if ctx.obj['DEBUG']: click.echo()
-        # Run loaded uboot.imx image
+        # Run loaded uboot.imx img
         if file.lower().endswith('.imx') and run:
+            if isinstance(flasher, imx.sdp.SdpMXRT):
+                addr = img.address
             click.secho(' - Jump to ADDR: 0x%08X and RUN' % addr)
             flasher.jump_and_run(addr)
 
@@ -944,28 +671,22 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Write DCD command
-@cli.command(short_help="Write DCD file")
+@cli.command(short_help="Write DCD blob into i.MX device")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wdcd(ctx, address, file, offset):
-    ''' Write DCD file '''
+    ''' Write Device Configuration Data into i.MX device '''
 
     error = False
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     if file.lower().endswith('.imx'):
-        img = imx.BootImage()
         raw_data = bytearray(os.path.getsize(file))
         with open(file, 'rb') as f:
             f.readinto(raw_data)
-            img.parse(raw_data)
 
+        img = imx.img.parse(raw_data)
         data = img.dcd.export()
 
     else:
@@ -976,12 +697,11 @@ def wdcd(ctx, address, file, offset):
             f.close()
 
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
-        # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        # Connect i.MX Device
+        flasher.open()
         click.secho(' - Writing DCD from %s, please wait !' % file)
         # Write value into register from IMX Device
         flasher.write_dcd(address, data)
@@ -992,7 +712,7 @@ def wdcd(ctx, address, file, offset):
         else:
             error_msg = ' - ERROR: %s' % str(e)
 
-    # Disconnect IMX Device
+    # Disconnect i.MX Device
     flasher.close()
 
     if not error:
@@ -1003,18 +723,15 @@ def wdcd(ctx, address, file, offset):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Write CSF command
-@cli.command(short_help="Write CSF file")
+@cli.command(short_help="Write CSF file into i.MX device")
 @click.argument('address', nargs=1, type=UINT)
 @click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wcsf(ctx, address, file, offset):
-    error = False
+    ''' Write Code Signing File file into i.MX device '''
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
+    error = False
 
     if file.lower().endswith('.imx'):
         click.echo('\n - ERROR: The parser of CFS blob from *.imx is not implemented yet')
@@ -1028,12 +745,11 @@ def wcsf(ctx, address, file, offset):
             f.close()
 
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         click.secho(' - Writing %s, please wait !' % file)
         # Write value into register from IMX Device
         flasher.write_csf(address, data)
@@ -1055,24 +771,20 @@ def wcsf(ctx, address, file, offset):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: RUN command
 @cli.command(short_help="Jump to specified address and RUN")
 @click.argument('address', nargs=1, type=UINT)
 @click.pass_context
 def jump(ctx, address):
+    ''' Jump to specified address and RUN i.MX device '''
+
     error = False
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo("\n - No IMX board detected !")
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Write value into register from IMX Device
         flasher.jump_and_run(address)
     except Exception as e:
@@ -1093,23 +805,19 @@ def jump(ctx, address):
         sys.exit(ERROR_CODE)
 
 
-# IMX SD: Read Status command
-@cli.command(short_help="Read status value")
+@cli.command(short_help="Read status of i.MX device")
 @click.pass_context
 def stat(ctx):
+    ''' Read status of i.MX device '''
+
     error = False
 
-    if ctx.obj['DEVICE'] is None:
-        click.echo('\n - No IMX board detected !')
-        sys.exit(ERROR_CODE)
-
     # Create Flasher instance
-    flasher = imx.SerialDownloader()
+    flasher = scan_usb(ctx.obj['TARGET'])
 
     try:
-        click.secho("\n DEVICE: %s\n" % ctx.obj['DEVICE'].getInfo())
         # Connect IMX Device
-        flasher.open_usb(ctx.obj['DEVICE'])
+        flasher.open()
         # Read Status from IMX Device
         status = flasher.read_status()
     except Exception as e:
@@ -1124,7 +832,8 @@ def stat(ctx):
 
     if not error:
         if ctx.obj['DEBUG']: click.echo()
-        click.secho(" - Status: 0x%08X" % status)
+        click.secho(" - Return Value: 0x%08X" % status)
+        click.secho(" - Description : %s" % imx.hab.status_info(status))
     else:
         click.echo(error_msg)
         sys.exit(ERROR_CODE)

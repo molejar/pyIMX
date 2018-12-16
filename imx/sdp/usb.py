@@ -1,17 +1,8 @@
-# Copyright (c) 2017 Martin Olejar, martin.olejar@gmail.com
+# Copyright (c) 2017-2018 Martin Olejar
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
-# Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# SPDX-License-Identifier: BSD-3-Clause
+# The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
+# or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
 import os
 import logging
@@ -26,11 +17,14 @@ from .misc import atos
 
 
 ########################################################################################################################
-## USB Interface Base Class
+# USB Interface Base Class
 ########################################################################################################################
 
+class RawHidBase(object):
 
-class USBIF_BASE(object):
+    @property
+    def info(self):
+        return "{0:s} (0x{1:04X}, 0x{2:04X})".format(self.product_name, self.vid, self.pid)
 
     def __init__(self):
         self.vid = 0
@@ -38,24 +32,23 @@ class USBIF_BASE(object):
         self.vendor_name = ""
         self.product_name = ""
 
-    def _encode_packet(self, report_id, data, pkglen):
-        buf = bytearray([report_id])                   # Set Report ID (byte 0)
-        buf.extend(data)                               # Set data
-        buf.extend([0x00]*(pkglen - len(data)))        # Align packet to pkglen
+    @staticmethod
+    def _encode_packet(report_id, data, pkglen):
+        buf = bytes([report_id])                   # Set Report ID (byte 0)
+        buf += data                                # Set data
+        buf += bytes([0x00]*(pkglen - len(data)))  # Align packet to pkglen
         return buf
 
-    def _decode_packet(self, data):
-        report_id = data[0]                            # Get USB-HID Report ID
-        return (report_id, bytearray(data[1:]))
+    @staticmethod
+    def _decode_packet(data):
+        report_id = data[0]                        # Get USB-HID Report ID
+        return report_id, data[1:]
 
     def open(self):
         raise NotImplementedError()
 
     def close(self):
         raise NotImplementedError()
-
-    def getInfo(self):
-        return "{0:s} (0x{1:04X}, 0x{2:04X})".format(self.product_name, self.vid, self.pid)
 
     def write(self, id, data, size):
         raise NotImplementedError()
@@ -65,7 +58,7 @@ class USBIF_BASE(object):
 
 
 ########################################################################################################################
-## USB Interface Classes
+# USB Interface Classes
 ########################################################################################################################
 
 if os.name == "nt":
@@ -75,7 +68,7 @@ if os.name == "nt":
         raise Exception("PyWinUSB is required on a Windows Machine")
 
 
-    class USBIF(USBIF_BASE):
+    class RawHid(RawHidBase):
         """
         This class provides basic functions to access
         a USB HID device using pywinusb:
@@ -127,7 +120,7 @@ if os.name == "nt":
                     raise Exception("Read timed out")
             rawdata = self.rcv_data.popleft()
             logging.debug('USB-IN [0x]: %s', atos(rawdata))
-            return self._decode_packet(rawdata)
+            return self._decode_packet(bytes(rawdata))
 
         @staticmethod
         def enumerate(vid, pid):
@@ -137,26 +130,26 @@ if os.name == "nt":
             :param vid:
             :param pid:
             """
-            all_devices = hid.find_all_hid_devices()
+            all_hid_devices = hid.find_all_hid_devices()
 
             # find devices with good vid/pid
-            all_kboot_devices = []
-            for d in all_devices:
-                if (d.vendor_id == vid) and (d.product_id == pid):
-                    all_kboot_devices.append(d)
+            all_imx_devices = []
+            for hid_dev in all_hid_devices:
+                if hid_dev.vendor_id == vid and hid_dev.product_id == pid:
+                    all_imx_devices.append(hid_dev)
 
             targets = []
-            for dev in all_kboot_devices:
+            for dev in all_imx_devices:
                 try:
                     dev.open(shared=False)
                     report = dev.find_output_reports()
                     dev.close()
 
                     if report:
-                        new_target = USBIF()
+                        new_target = RawHid()
                         new_target.report = report
-                        new_target.vendor_name = dev.vendor_name
-                        new_target.product_name = dev.product_name
+                        new_target.vendor_name = dev.vendor_name.strip()
+                        new_target.product_name = dev.product_name.strip()
                         new_target.vid = dev.vendor_id
                         new_target.pid = dev.product_id
                         new_target.device = dev
@@ -176,7 +169,7 @@ elif os.name == "posix":
     except:
         raise Exception("PyUSB is required on a Linux Machine")
 
-    class USBIF(USBIF_BASE):
+    class RawHid(RawHidBase):
         """
         This class provides basic functions to access
         a USB HID device using pyusb:
@@ -232,7 +225,6 @@ elif os.name == "posix":
             logging.debug('USB-IN [0x]: %s', atos(rawdata))
             return self._decode_packet(rawdata)
 
-
         @staticmethod
         def enumerate(vid, pid):
             """
@@ -252,7 +244,8 @@ elif os.name == "posix":
 
             # iterate on all devices found
             for dev in all_devices:
-                interface_number = -1
+                interface = None
+                interface_number = None
 
                 # get active config
                 config = dev.get_active_configuration()
@@ -263,7 +256,7 @@ elif os.name == "posix":
                         interface_number = interface.bInterfaceNumber
                         break
 
-                if interface_number == -1:
+                if interface_number is None or interface is None:
                     continue
 
                 try:
@@ -271,12 +264,14 @@ elif os.name == "posix":
                         dev.detach_kernel_driver(interface_number)
                 except Exception as e:
                     print(str(e))
+                    continue
 
                 try:
                     dev.set_configuration()
                     dev.reset()
                 except usb.core.USBError as e:
                     print("Cannot set configuration the device: %s" % str(e))
+                    continue
 
                 ep_in, ep_out = None, None
                 for ep in interface:
@@ -296,20 +291,18 @@ elif os.name == "posix":
                     logging.error('Endpoints not found')
                     return None
 
-                new_target = USBIF()
+                new_target = RawHid()
                 new_target.ep_in = ep_in
                 new_target.ep_out = ep_out
                 new_target.dev = dev
                 new_target.vid = vid
                 new_target.pid = pid
                 new_target.intf_number = interface_number
-                new_target.vendor_name = vendor_name
-                new_target.product_name = product_name
+                new_target.vendor_name = vendor_name.strip('\0')
+                new_target.product_name = product_name.strip('\0')
                 targets.append(new_target)
 
             return targets
 
 else:
     raise Exception("No USB backend found")
-
-

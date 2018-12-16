@@ -13,27 +13,26 @@ For printing a general info of usage this tool execute `imxsd -?`.
  $ imxsd -?
  Usage: imxsd [OPTIONS] COMMAND [ARGS]...
 
-   IMX Serial Downloader, ver.: 0.0.5 Beta
+   i.MX Serial Downloader, ver.: 0.1.0 Beta
 
    NOTE: Development version, be carefully with it usage !
 
  Options:
-   -t, --target [MX6SX|MX6UL|MX6SDL|MX6DQP|MX6ULL|MX6SL|MX7SD|MX6SLL|VYBRID]
-                              Select specific target [optional]
+   -t, --target TEXT          Select target MX6SX, MX6UL, ... [optional]
    -d, --debug INTEGER RANGE  Debug level (0-off, 1-info, 2-debug)
    -v, --version              Show the version and exit.
    -?, --help                 Show this message and exit.
 
  Commands:
-   info  Read detailed information's about HAB and...
+   info  Read i.MX device info
    jump  Jump to specified address and RUN
-   read  Read raw data from specified address in...
-   rreg  Read value of register or memory at specified...
-   stat  Read status value
-   wcsf  Write CSF file
-   wdcd  Write DCD file
-   wimg  Write image file into connected device.
-   wreg  Write value into register or memory at...
+   read  Read raw data from i.MX memory
+   rreg  Read value from i.MX register
+   stat  Read status of i.MX device
+   wcsf  Write CSF file into i.MX device
+   wdcd  Write DCD blob into i.MX device
+   wimg  Write image into i.MX device and RUN it
+   wreg  Write value into i.MX register
 ```
 
 ##### generic options:

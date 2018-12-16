@@ -1,8 +1,4 @@
-fdt>=0.1.0
 click>=6.0
 PyYAML>=3.10
-Jinja2>=2.6
-pyserial>=3.0
-pyusb>=1.0.0b2; sys_platform == 'linux'
-pywinusb>=0.4.0; sys_platform == 'windows'
-https://github.com/molejar/pyUBoot/archive/master.zip
+pyusb>=1.0.0b2; platform_system == 'Linux'
+pywinusb>=0.4.0; platform_system == 'Windows'
