@@ -465,3 +465,13 @@ class SdpMXRT(SdpBase):
 
     def skip_dcd(self):
         raise NotImplementedError()
+
+
+########################################################################################################################
+# Scan USB function
+########################################################################################################################
+
+def scan_usb(device_name=None):
+    """ Scan for available USB devices """
+    pass
+
