@@ -138,12 +138,10 @@ class SegIVT2(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_segment(buffer, SegTag.IVT2)
-
         header = Header.parse(data, 0, SegTag.IVT2)
         obj = cls(header.param)
         # Parse IVT items
@@ -223,12 +221,10 @@ class SegIVT3a(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_segment(buffer, SegTag.IVT3)
-
         header = Header.parse(data, 0, SegTag.IVT3)
         obj = cls(header.param)
 
@@ -309,12 +305,10 @@ class SegIVT3b(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_segment(buffer, SegTag.IVT2)
-
         header = Header.parse(data, 0, SegTag.IVT2)
         obj = cls(header.param)
 
@@ -385,12 +379,10 @@ class SegIDS3a(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_data(buffer, cls.SIZE)
-
         obj = cls()
         (obj.image_source,
          obj.image_destination,
@@ -458,12 +450,10 @@ class SegBDS3a(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_data(buffer, cls.HEADER_SIZE)
-
         obj = cls()
         (obj.images_count,
          obj.boot_data_size,
@@ -471,9 +461,7 @@ class SegBDS3a(BaseSegment):
          obj.rs) = unpack_from(cls.FORMAT, data)
 
         for i in range(obj.images_count):
-            obj.images[i] = SegIDS3a.parse(buffer)
-
-        buffer.seek((cls.IMAGES_MAX_COUNT - obj.images_count) * SegIDS3a.SIZE, 1)
+            obj.images[i] = SegIDS3a.parse(data[cls.HEADER_SIZE + i * SegIDS3a.SIZE:])
 
         return obj
 
@@ -520,13 +508,10 @@ class SegIDS3b(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
         :param data:
-        :param offset:
         '''
-        data = read_raw_data(buffer, cls.SIZE)
-
         ids = cls()
         (ids.image_source,
          ids.image_destination,
@@ -609,26 +594,26 @@ class SegBDS3b(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
+    def parse(cls, data):
         '''
-        :param buffer:
+        :param data:
         '''
-        data = read_raw_data(buffer, cls.HEADER_SIZE)
-
         obj = cls()
         (obj.images_count,
          obj.boot_data_size,
          obj.boot_data_flag,
          obj.rs) = unpack_from(obj.FORMAT, data)
 
+        offset = cls.HEADER_SIZE
         for i in range(obj.images_count):
-            obj.images[i] = SegIDS3b.parse(buffer)
+            obj.images[i] = SegIDS3b.parse(data[offset:])
+            offset += SegIDS3b.SIZE
 
-        buffer.seek((cls.IMAGES_MAX_COUNT - obj.images_count) * SegIDS3b.SIZE, 1)
-
-        obj.scd    = SegIDS3b.parse(buffer)
-        obj.csf    = SegIDS3b.parse(buffer)
-        obj.rs_img = SegIDS3b.parse(buffer)
+        obj.scd = SegIDS3b.parse(data[offset:])
+        offset += SegIDS3b.SIZE
+        obj.csf = SegIDS3b.parse(data[offset:])
+        offset += SegIDS3b.SIZE
+        obj.rs_img = SegIDS3b.parse(data[offset:])
 
         return obj
 
@@ -682,8 +667,7 @@ class SegBDT(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer):
-        data = read_raw_data(buffer, cls.SIZE)
+    def parse(cls, data):
         return cls(*unpack_from(cls.FORMAT, data))
 
 
@@ -757,7 +741,7 @@ class SegDCD(BaseSegment):
         self._commands = []
 
     def __len__(self):
-        len(self._commands)
+        return len(self._commands)
 
     def __getitem__(self, key):
         return self._commands[key]
@@ -939,9 +923,7 @@ class SegDCD(BaseSegment):
         return dcd_obj
 
     @classmethod
-    def parse(cls, buffer):
-        # Read DCD segment raw data from buffer
-        data = read_raw_segment(buffer, SegTag.DCD)
+    def parse(cls, data):
         # Parse DCD segment
         header = Header.parse(data, 0, SegTag.DCD)
         index = header.size
@@ -1050,10 +1032,7 @@ class SegCSF(BaseSegment):
         return data
 
     @classmethod
-    def parse(cls, buffer, offset=0):
-        # Read DCD segment raw data from buffer
-        data = read_raw_segment(buffer, SegTag.CSF)
-        # Parse DCD segment
+    def parse(cls, data, offset=0):
         header = Header.parse(data, offset, SegTag.CSF)
         index = header.size
         obj = cls(header.param, True)

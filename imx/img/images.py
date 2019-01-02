@@ -306,15 +306,15 @@ class BootImg2(BootImgBase):
 
         obj = cls()
         # Parse IVT
-        obj.ivt = SegIVT2.parse(buffer)
+        obj.ivt = SegIVT2.parse(read_raw_segment(buffer, SegTag.IVT2))
         # Parse BDT
-        obj.bdt = SegBDT.parse(buffer)
+        obj.bdt = SegBDT.parse(read_raw_data(buffer, SegBDT.SIZE))
         obj.offset = obj.ivt.ivt_address - obj.bdt.start
         obj.address = obj.bdt.start
         obj.plugin = True if obj.bdt.plugin else False
         # Parse DCD
         if obj.ivt.dcd_address:
-            obj.dcd = SegDCD.parse(buffer)
+            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
         app_start = offset + (obj.ivt.app_address - obj.ivt.ivt_address)
@@ -528,15 +528,15 @@ class BootImg8m(BootImgBase):
 
         obj = cls()
         # Parse IVT
-        obj.ivt = SegIVT2.parse(buffer)
+        obj.ivt = SegIVT2.parse(read_raw_segment(buffer, SegTag.IVT2))
         # Parse BDT
-        obj.bdt = SegBDT.parse(buffer)
+        obj.bdt = SegBDT.parse(read_raw_data(buffer, SegBDT.SIZE))
         obj.offset = obj.ivt.ivt_address - obj.bdt.start
         obj.address = obj.bdt.start
         obj.plugin = True if obj.bdt.plugin else False
         # Parse DCD
         if obj.ivt.dcd_address:
-            obj.dcd = SegDCD.parse(buffer)
+            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
         app_start = offset + (obj.ivt.app_address - obj.ivt.ivt_address)
@@ -856,19 +856,19 @@ class BootImg3a(BootImgBase):
 
         obj = cls()
         # Parse IVT
-        obj.ivt[0] = SegIVT3a.parse(buffer)
-        obj.ivt[1] = SegIVT3a.parse(buffer)
+        obj.ivt[0] = SegIVT3a.parse(read_raw_segment(buffer, SegTag.IVT3))
+        obj.ivt[1] = SegIVT3a.parse(read_raw_segment(buffer, SegTag.IVT3))
         # Parse BDT
-        obj.bdt[0] = SegBDS3a.parse(buffer)
-        obj.bdt[1] = SegBDS3a.parse(buffer)
+        obj.bdt[0] = SegBDS3a.parse(read_raw_data(buffer, SegBDS3a.SIZE))
+        obj.bdt[1] = SegBDS3a.parse(read_raw_data(buffer, SegBDS3a.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
             buffer.seek(offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
-            obj.dcd = SegDCD.parse(buffer)
+            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
         # Parse CSF
         if obj.ivt[0].csf_address:
             buffer.seek(offset + (obj.ivt[0].csf_address - obj.ivt[0].ivt_address), 0)
-            obj.csf = SegCSF.parse(buffer)
+            obj.csf = SegCSF.parse(read_raw_segment(buffer, SegTag.CSF))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
@@ -1209,15 +1209,15 @@ class BootImg3b(BootImgBase):
 
         obj = cls()
         # Parse IVT
-        obj.ivt[0] = SegIVT3b.parse(buffer)
-        obj.ivt[1] = SegIVT3b.parse(buffer)
+        obj.ivt[0] = SegIVT3b.parse(read_raw_segment(buffer, SegTag.IVT2))
+        obj.ivt[1] = SegIVT3b.parse(read_raw_segment(buffer, SegTag.IVT2))
         # Parse BDT
-        obj.bdt[0] = SegBDS3b.parse(buffer)
-        obj.bdt[1] = SegBDS3b.parse(buffer)
+        obj.bdt[0] = SegBDS3b.parse(read_raw_data(buffer, SegBDS3b.SIZE))
+        obj.bdt[1] = SegBDS3b.parse(read_raw_data(buffer, SegBDS3b.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
             buffer.seek(offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
-            obj.dcd = SegDCD.parse(buffer)
+            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
@@ -1230,7 +1230,7 @@ class BootImg3b(BootImgBase):
         # Parse CSF
         if obj.bdt[0].csf.image_source != 0:
             buffer.seek(obj.bdt[0].csf.image_source - obj.offset + offset, 0)
-            obj.csf = SegCSF.parse(buffer)
+            obj.csf = SegCSF.parse(read_raw_segment(buffer, SegTag.CSF))
 
 
         return obj

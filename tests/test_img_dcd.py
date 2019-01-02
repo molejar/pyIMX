@@ -13,6 +13,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 # Test Files
 DCD_TXT = os.path.join(DATA_DIR, 'dcd_test.txt')
+DCD_BIN = os.path.join(DATA_DIR, 'dcd_test.bin')
 
 
 def setup_module(module):
@@ -25,9 +26,19 @@ def teardown_module(module):
     pass
 
 
-def test_01():
+def test_txt_parser():
 
     with open(DCD_TXT, 'r') as f:
         dcd_obj = img.SegDCD.parse_txt(f.read())
 
-    assert len(dcd_obj) == 12
+        assert dcd_obj is not None
+        assert len(dcd_obj) == 12
+
+
+def test_bin_parser():
+
+    with open(DCD_BIN, 'rb') as f:
+        dcd_obj = img.SegDCD.parse(f.read())
+
+        assert dcd_obj is not None
+        assert len(dcd_obj) == 12

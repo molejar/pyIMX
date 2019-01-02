@@ -1,6 +1,11 @@
 pyIMX
 =====
 
+[![Build Status](https://travis-ci.org/molejar/pyIMX.svg?branch=master)](https://travis-ci.org/molejar/pyIMX)
+[![Coverage Status](https://coveralls.io/repos/github/molejar/pyIMX/badge.svg?branch=master)](https://coveralls.io/github/molejar/pyIMX?branch=master)
+[![PyPI Status](https://img.shields.io/pypi/v/imx.svg)](https://pypi.python.org/pypi/imx)
+[![Python Version](https://img.shields.io/pypi/pyversions/imx.svg)](https://www.python.org)
+
 This repository collects a useful tools and python module targeted for [i.MX Applications Processors](https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors).
 
 * [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
@@ -32,7 +37,7 @@ To install the latest version from master branch execute in shell following comm
 Linux users may run into a permissions issue if execute `imxsd` tool without root privileges. To fix this,
 copy attached udev rules [60-imx-sdp.rules](udev/60-imx-sdp.rules) into `/etc/udev/rules.d` directory and reload it `sudo udevadm control --reload-rules`.
 
-In case of development, install it from cloned sources:
+In case of development, install pyIMX from sources:
 
 ``` bash
     $ git clone https://github.com/molejar/pyIMX.git
