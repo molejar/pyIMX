@@ -6,8 +6,32 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
+from os import path
+from sys import platform
 from setuptools import setup, find_packages
 from imx import __version__, __license__, __author__, __contact__
+
+requirements = ['click>=6.0', 'PyYAML>=3.10']
+
+if platform.startswith('linux'):
+    requirements.append('pyusb>=1.0.0b2')
+elif platform.startswith('win'):
+    requirements.append('pywinusb>=0.4.0')
+else:
+    raise Exception('Not supported platform !')
+
+
+def long_description():
+    try:
+        import pypandoc
+
+        readme_path = path.join(path.dirname(__file__), 'README.md')
+        return pypandoc.convert(readme_path, 'rst').replace('\r', '')
+    except (IOError, ImportError):
+        return (
+            "More on: https://github.com/molejar/pyIMX"
+        )
+
 
 setup(
     name='imx',
@@ -16,9 +40,12 @@ setup(
     author=__author__,
     author_email=__contact__,
     url='https://github.com/molejar/pyIMX',
+    description='Open Source library for easy development with i.MX platform',
+    long_description=long_description(),
     platforms="Windows, Linux",
     python_requires=">=3.5",
-    packages=find_packages(),
+    install_requires=requirements,
+    packages=find_packages('.'),
     classifiers=[
         'Programming Language :: Python :: 3',
         'Operating System :: POSIX :: Linux',
@@ -29,7 +56,6 @@ setup(
         'Topic :: System :: Hardware',
         'Topic :: Utilities'
     ],
-    description='Open Source library for easy development with i.MX platform',
     entry_points={
         'console_scripts': [
             'imxim = imx.img.__main__:main',

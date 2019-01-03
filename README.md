@@ -8,8 +8,8 @@ pyIMX
 
 This repository collects a useful tools and python module targeted for [i.MX Applications Processors](https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors).
 
-* [imxim](doc/imxim.md) - a tool for manipulation with `*.imx` boot image
-* [imxsd](doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+* [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool for manipulation with `*.imx` boot image
+* [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
 
 > This project is still in developing phase. Please, test it and report founded issues.
 
@@ -27,6 +27,10 @@ Windows OS.
 Installation
 ------------
 
+``` bash
+    $ pip install imx
+```
+
 To install the latest version from master branch execute in shell following commands:
 
 ``` bash
@@ -35,7 +39,7 @@ To install the latest version from master branch execute in shell following comm
 ```
 
 Linux users may run into a permissions issue if execute `imxsd` tool without root privileges. To fix this,
-copy attached udev rules [60-imx-sdp.rules](udev/60-imx-sdp.rules) into `/etc/udev/rules.d` directory and reload it `sudo udevadm control --reload-rules`.
+copy attached udev rules [60-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/60-imx-sdp.rules) into `/etc/udev/rules.d` directory and reload it `sudo udevadm control --reload-rules`.
 
 In case of development, install pyIMX from sources:
 
@@ -152,8 +156,9 @@ The example of IMX serial downloader API usage:
 TODO
 ----
 
-* Optimize usb_scan function inside `imx.sdp` module
+* Optimize `scan_usb` function inside `imx.sdp` module
 * Add serial interface support for `imx.sdp` module
 * Add image security features (sign and encryption)
-* Add eFuses read/write and validation support
+* Add eFuses read, write and validation functionality
 * Add HAB-log parser for i.MX-RT and i.MX8 devices
+* Add support for QSPI Flash image
