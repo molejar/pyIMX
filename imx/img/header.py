@@ -15,16 +15,21 @@ from struct import pack, unpack_from, calcsize
 @unique
 class SegTag(IntEnum):
     # Segments Tag
-    IVT2    = 0xD1  # Image Vector Table
-    IVT3    = 0xDE  # Image Vector Table
-    DCD     = 0xD2  # Device Configuration Data
-    CSF     = 0xD4  # Command Sequence File
-    CRT     = 0xD7  # Certificate
-    SIG     = 0xD8  # Signature
-    EVT     = 0xDB  # Event
-    RVT     = 0xDD  # ROM Vector Table
-    WRP     = 0x81  # Wrapped Key
-    MAC     = 0xAC  # Message Authentication Code
+    DCD = 0xD2   # Device Configuration Data
+    CSF = 0xD4   # Command Sequence File Data
+    # i.MX6, i.MX7, i.MX8M
+    IVT2 = 0xD1  # Image Vector Table
+    CRT = 0xD7   # Certificate
+    SIG = 0xD8   # Signature
+    EVT = 0xDB   # Event
+    RVT = 0xDD   # ROM Vector Table
+    WRP = 0x81   # Wrapped Key
+    MAC = 0xAC   # Message Authentication Code
+    # i.MX8QXP_A0, i.MX8QM_A0
+    IVT3 = 0xDE  # Image Vector Table
+    # i.MX8QXP_B0, i.MX8QM_B0
+    BIC1 = 0x87  # Boot Images Container
+    SIGB = 0x90  # Signature block
 
 
 @unique
@@ -44,7 +49,6 @@ class CmdTag(IntEnum):
 # Exceptions
 ########################################################################################################################
 
-
 class UnparsedException(Exception):
     pass
 
@@ -58,13 +62,13 @@ class CorruptedException(Exception):
 ########################################################################################################################
 
 class Header(object):
-    ''' header element type '''
+    """ header element type """
     FORMAT = ">BHB"
     SIZE = calcsize(FORMAT)
 
     @property
     def size(self):
-        ''' Header Size '''
+        """ Header Size """
         return self.SIZE
 
     def __init__(self, tag, param=0, length=None):
@@ -93,6 +97,28 @@ class Header(object):
         :return:
         """
         tag, length, param = unpack_from(cls.FORMAT, data, offset)
+        if required_tag is not None and tag != required_tag:
+            raise UnparsedException(" Invalid header tag: '0x{:02X}' expected '0x{:02X}' ".format(tag, required_tag))
+
+        return cls(tag, param, length)
+
+
+class Header2(Header):
+    """ header element type """
+    FORMAT = "<BHB"
+
+    def export(self):
+        return pack(self.FORMAT, self.param, self.length, self.tag)
+
+    @classmethod
+    def parse(cls, data, offset=0, required_tag=None):
+        """ Parse header
+        :param data: Raw data as bytes or bytearray
+        :param offset: Offset of input data
+        :param required_tag:
+        :return:
+        """
+        param, length, tag = unpack_from(cls.FORMAT, data, offset)
         if required_tag is not None and tag != required_tag:
             raise UnparsedException(" Invalid header tag: '0x{:02X}' expected '0x{:02X}' ".format(tag, required_tag))
 

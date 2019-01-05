@@ -7,23 +7,23 @@
 from io import BytesIO, BufferedReader
 from struct import pack, unpack_from, calcsize
 
-from .header import Header, SegTag, UnparsedException, CorruptedException
+from .header import Header, Header2, SegTag, UnparsedException, CorruptedException
 from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData,\
                       EnumWriteOps, EnumCheckOps, EnumEngine
 from .secret import SecretKeyBlob, Certificate, Signature
-from .misc import sizeof_fmt, read_raw_data, read_raw_segment
+from .misc import sizeof_fmt
 
 
 ########################################################################################################################
-## Base Segment Class
+# Base Segment Class
 ########################################################################################################################
 
 
 class BaseSegment(object):
-    ''' base segment '''
+    """ base segment """
 
     # padding fill value
-    PADDING_VAL = 0x00
+    PADDING_VALUE = 0x00
 
     @property
     def padding(self):
@@ -42,7 +42,7 @@ class BaseSegment(object):
         return 0
 
     def _padding_export(self):
-        return bytes([self.PADDING_VAL] * self._padding) if self._padding > 0 else b''
+        return bytes([self.PADDING_VALUE] * self._padding) if self._padding > 0 else b''
 
     def __init__(self):
         self._padding = 0
@@ -54,25 +54,31 @@ class BaseSegment(object):
         return self.info()
 
     def info(self):
-        ''' object info '''
+        """ object info """
         raise NotImplementedError()
 
     def export(self, padding=False):
-        ''' export interface '''
+        """ export interface """
         raise NotImplementedError()
 
     @classmethod
     def parse(cls, buffer):
-        ''' parse interface '''
+        """ parse interface """
         raise NotImplementedError()
+
+########################################################################################################################
+# Boot Image V1 Segments (i.MX5)
+########################################################################################################################
+
+# Obsolete, will not be implemented
 
 
 ########################################################################################################################
-## Image Segments
+# Boot Image V2 Segments (i.MX6, i.MX7, i.MX8M)
 ########################################################################################################################
 
 class SegIVT2(BaseSegment):
-    ''' IVT2 segment '''
+    """ IVT2 segment """
     FORMAT = '<7L'
     SIZE = Header.SIZE + calcsize(FORMAT)
 
@@ -85,10 +91,9 @@ class SegIVT2(BaseSegment):
         return self._header.length
 
     def __init__(self, version):
-        '''
-        Initialize IVT segment
+        """ Initialize IVT2 segment
         :param version: The version of IVT and Image format
-        '''
+        """
         super().__init__()
         self._header = Header(SegTag.IVT2, version)
         self._header.length = self.SIZE
@@ -123,10 +128,10 @@ class SegIVT2(BaseSegment):
             raise ValueError("IVT padding should be zero: {}".format(self.padding))
 
     def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
         self.validate()
 
         data = self.header.export()
@@ -139,9 +144,10 @@ class SegIVT2(BaseSegment):
 
     @classmethod
     def parse(cls, data):
-        '''
-        :param data:
-        '''
+        """ Parse segment from bytes array
+        :param data: The bytes array of IVT2 segment
+        :return SegIVT2 object
+        """
         header = Header.parse(data, 0, SegTag.IVT2)
         obj = cls(header.param)
         # Parse IVT items
@@ -158,468 +164,8 @@ class SegIVT2(BaseSegment):
         obj.validate()
         return obj
 
-
-class SegIVT3a(BaseSegment):
-    ''' IVT3a segment '''
-    FORMAT = '<1L5Q'
-    SIZE = Header.SIZE + calcsize(FORMAT)
-
-    @property
-    def header(self):
-        return self._header
-
-    @property
-    def size(self):
-        return self.SIZE
-
-    def __init__(self, param):
-        '''
-        Initialize IVT segment
-        :param version: The version of IVT and Image format
-        '''
-        super().__init__()
-        self._header = Header(SegTag.IVT3, param)
-        self._header.length = self.SIZE
-        self.version = 0
-        self.dcd_address = 0
-        self.bdt_address = 0
-        self.ivt_address = 0
-        self.csf_address = 0
-        self.next = 0
-
-    def info(self):
-        msg = ""
-        msg += " VER:  {}\n".format(self.version)
-        msg += " IVT:  0x{:08X}\n".format(self.ivt_address)
-        msg += " BDT:  0x{:08X}\n".format(self.bdt_address)
-        msg += " DCD:  0x{:08X}\n".format(self.dcd_address)
-        msg += " CSF:  0x{:08X}\n".format(self.csf_address)
-        msg += " NEXT: 0x{:08X}\n".format(self.next)
-        msg += "\n"
-        return msg
-
-    def validate(self):
-        if self.ivt_address == 0 or self.bdt_address == 0 or self.bdt_address < self.ivt_address:
-            raise ValueError("Not valid IVT/BDT address")
-        if self.dcd_address and self.dcd_address < self.ivt_address:
-            raise ValueError("Not valid DCD address: 0x{:X}".format(self.dcd_address))
-        if self.csf_address and self.csf_address < self.ivt_address:
-            raise ValueError("Not valid CSF address: 0x{:X}".format(self.csf_address))
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        self.validate()
-
-        data = self.header.export()
-        data += pack(self.FORMAT, self.version, self.dcd_address, self.bdt_address, self.ivt_address,
-                     self.csf_address, self.next)
-        if padding:
-            data += self._padding_export()
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        header = Header.parse(data, 0, SegTag.IVT3)
-        obj = cls(header.param)
-
-        (obj.version,
-         obj.dcd_address,
-         obj.bdt_address,
-         obj.ivt_address,
-         obj.csf_address,
-         obj.next) = unpack_from(cls.FORMAT, data, header.size)
-
-        obj.validate()
-
-        return obj
-
-
-class SegIVT3b(BaseSegment):
-    ''' IVT3b segment '''
-    FORMAT = '<1L7Q'
-    SIZE = calcsize(FORMAT) + calcsize(Header.FORMAT)
-
-    @property
-    def header(self):
-        return self._header
-
-    @property
-    def size(self):
-        return self.SIZE
-
-    def __init__(self, version):
-        '''
-        Initialize IVT segment
-        :param version: The version of IVT and Image format
-        '''
-        super().__init__()
-        self._header = Header(SegTag.IVT2, version)
-        self._header.length = self.SIZE
-        self.rs1 = 0
-        self.dcd_address = 0
-        self.bdt_address = 0
-        self.ivt_address = 0
-        self.csf_address = 0
-        self.scd_address = 0
-        self.rs2h = 0
-        self.rs2l = 0
-
-    def info(self):
-        msg = ""
-        msg += " IVT: 0x{:08X}\n".format(self.ivt_address)
-        msg += " BDT: 0x{:08X}\n".format(self.bdt_address)
-        msg += " DCD: 0x{:08X}\n".format(self.dcd_address)
-        msg += " SCD: 0x{:08X}\n".format(self.scd_address)
-        msg += " CSF: 0x{:08X}\n".format(self.csf_address)
-        msg += "\n"
-        return msg
-
-    def validate(self):
-        if self.ivt_address == 0 or self.bdt_address == 0 or self.bdt_address < self.ivt_address:
-            raise ValueError("Not valid IVT/BDT address")
-        if self.dcd_address and self.dcd_address < self.ivt_address:
-            raise ValueError("Not valid DCD address: 0x{:X}".format(self.dcd_address))
-        if self.csf_address and self.csf_address < self.ivt_address:
-            raise ValueError("Not valid CSF address: 0x{:X}".format(self.csf_address))
-        if self.scd_address and self.scd_address < self.ivt_address:
-            raise ValueError("Not valid SCD address: 0x{:X}".format(self.scd_address))
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        self.validate()
-
-        data = self.header.export()
-        data += pack(self.FORMAT, self.rs1, self.dcd_address, self.bdt_address, self.ivt_address, self.csf_address,
-                     self.scd_address, self.rs2h, self.rs2l)
-        if padding:
-            data += self._padding_export()
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        header = Header.parse(data, 0, SegTag.IVT2)
-        obj = cls(header.param)
-
-        (obj.rs1,
-         obj.dcd_address,
-         obj.bdt_address,
-         obj.ivt_address,
-         obj.csf_address,
-         obj.scd_address,
-         obj.rs2h,
-         obj.rs2l) = unpack_from(cls.FORMAT, data, header.size)
-
-        obj.validate()
-
-        return obj
-
-
-class SegIDS3a(BaseSegment):
-    ''' IDS3a segment '''
-    FORMAT = '<3Q4L'
-    SIZE = calcsize(FORMAT)
-
-    @property
-    def size(self):
-        return self.SIZE
-
-    def __init__(self):
-        '''
-        Initialize IDS3a segment
-        '''
-        super().__init__()
-        self.image_source = 0
-        self.image_destination = 0
-        self.image_entry = 0
-        self.image_size = 0
-        self.hab_flags = 0
-        self.scfw_flags = 0
-        self.rom_flags = 0
-
-    def info(self):
-        msg  = " Source: 0x{:08X}\n".format(self.image_source)
-        msg += " Dest:   0x{:08X}\n".format(self.image_destination)
-        msg += " Entry:  0x{:08X}\n".format(self.image_entry)
-        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
-        msg += " <Flags>\n"
-        msg += " SCFW:   0x{:08X}\n".format(self.scfw_flags)
-        msg += " HAB:    0x{:08X}\n".format(self.hab_flags)
-        msg += " ROM:    0x{:08X}\n".format(self.rom_flags)
-        msg += "\n"
-        return msg
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        data = pack(self.FORMAT,
-                    self.image_source,
-                    self.image_destination,
-                    self.image_entry,
-                    self.image_size,
-                    self.hab_flags,
-                    self.scfw_flags,
-                    self.rom_flags)
-        if padding:
-            data += self._padding_export()
-
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        obj = cls()
-        (obj.image_source,
-         obj.image_destination,
-         obj.image_entry,
-         obj.image_size,
-         obj.hab_flags,
-         obj.scfw_flags,
-         obj.rom_flags) = unpack_from(obj.FORMAT, data)
-
-        return obj
-
-
-class SegBDS3a(BaseSegment):
-    ''' BDS3a segment '''
-    FORMAT = '<4L'
-    HEADER_SIZE = calcsize(FORMAT)
-    IMAGES_MAX_COUNT = 6
-    SIZE = HEADER_SIZE + SegIDS3a.SIZE * IMAGES_MAX_COUNT
-
-    @property
-    def header_size(self):
-        return self.HEADER_SIZE
-
-    @property
-    def size(self):
-        return self.SIZE
-
-    def __init__(self):
-        '''
-        Initialize BDS3a segment
-        '''
-        super().__init__()
-        self.images_count = 0
-        self.boot_data_size = 0
-        self.boot_data_flag = 0
-        self.images = [SegIDS3a() for i in range(self.IMAGES_MAX_COUNT)]
-        self.rs = 0
-
-    def info(self):
-        msg  = " IMAGES: {}\n".format(self.images_count)
-        #msg += " Data size: {}\n".format(self.boot_data_size)
-        msg += " DFLAGS: 0x{0:08X}\n".format(self.boot_data_flag)
-        msg += "\n"
-        for i in range(self.images_count):
-            msg += " IMAGE[{}] \n".format(i)
-            msg += self.images[i].info()
-        return msg
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        data = pack(self.FORMAT,
-                    self.images_count,
-                    self.boot_data_size,
-                    self.boot_data_flag,
-                    self.rs)
-
-        for i in range(self.IMAGES_MAX_COUNT):
-            data += self.images[i].export()
-
-        if padding:
-            data += self._padding_export()
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        obj = cls()
-        (obj.images_count,
-         obj.boot_data_size,
-         obj.boot_data_flag,
-         obj.rs) = unpack_from(cls.FORMAT, data)
-
-        for i in range(obj.images_count):
-            obj.images[i] = SegIDS3a.parse(data[cls.HEADER_SIZE + i * SegIDS3a.SIZE:])
-
-        return obj
-
-
-class SegIDS3b(BaseSegment):
-    ''' IDS3b segment '''
-    FORMAT = '<3Q2L'
-    SIZE = calcsize(FORMAT)
-
-    @property
-    def size(self):
-        return calcsize(self.FORMAT)
-
-    def __init__(self):
-        '''
-        Initialize IDS3b segment
-        '''
-        super().__init__()
-        self.image_source = 0
-        self.image_destination = 0
-        self.image_entry = 0
-        self.image_size = 0
-        self.flags = 0
-
-    def info(self):
-        msg  = " Source: 0x{:08X}\n".format(self.image_source)
-        msg += " Dest:   0x{:08X}\n".format(self.image_destination)
-        msg += " Entry:  0x{:08X}\n".format(self.image_entry)
-        msg += " Flags:  0x{:08X}\n".format(self.flags)
-        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
-        msg += "\n"
-        return msg
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        data = pack(self.FORMAT,
-                    self.image_source, self.image_destination, self.image_entry, self.image_size, self.flags)
-        if padding:
-            data += self._padding_export()
-
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        ids = cls()
-        (ids.image_source,
-         ids.image_destination,
-         ids.image_entry,
-         ids.image_size,
-         ids.flags) = unpack_from(cls.FORMAT, data)
-
-        return ids
-
-
-class SegBDS3b(BaseSegment):
-    ''' BDS3b segment '''
-    FORMAT = '<4L'
-    HEADER_SIZE = calcsize(FORMAT)
-    IMAGES_MAX_COUNT = 4
-    SIZE = calcsize(FORMAT) + SegIDS3b.SIZE * (IMAGES_MAX_COUNT + 3)
-
-    @property
-    def header_size(self):
-        return self.HEADER_SIZE
-
-    @property
-    def size(self):
-        return self.SIZE
-
-    def __init__(self):
-        '''
-        Initialize BDS3b segment
-        '''
-        super().__init__()
-        self.images_count = 0
-        self.boot_data_size = 0
-        self.boot_data_flag = 0
-        self.rs = 0
-
-        self.images = [SegIDS3b() for i in range(self.IMAGES_MAX_COUNT)]
-
-        self.scd = SegIDS3b()
-        self.csf = SegIDS3b()
-        self.rs_img = SegIDS3b()
-
-    def info(self):
-        msg  = " IMAGES: {}\n".format(self.images_count)
-        #msg += " Data size: {}\n".format(self.boot_data_size)
-        msg += " DFLAGS: 0x{0:08X}\n".format(self.boot_data_flag)
-        msg += "\n"
-        for i in range(self.images_count):
-            msg += " IMAGE[{}] \n".format(i)
-            msg += self.images[i].info()
-        if self.scd.image_source != 0:
-            msg += " SCD:\n"
-            msg += self.scd.info()
-        if self.csf.image_source != 0:
-            msg += " CSF:\n"
-            msg += self.csf.info()
-
-        return msg
-
-    def export(self, padding=False):
-        '''
-        :param padding:
-        :return:
-        '''
-        data = pack(self.FORMAT,
-                    self.images_count,
-                    self.boot_data_size,
-                    self.boot_data_flag,
-                    self.rs)
-
-        for i in range(self.IMAGES_MAX_COUNT):
-            data += self.images[i].export()
-
-        data += self.scd.export()
-        data += self.csf.export()
-        data += self.rs_img.export()
-
-        if padding:
-            data += self._padding_export()
-
-        return data
-
-    @classmethod
-    def parse(cls, data):
-        '''
-        :param data:
-        '''
-        obj = cls()
-        (obj.images_count,
-         obj.boot_data_size,
-         obj.boot_data_flag,
-         obj.rs) = unpack_from(obj.FORMAT, data)
-
-        offset = cls.HEADER_SIZE
-        for i in range(obj.images_count):
-            obj.images[i] = SegIDS3b.parse(data[offset:])
-            offset += SegIDS3b.SIZE
-
-        obj.scd = SegIDS3b.parse(data[offset:])
-        offset += SegIDS3b.SIZE
-        obj.csf = SegIDS3b.parse(data[offset:])
-        offset += SegIDS3b.SIZE
-        obj.rs_img = SegIDS3b.parse(data[offset:])
-
-        return obj
-
-
 class SegBDT(BaseSegment):
-    ''' Boot data segment '''
+    """ Boot data segment """
     FORMAT = '<3L'
     SIZE = calcsize(FORMAT)
 
@@ -637,21 +183,20 @@ class SegBDT(BaseSegment):
         return self.SIZE
 
     def __init__(self, start=0, length=0, plugin=0):
-        '''
-        :param start:
-        :param length:
-        :param plugin:
-        '''
+        """ Initialize BDT segment
+        :param int start:
+        :param int length:
+        :param int plugin: 0 .. 2
+        """
         super().__init__()
         self.start  = start
         self.length = length
         self.plugin = plugin
 
     def info(self):
-        '''
-        The info string of BDT segment
+        """ Get info of BDT segment
         :return: string
-        '''
+        """
         msg  = " Start:  0x{0:08X}\n".format(self.start)
         msg += " Length: {0:s} ({1:d} Bytes)\n".format(sizeof_fmt(self.length), self.length)
         msg += " Plugin: {0:s}\n".format('YES' if self.plugin else 'NO')
@@ -660,6 +205,10 @@ class SegBDT(BaseSegment):
         return msg
 
     def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
         data = pack(self.FORMAT, self.start, self.length, self.plugin)
         if padding:
             data += self._padding_export()
@@ -668,11 +217,15 @@ class SegBDT(BaseSegment):
 
     @classmethod
     def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of BDT segment
+        :return SegBDT object
+        """
         return cls(*unpack_from(cls.FORMAT, data))
 
 
 class SegAPP(BaseSegment):
-    ''' Boot data segment '''
+    """ Boot data segment """
 
     @property
     def data(self):
@@ -699,6 +252,10 @@ class SegAPP(BaseSegment):
         return msg
 
     def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
         data = bytes(self._data)
         if padding:
             data += self._padding_export()
@@ -706,7 +263,7 @@ class SegAPP(BaseSegment):
 
 
 class SegDCD(BaseSegment):
-    ''' DCD segment '''
+    """ DCD segment """
     CMD_TYPES = (CmdWriteData, CmdCheckData, CmdNop, CmdUnlock)
 
     @property
@@ -811,6 +368,10 @@ class SegDCD(BaseSegment):
         return txt_data
 
     def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
         data = b''
         if self.enabled:
             data = self._header.export()
@@ -823,6 +384,10 @@ class SegDCD(BaseSegment):
 
     @classmethod
     def parse_txt(cls, text):
+        """ Parse segment from text file
+        :param text: The string with DCD commands
+        :return SegDCD object
+        """
         cmds = {
             'WriteValue': ('write', int(EnumWriteOps.WRITE_VALUE)),
             'WriteValue1': ('write', int(EnumWriteOps.WRITE_VALUE1)),
@@ -924,7 +489,10 @@ class SegDCD(BaseSegment):
 
     @classmethod
     def parse(cls, data):
-        # Parse DCD segment
+        """ Parse segment from bytes array
+        :param data: The bytes array of DCD segment
+        :return SegDCD object
+        """
         header = Header.parse(data, 0, SegTag.DCD)
         index = header.size
         obj = cls(header.param, True)
@@ -946,7 +514,7 @@ class SegDCD(BaseSegment):
 
 
 class SegCSF(BaseSegment):
-    ''' Csf segment '''
+    """ CSF segment """
     CMD_TYPES = (CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData)
 
     @property
@@ -1021,6 +589,10 @@ class SegCSF(BaseSegment):
         self._header.length = self._header.size
 
     def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
         data = b''
         if self.enabled:
             data = self.header.export()
@@ -1033,6 +605,10 @@ class SegCSF(BaseSegment):
 
     @classmethod
     def parse(cls, data, offset=0):
+        """ Parse segment from bytes array
+        :param data: The bytes array of CSF segment
+        :return SegCSF object
+        """
         header = Header.parse(data, offset, SegTag.CSF)
         index = header.size
         obj = cls(header.param, True)
@@ -1062,3 +638,715 @@ class SegCSF(BaseSegment):
 #                continue
 
         return obj
+
+########################################################################################################################
+# Boot Image V3 Segments (i.MX8QM-Ax, i.MX8QXP-Ax)
+########################################################################################################################
+
+class SegIVT3a(BaseSegment):
+    """ IVT3a segment """
+    FORMAT = '<1L5Q'
+    SIZE = Header.SIZE + calcsize(FORMAT)
+
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self, param):
+        """ Initialize IVT segment
+        :param param: The version of IVT and Image format
+        """
+        super().__init__()
+        self._header = Header(SegTag.IVT3, param)
+        self._header.length = self.SIZE
+        self.version = 0
+        self.dcd_address = 0
+        self.bdt_address = 0
+        self.ivt_address = 0
+        self.csf_address = 0
+        self.next = 0
+
+    def info(self):
+        msg = ""
+        msg += " VER:  {}\n".format(self.version)
+        msg += " IVT:  0x{:08X}\n".format(self.ivt_address)
+        msg += " BDT:  0x{:08X}\n".format(self.bdt_address)
+        msg += " DCD:  0x{:08X}\n".format(self.dcd_address)
+        msg += " CSF:  0x{:08X}\n".format(self.csf_address)
+        msg += " NEXT: 0x{:08X}\n".format(self.next)
+        msg += "\n"
+        return msg
+
+    def validate(self):
+        if self.ivt_address == 0 or self.bdt_address == 0 or self.bdt_address < self.ivt_address:
+            raise ValueError("Not valid IVT/BDT address")
+        if self.dcd_address and self.dcd_address < self.ivt_address:
+            raise ValueError("Not valid DCD address: 0x{:X}".format(self.dcd_address))
+        if self.csf_address and self.csf_address < self.ivt_address:
+            raise ValueError("Not valid CSF address: 0x{:X}".format(self.csf_address))
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        self.validate()
+
+        data = self.header.export()
+        data += pack(self.FORMAT, self.version, self.dcd_address, self.bdt_address, self.ivt_address,
+                     self.csf_address, self.next)
+        if padding:
+            data += self._padding_export()
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of IVT3a segment
+        :return SegIVT3a object
+        """
+        header = Header.parse(data, 0, SegTag.IVT3)
+        obj = cls(header.param)
+
+        (obj.version,
+         obj.dcd_address,
+         obj.bdt_address,
+         obj.ivt_address,
+         obj.csf_address,
+         obj.next) = unpack_from(cls.FORMAT, data, header.size)
+
+        obj.validate()
+
+        return obj
+
+
+class SegIVT3b(BaseSegment):
+    """ IVT3b segment """
+    FORMAT = '<1L7Q'
+    SIZE = Header.SIZE + calcsize(FORMAT)
+
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self, version):
+        """ Initialize IVT segment
+        :param version: The version of IVT and Image format
+        """
+        super().__init__()
+        self._header = Header(SegTag.IVT2, version)
+        self._header.length = self.SIZE
+        self.rs1 = 0
+        self.dcd_address = 0
+        self.bdt_address = 0
+        self.ivt_address = 0
+        self.csf_address = 0
+        self.scd_address = 0
+        self.rs2h = 0
+        self.rs2l = 0
+
+    def info(self):
+        msg = ""
+        msg += " IVT: 0x{:08X}\n".format(self.ivt_address)
+        msg += " BDT: 0x{:08X}\n".format(self.bdt_address)
+        msg += " DCD: 0x{:08X}\n".format(self.dcd_address)
+        msg += " SCD: 0x{:08X}\n".format(self.scd_address)
+        msg += " CSF: 0x{:08X}\n".format(self.csf_address)
+        msg += "\n"
+        return msg
+
+    def validate(self):
+        if self.ivt_address == 0 or self.bdt_address == 0 or self.bdt_address < self.ivt_address:
+            raise ValueError("Not valid IVT/BDT address")
+        if self.dcd_address and self.dcd_address < self.ivt_address:
+            raise ValueError("Not valid DCD address: 0x{:X}".format(self.dcd_address))
+        if self.csf_address and self.csf_address < self.ivt_address:
+            raise ValueError("Not valid CSF address: 0x{:X}".format(self.csf_address))
+        if self.scd_address and self.scd_address < self.ivt_address:
+            raise ValueError("Not valid SCD address: 0x{:X}".format(self.scd_address))
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        self.validate()
+
+        data = self.header.export()
+        data += pack(self.FORMAT, self.rs1, self.dcd_address, self.bdt_address, self.ivt_address, self.csf_address,
+                     self.scd_address, self.rs2h, self.rs2l)
+        if padding:
+            data += self._padding_export()
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of IVT3b segment
+        :return SegIVT3b object
+        """
+        header = Header.parse(data, 0, SegTag.IVT2)
+        obj = cls(header.param)
+
+        (obj.rs1,
+         obj.dcd_address,
+         obj.bdt_address,
+         obj.ivt_address,
+         obj.csf_address,
+         obj.scd_address,
+         obj.rs2h,
+         obj.rs2l) = unpack_from(cls.FORMAT, data, header.size)
+
+        obj.validate()
+
+        return obj
+
+
+class SegIDS3a(BaseSegment):
+    """ IDS3a segment """
+    FORMAT = '<3Q4L'
+    SIZE = calcsize(FORMAT)
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self):
+        """ Initialize IDS3a segment """
+        super().__init__()
+        self.image_source = 0
+        self.image_destination = 0
+        self.image_entry = 0
+        self.image_size = 0
+        self.hab_flags = 0
+        self.scfw_flags = 0
+        self.rom_flags = 0
+
+    def info(self):
+        """ Get IDS3a segment info """
+        msg  = " Source: 0x{:08X}\n".format(self.image_source)
+        msg += " Dest:   0x{:08X}\n".format(self.image_destination)
+        msg += " Entry:  0x{:08X}\n".format(self.image_entry)
+        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += " <Flags>\n"
+        msg += " SCFW:   0x{:08X}\n".format(self.scfw_flags)
+        msg += " HAB:    0x{:08X}\n".format(self.hab_flags)
+        msg += " ROM:    0x{:08X}\n".format(self.rom_flags)
+        msg += "\n"
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = pack(self.FORMAT,
+                    self.image_source,
+                    self.image_destination,
+                    self.image_entry,
+                    self.image_size,
+                    self.hab_flags,
+                    self.scfw_flags,
+                    self.rom_flags)
+        if padding:
+            data += self._padding_export()
+
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of IDS3a segment
+        :return SegIDS3a object
+        """
+        obj = cls()
+        (obj.image_source,
+         obj.image_destination,
+         obj.image_entry,
+         obj.image_size,
+         obj.hab_flags,
+         obj.scfw_flags,
+         obj.rom_flags) = unpack_from(obj.FORMAT, data)
+
+        return obj
+
+
+class SegBDS3a(BaseSegment):
+    """ BDS3a segment """
+    FORMAT = '<4L'
+    HEADER_SIZE = calcsize(FORMAT)
+    IMAGES_MAX_COUNT = 6
+    SIZE = HEADER_SIZE + SegIDS3a.SIZE * IMAGES_MAX_COUNT
+
+    @property
+    def header_size(self):
+        return self.HEADER_SIZE
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self):
+        """ Initialize BDS3a segment """
+        super().__init__()
+        self.images_count = 0
+        self.boot_data_size = 0
+        self.boot_data_flag = 0
+        self.images = [SegIDS3a() for i in range(self.IMAGES_MAX_COUNT)]
+        self.rs = 0
+
+    def info(self):
+        msg  = " IMAGES: {}\n".format(self.images_count)
+        #msg += " Data size: {}\n".format(self.boot_data_size)
+        msg += " DFLAGS: 0x{0:08X}\n".format(self.boot_data_flag)
+        msg += "\n"
+        for i in range(self.images_count):
+            msg += " IMAGE[{}] \n".format(i)
+            msg += self.images[i].info()
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = pack(self.FORMAT,
+                    self.images_count,
+                    self.boot_data_size,
+                    self.boot_data_flag,
+                    self.rs)
+
+        for i in range(self.IMAGES_MAX_COUNT):
+            data += self.images[i].export()
+
+        if padding:
+            data += self._padding_export()
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of BDS3a segment
+        :return SegBDS3a object
+        """
+        obj = cls()
+        (obj.images_count,
+         obj.boot_data_size,
+         obj.boot_data_flag,
+         obj.rs) = unpack_from(cls.FORMAT, data)
+
+        for i in range(obj.images_count):
+            obj.images[i] = SegIDS3a.parse(data[cls.HEADER_SIZE + i * SegIDS3a.SIZE:])
+
+        return obj
+
+
+class SegIDS3b(BaseSegment):
+    """ IDS3b segment """
+    FORMAT = '<3Q2L'
+    SIZE = calcsize(FORMAT)
+
+    @property
+    def size(self):
+        return calcsize(self.FORMAT)
+
+    def __init__(self):
+        """ Initialize IDS3b segment """
+        super().__init__()
+        self.image_source = 0
+        self.image_destination = 0
+        self.image_entry = 0
+        self.image_size = 0
+        self.flags = 0
+
+    def info(self):
+        msg  = " Source: 0x{:08X}\n".format(self.image_source)
+        msg += " Dest:   0x{:08X}\n".format(self.image_destination)
+        msg += " Entry:  0x{:08X}\n".format(self.image_entry)
+        msg += " Flags:  0x{:08X}\n".format(self.flags)
+        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += "\n"
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = pack(self.FORMAT,
+                    self.image_source, self.image_destination, self.image_entry, self.image_size, self.flags)
+        if padding:
+            data += self._padding_export()
+
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of IDS3b segment
+        :return SegIDS3b object
+        """
+        ids = cls()
+        (ids.image_source,
+         ids.image_destination,
+         ids.image_entry,
+         ids.image_size,
+         ids.flags) = unpack_from(cls.FORMAT, data)
+
+        return ids
+
+
+class SegBDS3b(BaseSegment):
+    """ BDS3b segment """
+    FORMAT = '<4L'
+    HEADER_SIZE = calcsize(FORMAT)
+    IMAGES_MAX_COUNT = 4
+    SIZE = calcsize(FORMAT) + SegIDS3b.SIZE * (IMAGES_MAX_COUNT + 3)
+
+    @property
+    def header_size(self):
+        return self.HEADER_SIZE
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self):
+        """ Initialize BDS3b segment """
+        super().__init__()
+        self.images_count = 0
+        self.boot_data_size = 0
+        self.boot_data_flag = 0
+        self.rs = 0
+
+        self.images = [SegIDS3b() for i in range(self.IMAGES_MAX_COUNT)]
+
+        self.scd = SegIDS3b()
+        self.csf = SegIDS3b()
+        self.rs_img = SegIDS3b()
+
+    def info(self):
+        msg  = " IMAGES: {}\n".format(self.images_count)
+        #msg += " Data size: {}\n".format(self.boot_data_size)
+        msg += " DFLAGS: 0x{0:08X}\n".format(self.boot_data_flag)
+        msg += "\n"
+        for i in range(self.images_count):
+            msg += " IMAGE[{}] \n".format(i)
+            msg += self.images[i].info()
+        if self.scd.image_source != 0:
+            msg += " SCD:\n"
+            msg += self.scd.info()
+        if self.csf.image_source != 0:
+            msg += " CSF:\n"
+            msg += self.csf.info()
+
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = pack(self.FORMAT,
+                    self.images_count,
+                    self.boot_data_size,
+                    self.boot_data_flag,
+                    self.rs)
+
+        for i in range(self.IMAGES_MAX_COUNT):
+            data += self.images[i].export()
+
+        data += self.scd.export()
+        data += self.csf.export()
+        data += self.rs_img.export()
+
+        if padding:
+            data += self._padding_export()
+
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of BDS3b segment
+        :return SegBDS3b object
+        """
+        obj = cls()
+        (obj.images_count,
+         obj.boot_data_size,
+         obj.boot_data_flag,
+         obj.rs) = unpack_from(obj.FORMAT, data)
+
+        offset = cls.HEADER_SIZE
+        for i in range(obj.images_count):
+            obj.images[i] = SegIDS3b.parse(data[offset:])
+            offset += SegIDS3b.SIZE
+
+        obj.scd = SegIDS3b.parse(data[offset:])
+        offset += SegIDS3b.SIZE
+        obj.csf = SegIDS3b.parse(data[offset:])
+        offset += SegIDS3b.SIZE
+        obj.rs_img = SegIDS3b.parse(data[offset:])
+
+        return obj
+
+
+########################################################################################################################
+# Boot Image V4 Segments (i.MX8DM, i.MX8QM-Bx, i.MX8QXP-Bx)
+########################################################################################################################
+
+class SegBootImage(BaseSegment):
+    """ BootImage segment """
+    FORMAT = '<2L2Q2L'
+    SIZE = calcsize(FORMAT) + 64 + 32
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self):
+        """ Initialize BootImage segment """
+        super().__init__()
+        self.image_offset = 0
+        self.image_size = 0
+        self.load_address = 0
+        self.entry_address = 0
+        self.hab_flags = 0
+        self.meta_data = 0
+        self.image_hash = None
+        self.image_iv = None
+
+    def info(self):
+        """ Get BootImage segment info """
+        msg  = " Offset:     0x{:X}\n".format(self.image_offset)
+        msg += " Size:       {} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += " Load:       0x{:X}\n".format(self.load_address)
+        msg += " Entry:      0x{:X}\n".format(self.entry_address)
+        msg += " HASH:       {}\n".format(''.join(['{:02X}'.format(i) for i in self.image_hash]))
+        msg += " IV:         {}\n".format(''.join(['{:02X}'.format(i) for i in self.image_iv]))
+        msg += " Hash Flags: 0x{:08X}\n".format(self.hab_flags)
+        msg += " Meta Data:  0x{:08X}\n".format(self.meta_data)
+        msg += "\n"
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = pack(self.FORMAT,
+                    self.image_offset,
+                    self.image_size,
+                    self.load_address,
+                    self.entry_address,
+                    self.hab_flags,
+                    self.meta_data)
+
+        if padding:
+            data += self._padding_export()
+
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of BootImage segment
+        :return SegBootImage object
+        """
+        obj = cls()
+        (obj.image_offset,
+         obj.image_size,
+         obj.load_address,
+         obj.entry_address,
+         obj.hab_flags,
+         obj.meta_data) = unpack_from(obj.FORMAT, data)
+
+        offset = calcsize(cls.FORMAT)
+        obj.image_hash = data[offset:offset+64]
+        offset += 64
+        obj.image_iv = data[offset:offset + 32]
+
+        return obj
+
+
+class SegSigBlk(BaseSegment):
+    """ SignatureBlock segment """
+    FORMAT = '<4HL'
+    SIZE = Header.SIZE + calcsize(FORMAT)
+
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self, version=0):
+        """ Initialize SignatureBlock segment """
+        super().__init__()
+        self._header = Header2(SegTag.SIGB, version)
+        self._header.length = self.SIZE
+        self.srk_table_offset = 0
+        self.cert_offset = 0
+        self.blob_offset = 0
+        self.signature_offset = 0
+        self.reserved = 0
+
+    def info(self):
+        """ Get SignatureBlock segment info """
+        msg  = " SRK Table Offset:   0x{:X}\n".format(self.srk_table_offset)
+        msg += " Certificate Offset: 0x{:X}\n".format(self.cert_offset)
+        msg += " Signature Offset:   0x{:X}\n".format(self.signature_offset)
+        msg += " Blob Offset:        0x{:X}\n".format(self.blob_offset)
+        msg += "\n"
+        return msg
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        data = self.header.export()
+        data += pack(self.FORMAT,
+                     self.srk_table_offset, self.cert_offset, self.blob_offset, self.signature_offset, self.reserved)
+        if padding:
+            data += self._padding_export()
+
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of SignatureBlock segment
+        :return SegSigBlk object
+        """
+        header = Header2.parse(data, 0, SegTag.SIGB)
+        obj = cls(header.param)
+
+        (obj.srk_table_offset,
+         obj.cert_offset,
+         obj.blob_offset,
+         obj.signature_offset,
+         obj.reserved) = unpack_from(obj.FORMAT, data)
+
+        return obj
+
+
+class SegBIC1(BaseSegment):
+    """ Boot Images Container segment """
+    MAX_NUM_IMGS = 6
+
+    FORMAT = '<LH2B2H'
+    SIZE = Header.SIZE + calcsize(FORMAT) + MAX_NUM_IMGS * SegBootImage.SIZE + SegSigBlk.SIZE + 8
+
+    @property
+    def header(self):
+        return self._header
+
+    @property
+    def size(self):
+        return self.SIZE
+
+    def __init__(self, version=0):
+        """ Initialize Boot Images Container segment
+        :param version: The version of Header for Boot Images Container
+        """
+        super().__init__()
+        self._header = Header2(SegTag.BIC1, version)
+        self._header.length = self.SIZE
+        self.flags = 0
+        self.sw_version = 0
+        self.fuse_version = 0
+        self.images_count = 0
+        self.sig_blk_offset = 0
+        self.reserved = 0
+        self.images = [SegBootImage() for _ in range(self.MAX_NUM_IMGS)]
+        self.sig_blk_hdr = SegSigBlk()
+        self.sig_blk_size = 0
+        self.padding = 8
+
+    def info(self):
+        msg = ""
+        msg += " Flags:        0x{:08X}\n".format(self.flags)
+        msg += " SW Version:   {}\n".format(self.sw_version)
+        msg += " Fuse Version: {}\n".format(self.fuse_version)
+        msg += " Images Count: {}\n".format(self.images_count)
+        msg += " SigBlkOffset: 0x{:08X}\n".format(self.sig_blk_offset)
+        msg += "\n"
+        for i in range(self.images_count):
+            msg += " IMAGE[{}] \n".format(i)
+            msg += self.images[i].info()
+        msg += " [ Signature Block Header ]\n"
+        msg += self.sig_blk_hdr.info()
+        msg += "\n"
+        return msg
+
+    def validate(self):
+        pass
+
+    def export(self, padding=False):
+        """ Export segment as bytes array
+        :param padding: True if use padding (default: False)
+        :return: bytes
+        """
+        self.validate()
+
+        data = self.header.export()
+        data += pack(self.FORMAT,
+                     self.flags,
+                     self.sw_version,
+                     self.fuse_version,
+                     self.images_count,
+                     self.sig_blk_offset,
+                     self.reserved)
+        for image in self.images:
+            data += image.export()
+        data += self.sig_blk_hdr.export()
+        data += pack('<L', self.sig_blk_size)
+        if padding:
+            data += self._padding_export()
+        return data
+
+    @classmethod
+    def parse(cls, data):
+        """ Parse segment from bytes array
+        :param data: The bytes array of BIC1 segment
+        :return SegBIC1 object
+        """
+        header = Header2.parse(data, 0, SegTag.BIC1)
+        offset = header.size
+        obj = cls(header.param)
+
+        (obj.flags,
+         obj.sw_version,
+         obj.fuse_version,
+         obj.images_count,
+         obj.sig_blk_offset,
+         obj.reserved) = unpack_from(cls.FORMAT, data, offset)
+
+        offset += calcsize(cls.FORMAT)
+        for i in range(obj.images_count):
+            obj.images[i] = SegBootImage.parse(data[offset:])
+            offset += SegBootImage.SIZE
+
+        obj.sig_blk_hdr = SegSigBlk.parse(data[offset:])
+        offset += SegSigBlk.SIZE
+        obj.sig_blk_size = unpack_from('<L', data, offset)
+
+        obj.validate()
+
+        return obj
+
+
+
+
+

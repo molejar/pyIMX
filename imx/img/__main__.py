@@ -11,7 +11,7 @@ import sys
 import yaml
 import click
 
-from imx.img import parse, SegDCD, BootImg2, BootImg3a, BootImg3b, EnumAppType
+from imx.img import parse, SegDCD, BootImg2, BootImg3a, BootImg3b, BootImg4, EnumAppType
 from imx import __version__
 
 
@@ -107,7 +107,7 @@ def cli():
 
 # IMX Image: List IMX boot img content
 @cli.command(short_help="List i.MX boot image content")
-@click.option('-t', '--type', type=click.Choice(['auto', '67RT', '8M', '8QXP', '8QM']),
+@click.option('-t', '--type', type=click.Choice(['auto', '67RT', '8M', '8QXP_A0', '8QM_A0', '8X']),
               default='auto', show_default=True, help="Image type")
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help="File Offset")
 @click.option('-s', '--step', type=UINT, default=0x100, show_default=True, help="Parsing step")
@@ -120,7 +120,11 @@ def info(offset, type, step, file):
             if type == "auto":
                 boot_image = parse(stream, step)
             else:
-                img_type = {'67RT': BootImg2, '8M': BootImg2, '8QXP': BootImg3a, '8QM': BootImg3b}
+                img_type = {'67RT': BootImg2,
+                            '8M': BootImg2,
+                            '8QXP_A0': BootImg3a,
+                            '8QM_A0': BootImg3b,
+                            '8X': BootImg4}
                 boot_image = img_type[type].parse(stream, step)
 
         # print image info

@@ -419,7 +419,8 @@ class SdpMX8(SdpBase):
     # Supported i.MX8 Devices
     DEVICES = {
         # NAME   | VID   | PID
-        'MX8QXP': (0x1FC9, 0x007D),
+        'MX8QXPA0': (0x1FC9, 0x007D),
+        'MX8QXP': (0x1FC9, 0x012F),
         'MX8QM':  (0x1FC9, 0x0129),
         'MX8MQ':  (0x1FC9, 0x012B),
     }

@@ -6,8 +6,10 @@
 
 from io import BytesIO, BufferedReader
 from .misc import read_raw_data, read_raw_segment
-from .header import UnparsedException, Header
-from .segments import SegIVT2, SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, SegBDT, SegAPP, SegDCD, SegCSF, SegTag
+from .header import UnparsedException, Header, Header2
+from .segments import SegTag, SegIVT2, SegBDT, SegAPP, SegDCD, SegCSF, \
+                      SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, \
+                      SegBIC1
 
 
 ########################################################################################################################
@@ -15,11 +17,11 @@ from .segments import SegIVT2, SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, SegBDT, S
 ########################################################################################################################
 
 def parse(buffer, step=0x100):
-    '''
-    :param buffer:
-    :param step:
-    :return:
-    '''
+    """ Common parser for all versions of i.MX boot images
+    :param buffer: stream buffer to image
+    :param step: Image searching step
+    :return: the object of boot image
+    """
     if isinstance(buffer, (bytes, bytearray)):
         buffer = BufferedReader(BytesIO(buffer))
 
@@ -32,14 +34,16 @@ def parse(buffer, step=0x100):
     buffer.seek(start_index, 0)  # Seek to start
 
     while buffer.tell() < (last_index - Header.SIZE):
-        header = Header.parse(read_raw_data(buffer, Header.SIZE))
+        hrd = read_raw_data(buffer, Header.SIZE)
         buffer.seek(-Header.SIZE, 1)
-        if   header.tag == SegTag.IVT2 and header.length == SegIVT2.SIZE:
+        if   hrd[0] == SegTag.IVT2 and ((hrd[1] << 0) | hrd[2]) == SegIVT2.SIZE:
             return BootImg2.parse(buffer)
-        elif header.tag == SegTag.IVT2 and header.length == SegIVT3b.SIZE:
+        elif hrd[0] == SegTag.IVT2 and ((hrd[1] << 0) | hrd[2]) == SegIVT3b.SIZE:
             return BootImg3b.parse(buffer)
-        elif header.tag == SegTag.IVT3 and header.length == SegIVT3a.SIZE:
+        elif hrd[0] == SegTag.IVT3 and ((hrd[1] << 0) | hrd[2]) == SegIVT3a.SIZE:
             return BootImg3a.parse(buffer)
+        elif hrd[3] == SegTag.BIC1:
+            return BootImg4.parse(buffer)
         else:
             buffer.seek(step, 1)
 
@@ -62,7 +66,7 @@ class EnumAppType:
 
 
 class BootImgBase(object):
-    ''' IMX Boot Image '''
+    """ IMX Boot Image Base """
 
     @property
     def dcd(self):
@@ -73,22 +77,12 @@ class BootImgBase(object):
         assert isinstance(value, SegDCD), "Value type not a DCD segment !"
         self._dcd = value
 
-    @property
-    def csf(self):
-        return self._csf
-
-    @csf.setter
-    def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
-        self._csf = value
-
     def __init__(self, address, offset):
-        '''
-        Initialize boot img object
+        """ Initialize boot image object
         :param address: The start address of img in target memory
         :param offset: The IVT offset
         :return: BootImage object
-        '''
+        """
         self.offset = offset
         self.address = address
 
@@ -101,6 +95,9 @@ class BootImgBase(object):
     def info(self):
         raise NotImplementedError()
 
+    def add_image(self, data, img_type, address):
+        raise NotImplementedError()
+
     def export(self):
         raise NotImplementedError()
 
@@ -108,9 +105,20 @@ class BootImgBase(object):
     def parse(cls, buffer, step=0x100):
         raise NotImplementedError()
 
+
+########################################################################################################################
+# Boot Image V1 Segments (i.MX5)
+########################################################################################################################
+
+# Obsolete, will not be implemented
+
+
+########################################################################################################################
+# Boot Image V2 (i.MX6, i.MX7)
+########################################################################################################################
 
 class BootImg2(BootImgBase):
-    ''' IMX Boot Image '''
+    """ IMX Boot Image v2 """
 
     # The value of CSF segment size
     CSF_SIZE = 0x2000
@@ -166,6 +174,15 @@ class BootImg2(BootImgBase):
         self._app = value
 
     @property
+    def csf(self):
+        return self._csf
+
+    @csf.setter
+    def csf(self, value):
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        self._csf = value
+
+    @property
     def size(self):
         sum = self.ivt.space
         sum += self.bdt.space
@@ -175,13 +192,12 @@ class BootImg2(BootImgBase):
         return sum
 
     def __init__(self, address=0, offset=0x400, version=0x41, plugin=False):
-        '''
-        Initialize boot img object
+        """ Initialize boot image object
         :param address: The start address of img in target memory
         :param offset: The IVT offset
         :param version: The version of boot img format
         :return: BootImage object
-        '''
+        """
         super().__init__(address, offset)
         self._ivt = SegIVT2(version)
         self._bdt = SegBDT()
@@ -191,6 +207,7 @@ class BootImg2(BootImgBase):
         self._plg = plugin
 
     def _update(self):
+        """ Update Image Object """
         # Set zero padding for IVT and BDT sections
         self.ivt.padding = 0
         self.bdt.padding = 0
@@ -246,13 +263,11 @@ class BootImg2(BootImgBase):
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
-        '''
-        This function add img into the object
+        """ Add specific image into the main boot image
         :param data: Raw data of img
         :param img_type: Type of img
         :param address: address in RAM
-        :return:
-        '''
+        """
         if img_type == EnumAppType.APP:
             self.app.data = data
             if address != 0:
@@ -261,6 +276,9 @@ class BootImg2(BootImgBase):
             raise Exception('Unknown data type !')
 
     def export(self):
+        """ Export image as bytes array
+        :return: bytes
+        """
         self._update()
         data = self.ivt.export(True)
         data += self.bdt.export(True)
@@ -271,11 +289,11 @@ class BootImg2(BootImgBase):
 
     @classmethod
     def parse(cls, buffer, step=0x100):
-        '''
-        :param buffer:
-        :param step:
-        :return:
-        '''
+        """ Parse image from stream buffer or bytes array
+        :param buffer: The stream buffer or bytes array
+        :param step: The
+        :return: BootImg2 object
+        """
         if isinstance(buffer, (bytes, bytearray)):
             buffer = BufferedReader(BytesIO(buffer))
 
@@ -330,9 +348,13 @@ class BootImg2(BootImgBase):
 
         return obj
 
+
+########################################################################################################################
+# Boot Image V2b (i.MX8M)
+########################################################################################################################
 
 class BootImg8m(BootImgBase):
-    ''' IMX Boot Image '''
+    """ IMX Boot Image """
 
     # The value of CSF segment size
     CSF_SIZE = 0x2000
@@ -388,6 +410,15 @@ class BootImg8m(BootImgBase):
         self._app = value
 
     @property
+    def csf(self):
+        return self._csf
+
+    @csf.setter
+    def csf(self, value):
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        self._csf = value
+
+    @property
     def size(self):
         sum = self.ivt.space
         sum += self.bdt.space
@@ -397,13 +428,12 @@ class BootImg8m(BootImgBase):
         return sum
 
     def __init__(self, address=0, offset=0x400, version=0x41, plugin=False):
-        '''
-        Initialize boot img object
+        """ Initialize boot image object
         :param address: The start address of img in target memory
         :param offset: The IVT offset
         :param version: The version of boot img format
         :return: BootImage object
-        '''
+        """
         super().__init__(address, offset)
         self._ivt = SegIVT2(version)
         self._bdt = SegBDT()
@@ -468,13 +498,12 @@ class BootImg8m(BootImgBase):
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
-        '''
-        This function add img into the object
+        """ Add specific image into the main boot image
         :param data: Raw data of img
         :param img_type: Type of img
         :param address: address in RAM
         :return:
-        '''
+        """
         if img_type == EnumAppType.APP:
             self.app.data = data
             if address != 0:
@@ -483,6 +512,9 @@ class BootImg8m(BootImgBase):
             raise Exception('Unknown data type !')
 
     def export(self):
+        """ Export Image as bytes array
+        :return: bytes
+        """
         self._update()
         data = self.ivt.export(True)
         data += self.bdt.export(True)
@@ -493,11 +525,11 @@ class BootImg8m(BootImgBase):
 
     @classmethod
     def parse(cls, buffer, step=0x100):
-        '''
-        :param buffer:
-        :param step:
-        :return:
-        '''
+        """ Parse image from stream buffer or bytes array
+        :param buffer: The stream buffer or bytes array
+        :param step: The
+        :return: BootImg2 object
+        """
         if isinstance(buffer, (bytes, bytearray)):
             buffer = BufferedReader(BytesIO(buffer))
 
@@ -552,8 +584,13 @@ class BootImg8m(BootImgBase):
 
         return obj
 
+
+########################################################################################################################
+# Boot Image V3a: i.MX8QXP-A0
+########################################################################################################################
+
 class BootImg3a(BootImgBase):
-    ''' IMX Boot Image '''
+    """ i.MX Boot Image v3a """
 
     IMG_TYPE_CSF = 0x01
     IMG_TYPE_SCD = 0x02
@@ -619,14 +656,22 @@ class BootImg3a(BootImgBase):
     def app(self, value):
         self._app = value
 
+    @property
+    def csf(self):
+        return self._csf
+
+    @csf.setter
+    def csf(self, value):
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        self._csf = value
+
     def __init__(self, address=0, offset=0x400, version=0x43):
-        '''
-        Initialize boot img object
+        """ Initialize boot image object
         :param address: The start address of img in target memory
         :param offset: The IVT offset
         :param version: The version of boot img format
         :return: BootImage object
-        '''
+        """
         super().__init__(address, offset)
         self._ivt = [SegIVT3a(version), SegIVT3a(version)]
         self._ivt[0].next = self._ivt[0].size
@@ -732,13 +777,12 @@ class BootImg3a(BootImgBase):
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
-        '''
-        This function add img into the object
-        :param data: Raw data of img
-        :param img_type: Type of img
+        """ Add specific image into the main boot image
+        :param data: Raw data of image
+        :param img_type: Type of image
         :param address: address in RAM
         :return:
-        '''
+        """
         if img_type == EnumAppType.A35:
             image_index = self.bdt[1].images_count
             self.bdt[1].images[image_index].image_destination = address
@@ -821,11 +865,11 @@ class BootImg3a(BootImgBase):
 
     @classmethod
     def parse(cls, buffer, step=0x100):
-        '''
+        """
         :param data:
         :param ivt_offset:
         :return:
-        '''
+        """
         if isinstance(buffer, (bytes, bytearray)):
             buffer = BufferedReader(BytesIO(buffer))
 
@@ -878,8 +922,12 @@ class BootImg3a(BootImgBase):
         return obj
 
 
+########################################################################################################################
+# Boot Image V3b: i.MX8QM-A0
+########################################################################################################################
+
 class BootImg3b(BootImgBase):
-    ''' IMX Boot Image '''
+    """ IMX Boot Image v3b """
 
     IMG_TYPE_CSF = 0x01
     IMG_TYPE_SCD = 0x02
@@ -960,19 +1008,27 @@ class BootImg3b(BootImgBase):
     def scd(self, value):
         self._scd = value
 
+    @property
+    def csf(self):
+        return self._csf
+
+    @csf.setter
+    def csf(self, value):
+        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        self._csf = value
+
     def __init__(self, address=0, offset=0x400, version=0x43):
-        '''
-        Initialize boot img object
+        """ Initialize boot image object
         :param address: The start address of img in target memory
         :param offset: The IVT offset
         :param version: The version of boot img format
         :return: BootImage object
-        '''
+        """
         super().__init__(address, offset)
         self._ivt = [SegIVT3b(version), SegIVT3b(version)]
         self._bdt = [SegBDS3b(), SegBDS3b()]
-        self._app = [[SegAPP() for i in range(SegBDS3b.IMAGES_MAX_COUNT)],
-                     [SegAPP() for i in range(SegBDS3b.IMAGES_MAX_COUNT)]]
+        self._app = [[SegAPP() for _ in range(SegBDS3b.IMAGES_MAX_COUNT)],
+                     [SegAPP() for _ in range(SegBDS3b.IMAGES_MAX_COUNT)]]
         self._dcd = SegDCD()
         self._scd = SegAPP()
         self._csf = SegCSF()
@@ -1082,13 +1138,11 @@ class BootImg3b(BootImgBase):
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
-        '''
-        This function add img into the object
-        :param data: Raw data of img
-        :param img_type: Type of img
+        """ Add specific image into the main boot image
+        :param data: Raw data of image
+        :param img_type: Type of image
         :param address: address in RAM
-        :return:
-        '''
+        """
         if img_type == EnumAppType.A53 or img_type == EnumAppType.A72:
             image_index = self.bdt[1].images_count
             self.app[1][image_index].data = data
@@ -1173,12 +1227,11 @@ class BootImg3b(BootImgBase):
 
     @classmethod
     def parse(cls, buffer, step=0x100):
-        '''
-        :param data:
-        :param offset:
-        :param ivt_offset:
+        """ Parse
+        :param buffer:
+        :param step:
         :return:
-        '''
+        """
         if isinstance(buffer, (bytes, bytearray)):
             buffer = BufferedReader(BytesIO(buffer))
 
@@ -1232,7 +1285,95 @@ class BootImg3b(BootImgBase):
             buffer.seek(obj.bdt[0].csf.image_source - obj.offset + offset, 0)
             obj.csf = SegCSF.parse(read_raw_segment(buffer, SegTag.CSF))
 
+        return obj
 
+
+########################################################################################################################
+# Boot Image V4: i.MX8DM, i.MX8QM_B0, i.MX8QXP_B0
+########################################################################################################################
+
+class BootImg4(BootImgBase):
+    """ i.MX Boot Image v4 """
+
+    def __init__(self, address=0, offset=0x400):
+        """ Initialize boot image object
+        :param address: The start address of image in target memory
+        :param offset: The image offset
+        :param version: The version of boot image format
+        :return: BootImage object
+        """
+        super().__init__(address, offset)
+        self._dcd = SegDCD()
+        self._cont1_header = SegBIC1()
+        self._cont2_header = SegBIC1()
+        self._cont1_data = []
+        self._cont2_data = []
+
+    def _update(self):
+        pass
+
+    def info(self):
+        self._update()
+        msg = ""
+        msg += "#" * 60 + "\n"
+        msg += "# Boot Images Container 1\n"
+        msg += "#" * 60 + "\n\n"
+        msg += self._cont1_header.info()
+        msg += "#" * 60 + "\n"
+        msg += "# Boot Images Container 2\n"
+        msg += "#" * 60 + "\n\n"
+        msg += self._cont2_header.info()
+        if self.dcd.enabled:
+            msg += "#" * 60 + "\n"
+            msg += "# DCD (Device Config Data)\n"
+            msg += "#" * 60 + "\n\n"
+            msg += self.dcd.info()
+        return msg
+
+    def add_image(self, data, img_type, address):
+        raise NotImplementedError()
+
+    def export(self):
+        self._update()
+        data = bytes()
+        data += self._cont1_header.export(True)
+        data += self._cont2_header.export(True)
+        # TODO: Complete Implementation
+        return data
+
+    @classmethod
+    def parse(cls, buffer, step=0x100):
+        if isinstance(buffer, (bytes, bytearray)):
+            buffer = BufferedReader(BytesIO(buffer))
+
+        if not isinstance(buffer, BufferedReader):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+
+        offset = buffer.tell()          # Get stream start index
+        buffer.seek(0, 2)               # Seek to end
+        bufend = buffer.tell()          # Get stream last index
+        buffer.seek(offset, 0)          # Seek to start
+        buffer_size = bufend - offset   # Read buffer size
+
+        imx_image = False
+        while buffer.tell() < (buffer_size - Header2.SIZE):
+            header = Header2.parse(read_raw_data(buffer, Header2.SIZE))
+            buffer.seek(-Header2.SIZE, 1)
+            if header.tag == SegTag.BIC1:
+                offset = buffer.tell()
+                imx_image = True
+                break
+            else:
+                buffer.seek(step, 1)
+
+        if not imx_image:
+            raise Exception(' Not an i.MX Boot Image !')
+
+        obj = cls()
+        # Parse Containers
+        obj._cont1_header = SegBIC1.parse(read_raw_data(buffer, 0x400))
+        obj._cont2_header = SegBIC1.parse(read_raw_data(buffer, 0x400))
+        # TODO: Complete Implementation
         return obj
 
 
@@ -1241,7 +1382,7 @@ class BootImg3b(BootImgBase):
 ########################################################################################################################
 
 class KernelImg(object):
-    ''' IMX Kernel Image '''
+    """ IMX Kernel Image """
 
     IMAGE_MIN_SIZE = 0x1000
 
