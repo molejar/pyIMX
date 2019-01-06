@@ -6,9 +6,8 @@
 
 from io import BytesIO, BufferedReader
 from .misc import read_raw_data, read_raw_segment
-from .header import UnparsedException, Header, Header2
-from .segments import SegTag, SegIVT2, SegBDT, SegAPP, SegDCD, SegCSF, \
-                      SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, \
+from .header import Header, Header2
+from .segments import SegTag, SegIVT2, SegBDT, SegAPP, SegDCD, SegCSF, SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, \
                       SegBIC1
 
 
@@ -36,11 +35,11 @@ def parse(buffer, step=0x100):
     while buffer.tell() < (last_index - Header.SIZE):
         hrd = read_raw_data(buffer, Header.SIZE)
         buffer.seek(-Header.SIZE, 1)
-        if   hrd[0] == SegTag.IVT2 and ((hrd[1] << 0) | hrd[2]) == SegIVT2.SIZE:
+        if   hrd[0] == SegTag.IVT2 and ((hrd[1] << 8) | hrd[2]) == SegIVT2.SIZE:
             return BootImg2.parse(buffer)
-        elif hrd[0] == SegTag.IVT2 and ((hrd[1] << 0) | hrd[2]) == SegIVT3b.SIZE:
+        elif hrd[0] == SegTag.IVT2 and ((hrd[1] << 8) | hrd[2]) == SegIVT3b.SIZE:
             return BootImg3b.parse(buffer)
-        elif hrd[0] == SegTag.IVT3 and ((hrd[1] << 0) | hrd[2]) == SegIVT3a.SIZE:
+        elif hrd[0] == SegTag.IVT3 and ((hrd[1] << 8) | hrd[2]) == SegIVT3a.SIZE:
             return BootImg3a.parse(buffer)
         elif hrd[3] == SegTag.BIC1:
             return BootImg4.parse(buffer)

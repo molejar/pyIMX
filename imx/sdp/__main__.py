@@ -593,7 +593,7 @@ def wreg(ctx, address, value, size, bytes):
 @click.argument('file', nargs=1, type=click.Path(exists=True))
 @click.option('-a', '--addr', type=UINT, default=None, help='Start Address (required for *.bin)')
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
-@click.option('-m', '--ocram', type=UINT, default=0, help='IMX OCRAM Address, required for DDR init')
+@click.option('-m', '--ocram', type=UINT, default=0x910000, help='OCRAM Address for DDR init [default: 0x910000]')
 @click.option('-i/','--init/', is_flag=True, default=False, help='Init DDR from *.imx img')
 @click.option('-r/','--run/', is_flag=True, default=False, help='Run loaded *.imx img')
 @click.option('-s/','--skipdcd/', is_flag=True, default=False, help='Skip DCD Header from *.imx img')
@@ -627,6 +627,9 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
                 click.echo(' - Init DDR')
                 dcd = img.dcd.export()
                 flasher.write_dcd(ocram, dcd)
+
+                if flasher.device_name in ('MX6UL', 'MX6ULL', 'MX6SLL', 'MX7SD', 'MX7ULP'):
+                    skipdcd = True
         else:
             if addr is None:
                 raise Exception('Argument: -a/--addr must be specified !')

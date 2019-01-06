@@ -1,0 +1,4 @@
+
+# i.MX USB SDP (permission granted to all users)
+SUBSYSTEM=="usb", ACTION=="add", ATTRS{idVendor}=="15a2",  MODE="0666"
+SUBSYSTEM=="usb", ACTION=="add", ATTRS{idVendor}=="1fc9",  MODE="0666"

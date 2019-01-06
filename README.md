@@ -38,9 +38,6 @@ To install the latest version from master branch execute in shell following comm
     $ pip install -U https://github.com/molejar/pyIMX/archive/master.zip
 ```
 
-Linux users may run into a permissions issue if execute `imxsd` tool without root privileges. To fix this,
-copy attached udev rules [60-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/60-imx-sdp.rules) into `/etc/udev/rules.d` directory and reload it `sudo udevadm control --reload-rules`.
-
 In case of development, install pyIMX from sources:
 
 ``` bash
@@ -50,12 +47,15 @@ In case of development, install pyIMX from sources:
     $ pip install -U -e .
 ```
 
-**NOTE:** You may run into a permissions issues running these commands. Here are a few options how to fix it:
+You may run into a permissions issues running these commands. Here are a few options how to fix it:
 
 1. Run with `sudo` to install pyIMX and dependencies globally
 2. Specify the `--user` option to install locally into your home directory (export "~/.local/bin" into PATH variable if haven't).
 3. Run the command in a [virtualenv](https://virtualenv.pypa.io/en/latest/) local to a specific project working set.
 
+> For running `imxsd` tool without root privileges in Linux OS copy attached udev rules
+[90-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/90-imx-sdp.rules)
+into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm control --reload-rules`.
 
 Usage
 -----
