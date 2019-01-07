@@ -1,14 +1,37 @@
 language: python
 python:
-  - "3.6"
-before_install:
+  - '3.6'
+
+addons:
+  apt:
+    packages:
+      - pandoc
+      
+install:
   - pip install pytest pytest-console-scripts
   - pip install pytest-cov
   - pip install coveralls
   - pip install -r requirements.txt
-install:
   - pip install -e .
+  
 script:
   - py.test --cov=imx tests/*
+  
 after_success:
   - coveralls
+  
+before_deploy:
+  - pip install pypandoc
+  # download pandoc
+  #- python -c "from pypandoc import download_pandoc as dp; dp(targetfolder='~/bin/');"
+  #- export PATH=~/bin:$PATH
+  
+deploy:
+  provider: pypi
+  user: "molejar"
+  password:
+    secure: Ar2cQYfCdTLIO76FpoEMHA+vDKS3qI4KhJSpRjDBOpg6NlG4t1lGhB2Iffsgeb5cc7CD+/KpyU0dDAEDPFePbi+sUlYdmWUFP8ounHCPiuxjZkKRfj0QK5WugIl34U37zKn9l5+WYjW1mLL0DR681UnGeY/+RwU88XmK8hrsBbKJIJS62S2ysn58eCPJMxC/6tD0iz9cPZGwk51N57+RzWLmvJsHUcBKimqAq1OPtcIAtZilyI25MxOxDDliv3LVksGliJib9jamTmPElgutLQ+9HGP32HEwZKdDeroJ3RwbVawt573WYZwl9mbDqxbNpznL8N49CI2tJ49NI5QQHSkzrTL9k99ggV/9jqTn+ZYC4mkQDuK+kizSDJ9BDYxT3b83a+DVhJMZXWFOQX2VZwJEuScncw9TwPmw670h/B3XFPdarkGKwbiu5KePsbO/s1mfw6Qw9LbM2dS2RBJ7Agyvq+gBPJ4UsZjpaaOcKH0W6SbT1ykwZsmk44LXG0mqSMmJxOfkAf6qdNTiLocO1edbQJ/Kanc/UcmHZjHOei0wmbIwc8lg8zdiRLy+NGqWok2kx/lM1h3Fe/XF5c4eW79QmiarJkudZaTbm2jMm/kwVMCSNTRvLQh2q41V9RjTFU1FHIajyH7aP3lvg6aEhQIIA/Xy/zMi5KbEzenGpOg=
+  distributions: "sdist bdist_wheel"
+  skip_existing: true
+  on:
+    tags: true

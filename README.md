@@ -60,7 +60,7 @@ into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm con
 Usage
 -----
 
-The example of i.MX boot image manager API usage:
+In following example is demonstrated the simplicity of i.MX boot image API covered by `img` sub-module:
 
 ``` Python
     import imx
@@ -123,7 +123,7 @@ The example of i.MX boot image manager API usage:
         f.write(dcd.store())
 ```
 
-The example of IMX serial downloader API usage:
+Second example demonstrate usage of i.MX serial downloader protocol API covered by `sdp` sub-module:
 
 ``` Python
     import imx
