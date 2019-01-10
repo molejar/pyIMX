@@ -8,6 +8,16 @@ pyIMX
 
 This repository collects a useful tools and python module targeted for [i.MX Applications Processors](https://www.nxp.com/products/processors-and-microcontrollers/arm-based-processors-and-mcus/i.mx-applications-processors).
 
+**What is implemented:**
+
+* DCD (Device Configuration Data) API
+* Boot Image v2 (i.MX6 and i.MX7) API
+* Boot Image v3 (i.MX8QM-A0 and i.MX8QXP-A0) API
+* SDP (Serial Download Protocol) API - only USB interface
+* HAB-Log parser (only i.MX6 and i.MX7 yet)
+
+**Embedded tools:**
+
 * [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool for manipulation with `*.imx` boot image
 * [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
 
@@ -22,7 +32,6 @@ Dependencies
 - [PyUSB](https://walac.github.io/pyusb/) - Python package to access USB devices in Linux OS.
 - [PyWinUSB](https://github.com/rene-aguirre/pywinusb) - Python package that simplifies USB-HID communications on 
 Windows OS.
-
 
 Installation
 ------------
@@ -53,14 +62,10 @@ You may run into a permissions issues running these commands. Here are a few opt
 2. Specify the `--user` option to install locally into your home directory (export "~/.local/bin" into PATH variable if haven't).
 3. Run the command in a [virtualenv](https://virtualenv.pypa.io/en/latest/) local to a specific project working set.
 
-> For running `imxsd` tool without root privileges in Linux OS copy attached udev rules
-[90-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/90-imx-sdp.rules)
-into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm control --reload-rules`.
-
 Usage
 -----
 
-In following example is demonstrated the simplicity of i.MX boot image API covered by `img` sub-module:
+In following example is demonstrated the simplicity of usage i.MX boot image API covered by `imx.img` module:
 
 ``` Python
     import imx
@@ -123,7 +128,7 @@ In following example is demonstrated the simplicity of i.MX boot image API cover
         f.write(dcd.store())
 ```
 
-Second example demonstrate usage of i.MX serial downloader protocol API covered by `sdp` sub-module:
+Second example demonstrate usage of i.MX serial downloader protocol API covered by `imx.sdp` module:
 
 ``` Python
     import imx
@@ -153,10 +158,14 @@ Second example demonstrate usage of i.MX serial downloader protocol API covered 
         flasher.close()
 ```
 
+> For running `imx.sdp` module without root privileges in Linux OS copy attached udev rules
+[90-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/90-imx-sdp.rules)
+into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm control --reload-rules`.
+
 TODO
 ----
 
-* Optimize `scan_usb` function inside `imx.sdp` module
+* Optimize `scan_usb` method inside `imx.sdp` module
 * Add serial interface support for `imx.sdp` module
 * Add image security features (sign and encryption)
 * Add eFuses read, write and validation functionality

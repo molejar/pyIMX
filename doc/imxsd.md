@@ -1,8 +1,12 @@
 i.MX Serial Downloader
 =====================
 
-The `imxsd` is a tool to download and execute code on [i.MX](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors) and Vybrid SoCs through the Serial Download Protocol (SDP).
+The `imxsd` is a tool to download and execute code on [i.MX](http://www.nxp.com/products/microcontrollers-and-processors/arm-processors/i.mx-applications-processors)
+and Vybrid SoCs through the Serial Download Protocol (SDP). It also demonstrate the usage of `imx.sdp` module.
 
+> For running `imxsd` tool without root privileges in Linux OS copy attached udev rules
+[90-imx-sdp.rules](https://github.com/molejar/pyIMX/blob/master/udev/90-imx-sdp.rules)
+into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm control --reload-rules`.
 
 Usage
 -----
