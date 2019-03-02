@@ -80,7 +80,7 @@ if os.name == "nt":
             self.report = []
             # deque used here instead of synchronized Queue
             # since read speeds are ~10-30% faster and are
-            # comprable to a based list implmentation.
+            # comparable to a based list implementation.
             self.rcv_data = collections.deque()
             self.device = None
             return
@@ -178,12 +178,10 @@ elif os.name == "posix":
 
         vid = 0
         pid = 0
-        intf_number = 0
+        interface_number = 0
 
         def __init__(self):
             super().__init__()
-            self.ep_out = None
-            self.ep_in = None
             self.dev = None
             self.closed = False
 
@@ -201,108 +199,73 @@ elif os.name == "posix":
                 pass
 
         def write(self, id, data, size):
-            """
-            write data on the OUT endpoint associated to the HID interface
+            """ write data on the OUT endpoint associated to the HID interface
+            :param id: report ID
+            :param data: report data in bytes
+            :param size: report size
             """
             rawdata = self._encode_packet(id, data, size)
             logging.debug('USB-OUT[0x]: %s', atos(rawdata))
 
-            if self.ep_out:
-                self.ep_out.write(rawdata)
-            else:
-                bmRequestType = 0x21       #Host to device request of type Class of Recipient Interface
-                bmRequest = 0x09           #Set_REPORT (HID class-specific request for transferring data over EP0)
-                wValue = 0x200             #Issuing an OUT report
-                wIndex = self.intf_number  #Interface number for HID
-                self.dev.ctrl_transfer(bmRequestType, bmRequest, wValue + id, wIndex, rawdata)
+            bmRequestType = 0x21       # Host to device request of type Class of Recipient Interface
+            bmRequest = 0x09           # Set_REPORT (HID class-specific request for transferring data over EP0)
+            wValue = 0x200             # Issuing an OUT report
+            wIndex = self.interface_number  # Interface number for HID
+            self.dev.ctrl_transfer(bmRequestType, bmRequest, wValue + id, wIndex, rawdata)
 
         def read(self, timeout=1000):
+            """ read data on the IN endpoint associated to the HID interface
+            :param timeout: wait time in ms
+            :return Tuple [report_id, data]
             """
-            read data on the IN endpoint associated to the HID interface
-            """
-            #rawdata = self.ep_in.read(self.ep_in.wMaxPacketSize, timeout)
-            rawdata = self.ep_in.read(1024, timeout)
+            rawdata = self.dev.read(1 | 0x80, 1024, timeout)
             logging.debug('USB-IN [0x]: %s', atos(rawdata))
             return self._decode_packet(rawdata)
 
         @staticmethod
-        def enumerate(vid, pid):
-            """
-            returns all the connected devices which matches PyUSB.vid/PyUSB.pid.
-            returns an array of PyUSB (Interface) objects
-            :param vid:
-            :param pid:
-            """
-            # find all devices matching the vid/pid specified
-            all_devices = usb.core.find(find_all=True, idVendor=vid, idProduct=pid)
+        def enumerate(vid=None, pid=None):
 
-            if not all_devices:
-                logging.debug("No device connected")
-                return None
+            def is_hid_device(device):
+                if device.bDeviceClass != 0:
+                    return False
+                for cfg in device:
+                    if cfg.bNumInterfaces == 1 and usb.util.find_descriptor(cfg, bInterfaceClass=3) is not None:
+                        return True
 
-            targets = []
+            devices = []
+
+            if vid is None or pid is None:
+                all_hid_devices = usb.core.find(find_all=True, custom_match=is_hid_device)
+            else:
+                all_hid_devices = usb.core.find(find_all=True, idVendor=vid, idProduct=pid)
 
             # iterate on all devices found
-            for dev in all_devices:
-                interface = None
-                interface_number = None
-
-                # get active config
-                config = dev.get_active_configuration()
-
-                # iterate on all interfaces:
-                for interface in config:
-                    if interface.bInterfaceClass == 0x03: # HID Interface
-                        interface_number = interface.bInterfaceNumber
-                        break
-
-                if interface_number is None or interface is None:
-                    continue
+            for dev in all_hid_devices:
 
                 try:
-                    if dev.is_kernel_driver_active(interface_number):
-                        dev.detach_kernel_driver(interface_number)
+                    if dev.is_kernel_driver_active(0):
+                        dev.detach_kernel_driver(0)
                 except Exception as e:
-                    print(str(e))
+                    logging.warning(str(e))
                     continue
 
                 try:
                     dev.set_configuration()
                     dev.reset()
                 except usb.core.USBError as e:
-                    print("Cannot set configuration the device: %s" % str(e))
+                    logging.warning("Cannot set configuration the device: %s" % str(e))
                     continue
 
-                ep_in, ep_out = None, None
-                for ep in interface:
-                    if ep.bEndpointAddress & 0x80:
-                        ep_in = ep
-                    else:
-                        ep_out = ep
+                new_device = RawHid()
+                new_device.dev = dev
+                new_device.vid = dev.idVendor
+                new_device.pid = dev.idProduct
+                new_device.vendor_name = usb.util.get_string(dev, 1).strip('\0')
+                new_device.product_name = usb.util.get_string(dev, 2).strip('\0')
+                new_device.interface_number = 0
+                devices.append(new_device)
 
-                if usb.__version__ == '1.0.0b1':
-                    vendor_name = usb.util.get_string(dev, 64, 1)
-                    product_name = usb.util.get_string(dev, 64, 2)
-                else:
-                    vendor_name = usb.util.get_string(dev, 1)
-                    product_name = usb.util.get_string(dev, 2)
-
-                if not ep_in:
-                    logging.error('Endpoints not found')
-                    return None
-
-                new_target = RawHid()
-                new_target.ep_in = ep_in
-                new_target.ep_out = ep_out
-                new_target.dev = dev
-                new_target.vid = vid
-                new_target.pid = pid
-                new_target.intf_number = interface_number
-                new_target.vendor_name = vendor_name.strip('\0')
-                new_target.product_name = product_name.strip('\0')
-                targets.append(new_target)
-
-            return targets
+            return devices
 
 else:
     raise Exception("No USB backend found")

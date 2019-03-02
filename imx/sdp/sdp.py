@@ -103,26 +103,6 @@ class SdpBase(object):
     # Supported i.MX USB Devices
     DEVICES = {}
 
-    @classmethod
-    def scan_usb(cls, device_name=None):
-        """ Scan for available USB devices """
-        devs = []
-
-        if device_name is None:
-            for key, val in cls.DEVICES.items():
-                devs += RawHid.enumerate(val[0], val[1])
-        else:
-            if ':' in device_name:
-                vid, pid = device_name.split(':')
-                devs = RawHid.enumerate(int(vid, 0), int(pid, 0))
-            else:
-                if device_name in cls.DEVICES:
-                    vid = cls.DEVICES[device_name][0]
-                    pid = cls.DEVICES[device_name][1]
-                    devs = RawHid.enumerate(vid, pid)
-
-        return [cls(dev) for dev in devs]
-
     def __init__(self, device):
         """ Constructor """
         assert isinstance(device, RawHid), "Not a \"RawHid\" instance !"
@@ -469,10 +449,52 @@ class SdpMXRT(SdpBase):
 
 
 ########################################################################################################################
-# Scan USB function
+# General Variables
+########################################################################################################################
+SDP_CLS = (SdpMXRT, SdpMX67, SdpMX8)
+
+
+########################################################################################################################
+# Helper function
 ########################################################################################################################
 
-def scan_usb(device_name=None):
-    """ Scan for available USB devices """
-    pass
+def supported_devices():
+    """
+    :return list of supported devices names
+    """
+    names = []
 
+    for sdc in SDP_CLS:
+        names += sdc.DEVICES.keys()
+
+    return names
+
+
+def scan_usb(device_name=None):
+    """ Scan for available USB devices
+    :param device_name: The device name (MX6DQP, MX6SDL, ...) or USB device VID:PID value
+    :rtype list
+    """
+
+    if device_name is None:
+        objs = []
+        devs = RawHid.enumerate()
+        for cls in SDP_CLS:
+            for dev in devs:
+                for value in cls.DEVICES.values():
+                    if dev.vid == value[0] and dev.pid == value[1]:
+                        objs += [cls(dev)]
+        return objs
+    else:
+        if ':' in device_name:
+            vid, pid = device_name.split(':')
+            devs = RawHid.enumerate(int(vid, 0), int(pid, 0))
+            return [SdpBase(dev) for dev in devs]
+        else:
+            for cls in SDP_CLS:
+                if device_name in cls.DEVICES:
+                    vid = cls.DEVICES[device_name][0]
+                    pid = cls.DEVICES[device_name][1]
+                    devs = RawHid.enumerate(vid, pid)
+                    return [cls(dev) for dev in devs]
+    return []

@@ -165,7 +165,6 @@ into `/etc/udev/rules.d` directory and reload it with command: `sudo udevadm con
 TODO
 ----
 
-* Optimize `scan_usb` method inside `imx.sdp` module
 * Add serial interface support for `imx.sdp` module
 * Add image security features (sign and encryption)
 * Add eFuses read, write and validation functionality

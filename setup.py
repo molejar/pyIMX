@@ -7,18 +7,8 @@
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
 from os import path
-from sys import platform
 from setuptools import setup, find_packages
 from imx import __version__, __license__, __author__, __contact__
-
-requirements = ['click>=6.0', 'PyYAML>=3.10']
-
-if platform.startswith('linux'):
-    requirements.append('pyusb>=1.0.0b2')
-elif platform.startswith('win'):
-    requirements.append('pywinusb>=0.4.0')
-else:
-    raise Exception('Not supported platform !')
 
 
 def long_description():
@@ -44,8 +34,15 @@ setup(
     long_description=long_description(),
     platforms="Windows, Linux",
     python_requires=">=3.5",
-    install_requires=requirements,
-    packages=find_packages('.'),
+    setup_requires=[
+        'setuptools>=40.0'
+    ],
+    install_requires=[
+        'click>=6.0',
+        'PyYAML>=3.10',
+        'pyusb>=1.0.0b2;platform_system!="Windows"',
+        'pywinusb>=0.4.0;platform_system=="Windows"'
+    ],
     classifiers=[
         'Programming Language :: Python :: 3',
         'Operating System :: POSIX :: Linux',
@@ -56,6 +53,7 @@ setup(
         'Topic :: System :: Hardware',
         'Topic :: Utilities'
     ],
+    packages=find_packages('.'),
     entry_points={
         'console_scripts': [
             'imxim = imx.img.__main__:main',
