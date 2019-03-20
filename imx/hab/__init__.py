@@ -23,6 +23,6 @@ def status_info(value):
     msg = "Status OK\n"
     status, reason, context, _ = struct.pack("<I", value)
     if status != EnumHabStatus.OK:
-        msg = "{}; Reason: {} ({})".format(EnumHabStatus.get_desc(status), EnumHabReason.get_desc(reason),
-                                           EnumHabContext.get_desc(context))
+        msg = "{}; Reason: {} ({})".format(EnumHabStatus.desc(status), EnumHabReason.desc(reason),
+                                           EnumHabContext.desc(context))
     return msg

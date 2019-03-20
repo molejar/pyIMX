@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from enum import IntEnum, unique
+from easy_enum import EEnum as Enum
 from struct import pack, unpack_from, calcsize
 
 
@@ -12,37 +12,35 @@ from struct import pack, unpack_from, calcsize
 # Enums
 ########################################################################################################################
 
-@unique
-class SegTag(IntEnum):
-    # Segments Tag
-    DCD = 0xD2   # Device Configuration Data
-    CSF = 0xD4   # Command Sequence File Data
+class SegTag(Enum):
+    """ Segments Tag """
+    DCD = (0xD2, 'Device Configuration Data')
+    CSF = (0xD4, 'Command Sequence File Data')
     # i.MX6, i.MX7, i.MX8M
-    IVT2 = 0xD1  # Image Vector Table
-    CRT = 0xD7   # Certificate
-    SIG = 0xD8   # Signature
-    EVT = 0xDB   # Event
-    RVT = 0xDD   # ROM Vector Table
-    WRP = 0x81   # Wrapped Key
-    MAC = 0xAC   # Message Authentication Code
+    IVT2 = (0xD1, 'Image Vector Table')
+    CRT = (0xD7, 'Certificate')
+    SIG = (0xD8, 'Signature')
+    EVT = (0xDB, 'Event')
+    RVT = (0xDD, 'ROM Vector Table')
+    WRP = (0x81, 'Wrapped Key')
+    MAC = (0xAC, 'Message Authentication Code')
     # i.MX8QXP_A0, i.MX8QM_A0
-    IVT3 = 0xDE  # Image Vector Table
+    IVT3 = (0xDE, 'Image Vector Table')
     # i.MX8QXP_B0, i.MX8QM_B0
-    BIC1 = 0x87  # Boot Images Container
-    SIGB = 0x90  # Signature block
+    BIC1 = (0x87, 'Boot Images Container')
+    SIGB = (0x90, 'Signature block')
 
 
-@unique
-class CmdTag(IntEnum):
-    # Commands Tag
-    SET     = 0xB1  # Set
-    INS_KEY = 0xBE  # Install Key
-    AUT_DAT = 0xCA  # Authenticate Data
-    WRT_DAT = 0xCC  # Write Data
-    CHK_DAT = 0xCF  # Check Data
-    NOP     = 0xC0  # No Operation
-    INIT    = 0xB4  # Initialize
-    UNLK    = 0xB2  # Unlock
+class CmdTag(Enum):
+    """ Commands Tag """
+    SET = (0xB1, 'Set')
+    INS_KEY = (0xBE, 'Install Key')
+    AUT_DAT = (0xCA, 'Authenticate Data')
+    WRT_DAT = (0xCC, 'Write Data')
+    CHK_DAT = (0xCF, 'Check Data')
+    NOP = (0xC0, 'No Operation')
+    INIT = (0xB4, 'Initialize')
+    UNLK = (0xB2, 'Unlock')
 
 
 ########################################################################################################################

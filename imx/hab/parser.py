@@ -74,9 +74,9 @@ def parse_mx6_log(data):
                 log_data = struct.unpack_from('I', data, log_loop * 4)[0]
                 if log_value == 0x00090000:
                     ret_msg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % \
-                               (log_loop, log_data, log_data & 0xff, EnumHabStatus.get_desc(log_data & 0xff))
+                               (log_loop, log_data, log_data & 0xff, EnumHabStatus.desc(log_data & 0xff))
                     ret_msg += "                     HAB Reason Code: 0x%02X  %s\n" % \
-                               ((log_data >> 8) & 0xff, EnumHabReason.get_desc((log_data >> 8) & 0xff))
+                               ((log_data >> 8) & 0xff, EnumHabReason.desc((log_data >> 8) & 0xff))
                 else:
                     ret_msg += " %02d. (0x%08X) -> Address: 0x%08X\n" % (log_loop, log_data, log_data)
             else:
@@ -180,9 +180,9 @@ def parse_mx7_log(data):
                 log_loop += 1
                 log_data = struct.unpack_from('I', data, log_loop * 4)[0]
                 ret_msg += " %02d. (0x%08X) -> HAB Status Code: 0x%02X  %s\n" % \
-                           (log_loop, log_data, log_data & 0xff, EnumHabStatus.get_desc(log_data & 0xff))
+                           (log_loop, log_data, log_data & 0xff, EnumHabStatus.desc(log_data & 0xff))
                 ret_msg += "                     HAB Reason Code: 0x%02X  %s\n" % \
-                           ((log_data >> 8) & 0xff, EnumHabReason.get_desc((log_data >> 8) & 0xff))
+                           ((log_data >> 8) & 0xff, EnumHabReason.desc((log_data >> 8) & 0xff))
             if log_value in log_error_desc:
                 ret_msg += "                     Error Code: 0x%06X\n" % (log_value_full & 0xffffff)
             if log_value in log_tick_desc:

@@ -348,7 +348,7 @@ class SegDCD(BaseSegment):
                 txt_data += "{0:d}\n".format(cmd.count) if cmd.count else "\n"
 
             elif type(cmd) is CmdUnlock:
-                txt_data += "Unlock {0:s}".format(EnumEngine.value_to_str(cmd.engine))
+                txt_data += "Unlock {0:s}".format(EnumEngine[cmd.engine])
                 cnt = 1
                 for value in cmd:
                     if cnt > 6:
@@ -441,10 +441,10 @@ class SegDCD(BaseSegment):
                     dcd_obj.append(cmd_write)
                     cmd_write = None
 
-                if cmd[1] not in EnumEngine.get_names():
+                if not EnumEngine.is_valid(cmd[1]):
                     raise SyntaxError("Unlock CMD: wrong engine parameter at line %d" % (line_cnt - 1))
 
-                engine = EnumEngine.str_to_value(cmd[1])
+                engine = EnumEngine[cmd[1]]
                 data = [int(value, 0) for value in cmd[2:]]
                 dcd_obj.append(CmdUnlock(engine, data))
 
