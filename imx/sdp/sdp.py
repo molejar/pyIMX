@@ -67,7 +67,6 @@ class SdpAbortError(SdpGenericError):
     fmt = 'Operation aborted !'
 
 
-
 ########################################################################################################################
 # Serial Downloader Protocol (SDP) base Class
 ########################################################################################################################
@@ -387,34 +386,19 @@ class SdpBase(object):
         return status
 
     def parse_status(self, status):
-        pass
+        raise NotImplementedError()
 
-
-########################################################################################################################
-# Serial Downloader Protocol i.MX8 Class
-########################################################################################################################
-
-class SdpMX8(SdpBase):
-
-    # Supported i.MX8 Devices
-    DEVICES = {
-        # NAME   | VID   | PID
-        'MX8QXPA0': (0x1FC9, 0x007D),
-        'MX8QXP': (0x1FC9, 0x012F),
-        'MX8QM':  (0x1FC9, 0x0129),
-        'MX8MQ':  (0x1FC9, 0x012B),
-    }
-
-    def write_csf(self, address, data):
+    def read_uid(self):
         raise NotImplementedError()
 
 
 ########################################################################################################################
-# Serial Downloader Protocol i.MX6/7/Vybrid Class
+# Serial Downloader Protocol Class: i.MX6, i.MX7 and Vybrid
 ########################################################################################################################
 
 class SdpMX67(SdpBase):
-    # Supported i.MX6/7 Devices
+
+    # Supported i.MX6, i.MX7 and Vybrid Devices
     DEVICES = {
         # NAME    | VID   | PID
         'MX6DQP': (0x15A2, 0x0054),
@@ -429,12 +413,16 @@ class SdpMX67(SdpBase):
         'VYBRID': (0x15A2, 0x006A),
     }
 
+    def read_uid(self):
+        pass
+
 
 ########################################################################################################################
-# Serial Downloader Protocol i.MX-RT Class
+# Serial Downloader Protocol Class: i.MX-RT
 ########################################################################################################################
 
 class SdpMXRT(SdpBase):
+
     # Supported i.MXRT Devices
     DEVICES = {
         # NAME   | VID   | PID
@@ -449,13 +437,72 @@ class SdpMXRT(SdpBase):
 
 
 ########################################################################################################################
+# Serial Downloader Protocol Class: i.MX8M
+########################################################################################################################
+
+class SdpMX8M(SdpBase):
+
+    # Supported i.MX8 Devices
+    DEVICES = {
+        # NAME   | VID   | PID
+        'MX8MQ':  (0x1FC9, 0x012B),
+    }
+
+    def write_csf(self, address, data):
+        raise NotImplementedError()
+
+
+########################################################################################################################
+# Serial Downloader Protocol Class: i.MX8 rev. A0
+########################################################################################################################
+
+class SdpMX8A0(SdpBase):
+
+    # Supported i.MX8 Devices
+    DEVICES = {
+        # NAME   | VID   | PID
+        'MX8QXP-A0': (0x1FC9, 0x007D),
+        'MX8QM-A0':  (0x1FC9, 0x0129)
+    }
+
+    def write_csf(self, address, data):
+        raise NotImplementedError()
+
+
+########################################################################################################################
+# Serial Downloader Protocol Class: i.MX8 rev. B0 and upper
+########################################################################################################################
+
+class SdpMX8(SdpBase):
+
+    # Supported i.MX8 Devices
+    DEVICES = {
+        # NAME   | VID   | PID
+        'MX8QXP': (0x1FC9, 0x012F),
+        'MX8QM':  (0x1FC9, 0x0129)
+    }
+
+    def read(self, address, length, format=32):
+        raise NotImplementedError()
+
+    def write(self, address, value, count=4, format=32):
+        raise NotImplementedError()
+
+    def write_csf(self, address, data):
+        raise NotImplementedError()
+
+    def skip_dcd(self):
+        raise NotImplementedError()
+
+
+########################################################################################################################
 # General Variables
 ########################################################################################################################
-SDP_CLS = (SdpMXRT, SdpMX67, SdpMX8)
+SDP_CLS = (SdpMXRT, SdpMX67, SdpMX8M, SdpMX8A0, SdpMX8)
 
 
 ########################################################################################################################
-# Helper function
+# Helper functions
 ########################################################################################################################
 
 def supported_devices():

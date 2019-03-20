@@ -123,7 +123,7 @@ if os.name == "nt":
             return self._decode_packet(bytes(rawdata))
 
         @staticmethod
-        def enumerate(vid, pid):
+        def enumerate(vid=None, pid=None):
             """
             returns all the connected devices which matches PyWinUSB.vid/PyWinUSB.pid.
             returns an array of PyWinUSB (Interface) objects
@@ -135,7 +135,10 @@ if os.name == "nt":
             # find devices with good vid/pid
             all_imx_devices = []
             for hid_dev in all_hid_devices:
-                if hid_dev.vendor_id == vid and hid_dev.product_id == pid:
+                if hid_dev.vendor_id == vid or \
+                   hid_dev.product_id == pid or \
+                   'Freescale' in hid_dev.vendor_name or \
+                   'NXP' in hid_dev.vendor_name.upper():
                     all_imx_devices.append(hid_dev)
 
             targets = []

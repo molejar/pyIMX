@@ -324,7 +324,7 @@ def cli(ctx, target, debug):
         loglevel = [logging.NOTSET, logging.INFO, logging.DEBUG]
         logging.basicConfig(format=FORMAT, datefmt='%M:%S', level=loglevel[debug])
 
-    ctx.obj['DEBUG']  = debug
+    ctx.obj['DEBUG'] = debug
     ctx.obj['TARGET'] = target
 
 
@@ -336,7 +336,7 @@ def info(ctx):
     error = False
 
     def read_memory_32(addr):
-        val = struct.unpack_from('I', flasher.read(addr, 4))
+        val = struct.unpack_from('I', flasher.read(addr, 4, 8))
         return val[0]
 
     def read_rom_release(rom_info, pid):
