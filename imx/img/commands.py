@@ -10,7 +10,7 @@ from .header import CmdTag, Header
 
 
 ########################################################################################################################
-## Enums
+# Enums
 ########################################################################################################################
 
 class EnumWriteOps(Enum):
@@ -106,7 +106,7 @@ class EnumItm(Enum):
 
 
 ########################################################################################################################
-## HAB Commands
+# HAB Commands
 ########################################################################################################################
 
 class CmdBase(object):
@@ -122,7 +122,7 @@ class CmdBase(object):
 
 
 class CmdWriteData(object):
-    ''' Write data command '''
+    """ Write data command """
 
     @property
     def bytes(self):
@@ -148,11 +148,28 @@ class CmdWriteData(object):
     def size(self):
         return self._header.length
 
-    def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE):
+    def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE, data=None):
         assert bytes in (1, 2, 4), "Unsupported Value !"
         assert EnumWriteOps.is_valid(ops), "Unsupported Value !"
         self._header = Header(tag=CmdTag.WRT_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._data = []
+        if data is not None:
+            assert isinstance(data, (list, tuple))
+            for address, value in data:
+                self.append(address, value)
+
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdWriteData):
+            return False
+        if self.size != cmd.size or self.bytes != cmd.bytes or self.ops != cmd.ops:
+            return False
+        for val in cmd:
+            if val not in self._data:
+                return False
+        return True
+
+    def __ne__(self, cmd):
+        return not self.__eq__(cmd)
 
     def __str__(self):
         return self.info()
@@ -161,7 +178,7 @@ class CmdWriteData(object):
         return self.info()
 
     def __len__(self):
-        len(self._data)
+        return len(self._data)
 
     def __getitem__(self, key):
         return self._data[key]
@@ -215,7 +232,7 @@ class CmdWriteData(object):
 
 
 class CmdCheckData(object):
-    ''' Check data command '''
+    """ Check data command """
 
     @property
     def bytes(self):
@@ -273,6 +290,20 @@ class CmdCheckData(object):
         self._mask = mask
         self._count = count
 
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdCheckData):
+            return False
+        if self.bytes != cmd.bytes or \
+           self.ops != cmd.ops or \
+           self.address != cmd.address or \
+           self.mask != cmd.mask or \
+           self.count != cmd.count:
+            return False
+        return True
+
+    def __ne__(self, cmd):
+        return not self.__eq__(cmd)
+
     def __str__(self):
         return self.info()
 
@@ -310,7 +341,7 @@ class CmdCheckData(object):
 
 
 class CmdNop(object):
-    ''' Nop command '''
+    """ Nop command """
 
     @property
     def size(self):
@@ -318,6 +349,14 @@ class CmdNop(object):
 
     def __init__(self, param=0):
         self._header = Header(tag=CmdTag.NOP, param=param)
+
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdNop):
+            return False
+        return True
+
+    def __ne__(self, cmd):
+        return not self.__eq__(cmd)
 
     def __str__(self):
         return self.info()
@@ -343,7 +382,7 @@ class CmdNop(object):
 
 
 class CmdSet(object):
-    ''' Set command '''
+    """ Set command """
 
     @property
     def itm(self):
@@ -363,11 +402,33 @@ class CmdSet(object):
         self._header = Header(tag=CmdTag.SET, param=itm)
         self._data = data if data else []
 
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdSet):
+            return False
+        if self.size != cmd.size or self.itm != cmd.itm:
+            return False
+        for val in cmd:
+            if val not in self._data:
+                return False
+        return True
+
+    def __ne__(self, cmd):
+        return not self.__eq__(cmd)
+
     def __str__(self):
         return self.info()
 
     def __repr__(self):
         return self.info()
+
+    def __len__(self):
+        len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
@@ -415,7 +476,7 @@ class CmdSet(object):
 
 
 class CmdInitialize(object):
-    ''' Initialize command '''
+    """ Initialize command """
 
     @property
     def engine(self):
@@ -487,7 +548,7 @@ class CmdInitialize(object):
 
 
 class CmdUnlock(object):
-    ''' Unlock engine command '''
+    """ Unlock engine command """
 
     @property
     def engine(self):
@@ -569,7 +630,7 @@ class CmdUnlock(object):
 
 
 class CmdInstallKey(object):
-    ''' Install key command '''
+    """ Install key command """
     @property
     def param(self):
         return self._header.param
@@ -675,7 +736,7 @@ class CmdInstallKey(object):
 
 
 class CmdAuthData(object):
-    ''' write here Doc '''
+    """ Authenticate data command """
     @property
     def flag(self):
         return self._header.param

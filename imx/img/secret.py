@@ -10,7 +10,7 @@ from .header import SegTag, Header
 
 
 class SecretKeyBlob(object):
-    ''' Secret Key Blob '''
+    """ Secret Key Blob """
 
     @property
     def mode(self):

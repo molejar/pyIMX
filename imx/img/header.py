@@ -17,7 +17,7 @@ class SegTag(Enum):
     DCD = (0xD2, 'Device Configuration Data')
     CSF = (0xD4, 'Command Sequence File Data')
     # i.MX6, i.MX7, i.MX8M
-    IVT2 = (0xD1, 'Image Vector Table')
+    IVT2 = (0xD1, 'Image Vector Table (Version 2)')
     CRT = (0xD7, 'Certificate')
     SIG = (0xD8, 'Signature')
     EVT = (0xDB, 'Event')
@@ -25,7 +25,7 @@ class SegTag(Enum):
     WRP = (0x81, 'Wrapped Key')
     MAC = (0xAC, 'Message Authentication Code')
     # i.MX8QXP_A0, i.MX8QM_A0
-    IVT3 = (0xDE, 'Image Vector Table')
+    IVT3 = (0xDE, 'Image Vector Table (Version 3)')
     # i.MX8QXP_B0, i.MX8QM_B0
     BIC1 = (0x87, 'Boot Images Container')
     SIGB = (0x90, 'Signature block')
@@ -114,7 +114,7 @@ class Header2(Header):
         :param data: Raw data as bytes or bytearray
         :param offset: Offset of input data
         :param required_tag:
-        :return:
+        :return: Header2 object
         """
         param, length, tag = unpack_from(cls.FORMAT, data, offset)
         if required_tag is not None and tag != required_tag:

@@ -297,6 +297,19 @@ class SegDCD(BaseSegment):
         self._header.length = self._header.size
         self._commands = []
 
+    def __eq__(self, dcd):
+        if not isinstance(dcd, SegDCD):
+            return False
+        if len(self._commands) != len(dcd):
+            return False
+        for cmd in dcd:
+            if cmd not in self._commands:
+                return False
+        return True
+
+    def __ne__(self, dcd):
+        return not self.__eq__(dcd)
+
     def __len__(self):
         return len(self._commands)
 
