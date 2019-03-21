@@ -4,156 +4,105 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from enum import Enum, unique
+from easy_enum import EEnum as Enum
 from struct import pack, unpack_from
-
 from .header import CmdTag, Header
-
-
-########################################################################################################################
-## Custom Types
-########################################################################################################################
-
-
-class IntEnum(int, Enum):
-    @classmethod
-    def check_value(cls, value):
-        for n, v in cls.__members__.items():
-            if int(value) == int(v):
-                return True
-        return False
-
-    @classmethod
-    def str_to_value(cls, name):
-        for n, v in cls.__members__.items():
-            if name.upper() == n:
-                return int(v)
-        raise ValueError("Unsupported name: %s" % name)
-
-    @classmethod
-    def value_to_str(cls, value):
-        for n, v in cls.__members__.items():
-            if int(value) == int(v):
-                return n
-        return "0x{0:08X}".format(value)
-
-    @classmethod
-    def get_names(cls, lower=False):
-        if lower:
-            return [x.lower() for x in cls.__members__.keys()]
-        else:
-            return cls.__members__.keys()
-
-    @classmethod
-    def get_items(cls):
-        items = {}
-        for n, v in cls.__members__.items():
-            items[n] = int(v)
-        return items
 
 
 ########################################################################################################################
 ## Enums
 ########################################################################################################################
 
-@unique
-class EnumWriteOps(IntEnum):
-    ''' help '''
-    WRITE_VALUE = 0
-    WRITE_VALUE1 = 1
-    CLEAR_BITMASK = 2
-    SET_BITMASK = 3
+class EnumWriteOps(Enum):
+    """ Enum definition for 'flags' control flags in 'par' parameter of Write Data command """
+    WRITE_VALUE = (0, 'Write value')
+    WRITE_VALUE1 = (1, 'Write value')
+    CLEAR_BITMASK = (2, 'Clear bitmask')
+    SET_BITMASK = (3, 'Set bitmask')
 
 
-@unique
-class EnumCheckOps(IntEnum):
-    ''' help '''
-    ALL_CLEAR = 0
-    ALL_SET = 1
-    ANY_CLEAR = 2
-    ANY_SET = 3
+class EnumCheckOps(Enum):
+    """ Enum definition for 'par' parameter of Check Data command """
+    ALL_CLEAR = (0, 'All bits clear')
+    ALL_SET = (1, 'All bits set')
+    ANY_CLEAR = (2, 'Any bit clear')
+    ANY_SET = (3, 'Any bit set')
 
 
-@unique
-class EnumAlgorithm(IntEnum):
-    ''' Algorithm types '''
-    ANY    = 0x00  # Algorithm type ANY
-    HASH   = 0x01  # Hash algorithm type
-    SIG    = 0x02  # Signature algorithm type
-    F      = 0x03  # Finite field arithmetic
-    EC     = 0x04  # Elliptic curve arithmetic
-    CIPHER = 0x05  # Cipher algorithm type
-    MODE   = 0x06  # Cipher/hash modes
-    WRAP   = 0x07  # Key wrap algorithm type
+class EnumAlgorithm(Enum):
+    """ Algorithm types """
+    ANY = (0x00, 'Algorithm type ANY')
+    HASH = (0x01, 'Hash algorithm type')
+    SIG = (0x02, 'Signature algorithm type')
+    F = (0x03, 'Finite field arithmetic')
+    EC = (0x04, 'Elliptic curve arithmetic')
+    CIPHER = (0x05, 'Cipher algorithm type')
+    MODE = (0x06, 'Cipher/hash modes')
+    WRAP = (0x07, 'Key wrap algorithm type')
     # Hash algorithms
-    SHA1   = 0x11  # SHA-1 algorithm ID
-    SHA256 = 0x17  # SHA-256 algorithm ID
-    SHA512 = 0x1b  # SHA-512 algorithm ID
+    SHA1 = (0x11, 'SHA-1 algorithm ID')
+    SHA256 = (0x17, 'SHA-256 algorithm ID')
+    SHA512 = (0x1b, 'SHA-512 algorithm ID')
     # Signature algorithms
-    PKCS1  = 0x21  # PKCS#1 RSA signature algorithm
+    PKCS1 = (0x21, 'PKCS#1 RSA signature algorithm')
     # Cipher algorithms
-    AES    = 0x55  # AES algorithm ID
+    AES = (0x55, 'AES algorithm ID')
     # Cipher or hash modes
-    CCM    = 0x66  # Counter with CBC-MAC
+    CCM = (0x66, 'Counter with CBC-MAC')
     # Key wrap algorithms
-    BLOB   = 0x71  # SHW-specific key wrap
+    BLOB = (0x71, 'SHW-specific key wrap')
 
 
-@unique
-class EnumProtocol(IntEnum):
-    ''' Protocol tags '''
-    SRK  = 0x03  # SRK certificate format
-    X509 = 0x09  # X.509v3 certificate format
-    CMS  = 0xC5  # CMS/PKCS#7 signature format
-    BLOB = 0xBB  # SHW-specific wrapped key format
-    AEAD = 0xA3  # Proprietary AEAD MAC format
+class EnumProtocol(Enum):
+    """ Protocol tags """
+    SRK = (0x03, 'SRK certificate format')
+    X509 = (0x09, 'X.509v3 certificate format')
+    CMS = (0xC5, 'CMS/PKCS#7 signature format')
+    BLOB = (0xBB, 'SHW-specific wrapped key format')
+    AEAD = (0xA3, 'Proprietary AEAD MAC format')
 
 
-@unique
-class EnumInsKey(IntEnum):
-    ''' Command tags '''
-    CLR = 0    #
-    ABS = 1    #
-    CSF = 2    #
-    DAT = 4    #
-    CFG = 8    #
-    FID = 16   #
-    MID = 32   #
-    CID = 64   #
-    HSH = 128  #
+class EnumInsKey(Enum):
+    """ Flags for Install Key commands """
+    CLR = (0, 'No flags set')
+    ABS = (1, 'Absolute certificate address')
+    CSF = (2, 'Install CSF key')
+    DAT = (4, 'Key binds to Data Type')
+    CFG = (8, 'Key binds to Configuration')
+    FID = (16, 'Key binds to Fabrication UID')
+    MID = (32, 'Key binds to Manufacturing ID')
+    CID = (64, 'Key binds to Caller ID')
+    HSH = (128, 'Certificate hash present')
 
 
-@unique
-class EnumAuthDat(IntEnum):
-    ''' help '''
-    CLR = 0
-    ABS = 1
+class EnumAuthDat(Enum):
+    """ Flags for Authenticate Data commands """
+    CLR = (0, 'No flags set')
+    ABS = (1, 'Absolute signature address')
 
 
-@unique
-class EnumEngine(IntEnum):
-    ''' Engine plugin tags '''
-    ANY    = 0x00  # First compatible engine will be selected (no engine configuration parameters are allowed)
-    SCC    = 0x03  # Security controller
-    RTIC   = 0x05  # Run-time integrity checker
-    SAHARA = 0x06  #
-    CSU    = 0x0A
-    SRTC   = 0x0C
-    DCP    = 0x1B
-    CAAM   = 0x1D
-    SNVS   = 0x1E
-    OCOTP  = 0x21
-    DTCP   = 0x22
-    ROM    = 0x36
-    HDCP   = 0x24
-    SW     = 0xFF
+class EnumEngine(Enum):
+    """ Engine plugin tags """
+    ANY = (0x00, 'First compatible engine will be selected (no engine configuration parameters are allowed)')
+    SCC = (0x03, 'Security controller')
+    RTIC = (0x05, 'Run-time integrity checker')
+    SAHARA = (0x06, 'Crypto accelerator')
+    CSU = (0x0A, 'Central Security Unit')
+    SRTC = (0x0C, 'Secure clock')
+    DCP = (0x1B, 'Data Co-Processor')
+    CAAM = (0x1D, 'Cryptographic Acceleration and Assurance Module')
+    SNVS = (0x1E, 'Secure Non-Volatile Storage')
+    OCOTP = (0x21, 'Fuse controller')
+    DTCP = (0x22, 'DTCP co-processor')
+    ROM = (0x36, 'Protected ROM area')
+    HDCP = (0x24, 'HDCP co-processor')
+    SW = (0xFF, 'Software engine')
 
 
-@unique
-class EnumItm(IntEnum):
-    ''' help '''
-    MID = 0x01
-    ENG = 0x03
+class EnumItm(Enum):
+    """ Engine configuration flags of Set command """
+    MID = (0x01, 'Manufacturing ID (MID) fuse locations')
+    ENG = (0x03, 'Preferred engine for a given algorithm')
 
 
 ########################################################################################################################
@@ -191,7 +140,7 @@ class CmdWriteData(object):
 
     @ops.setter
     def ops(self, value):
-        assert EnumWriteOps.check_value(value), "Unsupported Value !"
+        assert EnumWriteOps.is_valid(value), "Unsupported Value !"
         self._header.param &= ~(0x3 << 3)
         self._header.param |= int(value) << 3
 
@@ -201,7 +150,7 @@ class CmdWriteData(object):
 
     def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE):
         assert bytes in (1, 2, 4), "Unsupported Value !"
-        assert EnumWriteOps.check_value(ops), "Unsupported Value !"
+        assert EnumWriteOps.is_valid(ops), "Unsupported Value !"
         self._header = Header(tag=CmdTag.WRT_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._data = []
 
@@ -225,7 +174,7 @@ class CmdWriteData(object):
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Write Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumWriteOps.value_to_str(self.ops), self.bytes)
+        msg += "Write Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumWriteOps[self.ops], self.bytes)
         msg += "-" * 60 + "\n"
         for cmd in self._data:
             msg += "- Address: 0x{0:08X}, Value: 0x{1:08X}\n".format(cmd[0], cmd[1])
@@ -284,7 +233,7 @@ class CmdCheckData(object):
 
     @ops.setter
     def ops(self, value):
-        assert EnumCheckOps.check_value(value), "Unsupported value !"
+        assert EnumCheckOps.is_valid(value), "Unsupported value !"
         self._header.param &= ~(0x3 << 3)
         self._header.param |= int(value) << 3
 
@@ -318,7 +267,7 @@ class CmdCheckData(object):
 
     def __init__(self, bytes=4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
         assert bytes in (1, 2, 4), "Unsupported Value !"
-        assert EnumCheckOps.check_value(ops), "Unsupported value !"
+        assert EnumCheckOps.is_valid(ops), "Unsupported value !"
         self._header = Header(tag=CmdTag.CHK_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._address = address
         self._mask = mask
@@ -332,7 +281,7 @@ class CmdCheckData(object):
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Check Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumCheckOps.value_to_str(self.ops), self.bytes)
+        msg += "Check Data Command (Ops: {0:s}, Bytes: {1:d})\n".format(EnumCheckOps[self.ops], self.bytes)
         msg += "-" * 60 + "\n"
         msg += "- Address: 0x{0:08X}, Mask: 0x{1:08X}".format(self._address, self._mask)
         if self.count:
@@ -402,7 +351,7 @@ class CmdSet(object):
 
     @itm.setter
     def itm(self, value):
-        assert EnumItm.check_value(value), "uncorrected value !"
+        assert EnumItm.is_valid(value), "uncorrected value !"
         self._header.param = int(value)
 
     @property
@@ -410,7 +359,7 @@ class CmdSet(object):
         return self._header.length
 
     def __init__(self, itm=EnumItm.ENG, data=None):
-        assert EnumItm.check_value(itm), "uncorrected value !"
+        assert EnumItm.is_valid(itm), "uncorrected value !"
         self._header = Header(tag=CmdTag.SET, param=itm)
         self._data = data if data else []
 
@@ -422,16 +371,16 @@ class CmdSet(object):
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Set Command (ITM: {0:s})\n".format(EnumItm.value_to_str(self.itm))
+        msg += "Set Command (ITM: {0:s})\n".format(EnumItm[self.itm])
         msg += "-" * 60 + "\n"
         for cmd in self._data:
-            msg += "- ALG: {0:s}, ENG: {1:s}, CFG: {2:d}\n".format(EnumAlgorithm.value_to_str(cmd[0]),
-                                                                   EnumEngine.value_to_str(cmd[1]), cmd[2])
+            msg += "- ALG: {0:s}, ENG: {1:s}, CFG: {2:d}\n".format(EnumAlgorithm[cmd[0]],
+                                                                   EnumEngine[cmd[1]], cmd[2])
         return msg
 
     def append(self, alg, eng, cfg):
-        assert EnumAlgorithm.check_value(alg), "uncorrected value !"
-        assert EnumEngine.check_value(eng), "uncorrected value !"
+        assert EnumAlgorithm.is_valid(alg), "uncorrected value !"
+        assert EnumEngine.is_valid(eng), "uncorrected value !"
         assert type(cfg) is int, "cfg value must be INT type"
         assert 0 <= cfg < 256, "cfg value out of range"
         self._data.append([alg, eng, cfg])
@@ -474,7 +423,7 @@ class CmdInitialize(object):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.check_value(value), "uncorrected value !"
+        assert EnumEngine.is_valid(value), "uncorrected value !"
         self._header.param = int(value)
 
     @property
@@ -482,7 +431,7 @@ class CmdInitialize(object):
         return self._header.length
 
     def __init__(self, engine=EnumEngine.ANY, data=None):
-        assert EnumEngine.check_value(engine), "uncorrected value !"
+        assert EnumEngine.is_valid(engine), "uncorrected value !"
         self._header = Header(tag=CmdTag.INIT, param=engine)
         self._data = data if data else []
 
@@ -494,7 +443,7 @@ class CmdInitialize(object):
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Initialize Command (Engine: {0:s})\n".format(EnumEngine.value_to_str(self.engine))
+        msg += "Initialize Command (Engine: {0:s})\n".format(EnumEngine[self.engine])
         msg += "-" * 60 + "\n"
         cnt = 0
         for val in self._data:
@@ -546,7 +495,7 @@ class CmdUnlock(object):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.check_value(value), "uncorrected value !"
+        assert EnumEngine.is_valid(value), "uncorrected value !"
         self._header.param = int(value)
 
     @property
@@ -554,7 +503,7 @@ class CmdUnlock(object):
         return self._header.size + len(self._data) * 4
 
     def __init__(self, engine = EnumEngine.ANY, data=None):
-        assert EnumEngine.check_value(engine), "uncorrected value !"
+        assert EnumEngine.is_valid(engine), "uncorrected value !"
         self._header = Header(tag=CmdTag.UNLK, param=engine)
         self._data = data if data else []
 
@@ -578,7 +527,7 @@ class CmdUnlock(object):
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Unlock Command (Engine: {0:s})\n".format(EnumEngine.value_to_str(self.engine))
+        msg += "Unlock Command (Engine: {0:s})\n".format(EnumEngine[self.engine])
         msg += "-" * 60 + "\n"
         cnt = 0
         for val in self._data:
@@ -627,7 +576,7 @@ class CmdInstallKey(object):
 
     @param.setter
     def param(self, value):
-        assert EnumInsKey.check_value(value), "uncorrected value !"
+        assert EnumInsKey.is_valid(value), "uncorrected value !"
         self._header.param = int(value)
 
     @property
@@ -636,7 +585,7 @@ class CmdInstallKey(object):
 
     @pcl.setter
     def pcl(self, value):
-        assert EnumProtocol.check_value(value), "uncorrected value !"
+        assert EnumProtocol.is_valid(value), "uncorrected value !"
         self._pcl = int(value)
 
     @property
@@ -645,7 +594,7 @@ class CmdInstallKey(object):
 
     @alg.setter
     def alg(self, value):
-        assert EnumAlgorithm.check_value(value), "uncorrected value !"
+        assert EnumAlgorithm.is_valid(value), "uncorrected value !"
         self._alg = int(value)
 
     @property
@@ -700,9 +649,10 @@ class CmdInstallKey(object):
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Install Key Command\n"
-        msg += " Flag:   {0:s}\n".format(EnumInsKey.value_to_str(self.param))
-        msg += " Prot:   {0:s}\n".format(EnumProtocol.value_to_str(self.pcl))
-        msg += " Algo:   {0:s}\n".format(EnumAlgorithm.value_to_str(self.alg))
+        print(" Flag:   {0:s}\n".format(EnumInsKey[self.param]))
+        msg += " Flag:   {0:s}\n".format(EnumInsKey[self.param])
+        msg += " Prot:   {0:s}\n".format(EnumProtocol[self.pcl])
+        msg += " Algo:   {0:s}\n".format(EnumAlgorithm[self.alg])
         msg += " SrcKey: {0:d} (Source key index) \n".format(self.src)
         msg += " TgtKey: {0:d} (Target key index) \n".format(self.tgt)
         msg += " Addr:   0x{0:08X} (Start address of key data to install) \n".format(self.keydat)
@@ -732,7 +682,7 @@ class CmdAuthData(object):
 
     @flag.setter
     def flag(self, value):
-        assert EnumAuthDat.check_value(value), "uncorrected value !"
+        assert EnumAuthDat.is_valid(value), "uncorrected value !"
         self._header.param = int(value)
 
     @property
@@ -749,7 +699,7 @@ class CmdAuthData(object):
 
     @pcl.setter
     def pcl(self, value):
-        assert EnumProtocol.check_value(value), "uncorrected value !"
+        assert EnumProtocol.is_valid(value), "uncorrected value !"
         self._pcl = int(value)
 
     @property
@@ -758,7 +708,7 @@ class CmdAuthData(object):
 
     @eng.setter
     def eng(self, value):
-        assert EnumEngine.check_value(value), "uncorrected value !"
+        assert EnumEngine.is_valid(value), "uncorrected value !"
         self._eng = int(value)
 
     @property
@@ -809,9 +759,9 @@ class CmdAuthData(object):
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Auth Data Command\n"
-        msg += " Flag:   {0:s}\n".format(EnumAuthDat.value_to_str(self._header.param))
-        msg += " Prot:   {0:s}\n".format(EnumProtocol.value_to_str(self.pcl))
-        msg += " Engine: {0:s}\n".format(EnumEngine.value_to_str(self.eng))
+        msg += " Flag:   {0:s}\n".format(EnumAuthDat[self._header.param])
+        msg += " Prot:   {0:s}\n".format(EnumProtocol[self.pcl])
+        msg += " Engine: {0:s}\n".format(EnumEngine[self.eng])
         msg += " Key:    {0:d} (Key index)\n".format(self.key)
         msg += " Conf:   {0:d} (Configuration)\n".format(self.cfg)
         msg += " Addr:   0x{0:08X} (Start address of authentication data) \n".format(self.auth_start)
