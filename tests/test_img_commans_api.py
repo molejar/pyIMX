@@ -4,7 +4,6 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-import os
 import pytest
 from imx import img
 
@@ -59,3 +58,42 @@ def test_nop_cmd():
     assert cmd is not None
     assert cmd.size == 4
 
+
+def test_set_cmd():
+    cmd = img.CmdSet()
+    assert cmd.itm == img.EnumItm.ENG
+    assert cmd.size == 4
+
+
+def test_initialize_cmd():
+    cmd = img.CmdInitialize()
+    assert cmd.engine == img.EnumEngine.ANY
+    assert cmd.size == 4
+
+
+def test_unlock_cmd():
+    cmd = img.CmdUnlock()
+    assert cmd.engine == img.EnumEngine.ANY
+    assert cmd.size == 4
+
+
+def test_install_key_cmd():
+    cmd = img.CmdInstallKey()
+    assert cmd.param == img.EnumInsKey.CLR
+    assert cmd.protocol == img.EnumProtocol.SRK
+    assert cmd.algorithm == img.EnumAlgorithm.ANY
+    assert cmd.src_key_index == 0
+    assert cmd.tgt_key_index == 0
+    assert cmd.key_data == 0
+    assert cmd.size == 12
+
+
+def test_authenticate_data_cmd():
+    cmd = img.CmdAuthData()
+    assert cmd.flag == img.EnumAuthDat.CLR
+    assert cmd.key == 0
+    assert cmd.protocol == img.EnumProtocol.SRK
+    assert cmd.engine == img.EnumEngine.ANY
+    assert cmd.conf == 0
+    assert cmd.auth_start == 0
+    assert cmd.size == 12

@@ -130,11 +130,11 @@ class BootImg2(BootImgBase):
 
     @property
     def version(self):
-        return self._ivt.header.param
+        return self._ivt.version
 
     @version.setter
     def version(self, value):
-        self._ivt.header.param = value
+        self._ivt.version = value
 
     @property
     def plugin(self):
@@ -366,11 +366,11 @@ class BootImg8m(BootImgBase):
 
     @property
     def version(self):
-        return self._ivt.header.param
+        return self._ivt.version
 
     @version.setter
     def version(self, value):
-        self._ivt.header.param = value
+        self._ivt.version = value
 
     @property
     def plugin(self):
@@ -1298,7 +1298,6 @@ class BootImg4(BootImgBase):
         """ Initialize boot image object
         :param address: The start address of image in target memory
         :param offset: The image offset
-        :param version: The version of boot image format
         :return: BootImage object
         """
         super().__init__(address, offset)
@@ -1395,11 +1394,11 @@ class KernelImg(object):
 
     @property
     def version(self):
-        return self._ivt.header.param
+        return self._ivt.version
 
     @version.setter
     def version(self, value):
-        self._ivt.header.param = value
+        self._ivt.version = value
 
     @property
     def app(self):

@@ -4,7 +4,6 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from io import BytesIO, BufferedReader
 from struct import pack, unpack_from, calcsize
 
 from .header import Header, Header2, SegTag, UnparsedException, CorruptedException
@@ -47,6 +46,9 @@ class BaseSegment(object):
     def __init__(self):
         self._padding = 0
 
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
+
     def __str__(self):
         return self.info()
 
@@ -79,12 +81,18 @@ class BaseSegment(object):
 
 class SegIVT2(BaseSegment):
     """ IVT2 segment """
+
     FORMAT = '<7L'
     SIZE = Header.SIZE + calcsize(FORMAT)
 
     @property
-    def header(self):
-        return self._header
+    def version(self):
+        return self._header.param
+
+    @version.setter
+    def version(self, value):
+        assert 0x40 <= value < 0x4F
+        self._header.param = value
 
     @property
     def size(self):
@@ -104,6 +112,19 @@ class SegIVT2(BaseSegment):
         self.ivt_address = 0
         self.csf_address = 0
         self.rs2 = 0
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegIVT2):
+            return False
+        if self.size != obj.size or \
+           self.version != obj.version or \
+           self.app_address != obj.app_address or \
+           self.dcd_address != obj.dcd_address or \
+           self.bdt_address != obj.bdt_address or \
+           self.ivt_address != obj.ivt_address or \
+           self.csf_address != obj.csf_address:
+            return False
+        return True
 
     def info(self):
         msg = ""
@@ -134,7 +155,7 @@ class SegIVT2(BaseSegment):
         """
         self.validate()
 
-        data = self.header.export()
+        data = self._header.export()
         data += pack(self.FORMAT, self.app_address, self.rs1, self.dcd_address, self.bdt_address, self.ivt_address,
                      self.csf_address, self.rs2)
         if padding:
@@ -164,6 +185,7 @@ class SegIVT2(BaseSegment):
         obj.validate()
         return obj
 
+
 class SegBDT(BaseSegment):
     """ Boot data segment """
     FORMAT = '<3L'
@@ -175,7 +197,7 @@ class SegBDT(BaseSegment):
 
     @plugin.setter
     def plugin(self, value):
-        assert value in (0, 1, 2), "Plugin value must be 0 or 1"
+        assert value in (0, 1, 2), "Plugin value must be 0 .. 2"
         self._plugin = value
 
     @property
@@ -192,6 +214,13 @@ class SegBDT(BaseSegment):
         self.start  = start
         self.length = length
         self.plugin = plugin
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegBDT):
+            return False
+        if self.size != obj.size or self.start != obj.start or self.length != obj.length or self.plugin != obj.plugin:
+            return False
+        return True
 
     def info(self):
         """ Get info of BDT segment
@@ -233,20 +262,31 @@ class SegAPP(BaseSegment):
 
     @data.setter
     def data(self, value):
+        assert isinstance(value, (bytes, bytearray))
         self._data = value
 
     @property
     def size(self):
-        return len(self._data)
+        return 0 if self._data is None else len(self._data)
 
     def __init__(self, data=None):
-        '''
-        :param data:
-        '''
+        """ Initialize APP segment
+        :param data: bytes
+        """
         super().__init__()
         self._data = data
 
+    def __eq__(self, obj):
+        if not isinstance(obj, SegAPP):
+            return False
+        if self._data != obj.data:
+            return False
+        return True
+
     def info(self):
+        """ Get info of APP segment
+        :return: string
+        """
         msg  = " Size: {0:d} Bytes\n".format(len(self._data))
         msg += "\n"
         return msg
@@ -256,7 +296,9 @@ class SegAPP(BaseSegment):
         :param padding: True if use padding (default: False)
         :return: bytes
         """
-        data = bytes(self._data)
+        data = b''
+        if self._data:
+            data += bytes(self._data)
         if padding:
             data += self._padding_export()
         return data
@@ -297,18 +339,15 @@ class SegDCD(BaseSegment):
         self._header.length = self._header.size
         self._commands = []
 
-    def __eq__(self, dcd):
-        if not isinstance(dcd, SegDCD):
+    def __eq__(self, obj):
+        if not isinstance(obj, SegDCD):
             return False
-        if len(self._commands) != len(dcd):
+        if len(self._commands) != len(obj):
             return False
-        for cmd in dcd:
+        for cmd in obj:
             if cmd not in self._commands:
                 return False
         return True
-
-    def __ne__(self, dcd):
-        return not self.__eq__(dcd)
 
     def __len__(self):
         return len(self._commands)
@@ -528,6 +567,7 @@ class SegDCD(BaseSegment):
 
 class SegCSF(BaseSegment):
     """ CSF segment """
+
     CMD_TYPES = (CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData)
 
     @property
@@ -560,14 +600,18 @@ class SegCSF(BaseSegment):
         self._enabled = enabled
         self._commands = []
 
+    def __eq__(self, obj):
+        if not isinstance(obj, SegCSF):
+            return False
+        if len(self._commands) != len(obj):
+            return False
+        for cmd in obj:
+            if cmd not in self._commands:
+                return False
+        return True
+
     def __len__(self):
         len(self._commands)
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def __getitem__(self, key):
         return self._commands[key]
@@ -652,12 +696,14 @@ class SegCSF(BaseSegment):
 
         return obj
 
+
 ########################################################################################################################
 # Boot Image V3 Segments (i.MX8QM-Ax, i.MX8QXP-Ax)
 ########################################################################################################################
 
 class SegIVT3a(BaseSegment):
     """ IVT3a segment """
+
     FORMAT = '<1L5Q'
     SIZE = Header.SIZE + calcsize(FORMAT)
 
@@ -682,6 +728,18 @@ class SegIVT3a(BaseSegment):
         self.ivt_address = 0
         self.csf_address = 0
         self.next = 0
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegIVT3a):
+            return False
+        if self.version != obj.version or \
+           self.dcd_address != obj.dcd_address or \
+           self.bdt_address != obj.bdt_address or \
+           self.ivt_address != obj.ivt_address or \
+           self.csf_address != obj.csf_address or \
+           self.next != obj.next:
+            return False
+        return True
 
     def info(self):
         msg = ""
@@ -739,6 +797,7 @@ class SegIVT3a(BaseSegment):
 
 class SegIVT3b(BaseSegment):
     """ IVT3b segment """
+
     FORMAT = '<1L7Q'
     SIZE = Header.SIZE + calcsize(FORMAT)
 
@@ -765,6 +824,18 @@ class SegIVT3b(BaseSegment):
         self.scd_address = 0
         self.rs2h = 0
         self.rs2l = 0
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegIVT3b):
+            return False
+        if self.header.param != obj.header.param or \
+           self.dcd_address != obj.dcd_address or \
+           self.bdt_address != obj.bdt_address or \
+           self.ivt_address != obj.ivt_address or \
+           self.csf_address != obj.csf_address or \
+           self.scd_address != obj.scd_address:
+            return False
+        return True
 
     def info(self):
         msg = ""
@@ -825,6 +896,7 @@ class SegIVT3b(BaseSegment):
 
 class SegIDS3a(BaseSegment):
     """ IDS3a segment """
+
     FORMAT = '<3Q4L'
     SIZE = calcsize(FORMAT)
 
@@ -842,6 +914,19 @@ class SegIDS3a(BaseSegment):
         self.hab_flags = 0
         self.scfw_flags = 0
         self.rom_flags = 0
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegIDS3a):
+            return False
+        if self.image_source != obj.image_source or \
+           self.image_destination != obj.image_destination or \
+           self.image_entry != obj.image_entry or \
+           self.image_size != obj.image_size or \
+           self.hab_flags != obj.hab_flags or \
+           self.scfw_flags != obj.scfw_flags or \
+           self.rom_flags != obj.rom_flags:
+            return False
+        return True
 
     def info(self):
         """ Get IDS3a segment info """
@@ -894,6 +979,7 @@ class SegIDS3a(BaseSegment):
 
 class SegBDS3a(BaseSegment):
     """ BDS3a segment """
+
     FORMAT = '<4L'
     HEADER_SIZE = calcsize(FORMAT)
     IMAGES_MAX_COUNT = 6
@@ -1116,7 +1202,7 @@ class SegBDS3b(BaseSegment):
 # Boot Image V4 Segments (i.MX8DM, i.MX8QM-Bx, i.MX8QXP-Bx)
 ########################################################################################################################
 
-class SegBootImage(BaseSegment):
+class SegBIM(BaseSegment):
     """ BootImage segment """
     FORMAT = '<2L2Q2L'
     SIZE = calcsize(FORMAT) + 64 + 32
@@ -1136,6 +1222,20 @@ class SegBootImage(BaseSegment):
         self.meta_data = 0
         self.image_hash = None
         self.image_iv = None
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegBIM):
+            return False
+        if self.image_offset != obj.image_offset or \
+           self.image_size != obj.image_size or \
+           self.load_address != obj.load_address or \
+           self.entry_address != obj.entry_address or \
+           self.hab_flags != obj.hab_flags or \
+           self.meta_data != obj.meta_data or \
+           self.image_hash != obj.image_hash or \
+           self.image_iv != obj.image_iv:
+            return False
+        return True
 
     def info(self):
         """ Get BootImage segment info """
@@ -1190,14 +1290,19 @@ class SegBootImage(BaseSegment):
         return obj
 
 
-class SegSigBlk(BaseSegment):
+class SegSIGB(BaseSegment):
     """ SignatureBlock segment """
+
     FORMAT = '<4HL'
-    SIZE = Header.SIZE + calcsize(FORMAT)
+    SIZE = Header2.SIZE + calcsize(FORMAT)
 
     @property
-    def header(self):
-        return self._header
+    def version(self):
+        return self._header.param
+
+    @version.setter
+    def version(self, value):
+        self._header.param = value
 
     @property
     def size(self):
@@ -1214,6 +1319,17 @@ class SegSigBlk(BaseSegment):
         self.signature_offset = 0
         self.reserved = 0
 
+    def __eq__(self, obj):
+        if not isinstance(obj, SegSIGB):
+            return False
+        if self.version != obj.version or \
+           self.srk_table_offset != obj.srk_table_offset or \
+           self.cert_offset != obj.cert_offset or \
+           self.blob_offset != obj.blob_offset or \
+           self.signature_offset != obj.signature_offset:
+            return False
+        return True
+
     def info(self):
         """ Get SignatureBlock segment info """
         msg  = " SRK Table Offset:   0x{:X}\n".format(self.srk_table_offset)
@@ -1228,7 +1344,7 @@ class SegSigBlk(BaseSegment):
         :param padding: True if use padding (default: False)
         :return: bytes
         """
-        data = self.header.export()
+        data = self._header.export()
         data += pack(self.FORMAT,
                      self.srk_table_offset, self.cert_offset, self.blob_offset, self.signature_offset, self.reserved)
         if padding:
@@ -1256,14 +1372,19 @@ class SegSigBlk(BaseSegment):
 
 class SegBIC1(BaseSegment):
     """ Boot Images Container segment """
+
     MAX_NUM_IMGS = 6
 
     FORMAT = '<LH2B2H'
-    SIZE = Header.SIZE + calcsize(FORMAT) + MAX_NUM_IMGS * SegBootImage.SIZE + SegSigBlk.SIZE + 8
+    SIZE = Header.SIZE + calcsize(FORMAT) + MAX_NUM_IMGS * SegBIM.SIZE + SegSIGB.SIZE + 8
 
     @property
-    def header(self):
-        return self._header
+    def version(self):
+        return self._header.param
+
+    @version.setter
+    def version(self, value):
+        self._header.param = value
 
     @property
     def size(self):
@@ -1282,10 +1403,24 @@ class SegBIC1(BaseSegment):
         self.images_count = 0
         self.sig_blk_offset = 0
         self.reserved = 0
-        self.images = [SegBootImage() for _ in range(self.MAX_NUM_IMGS)]
-        self.sig_blk_hdr = SegSigBlk()
+        self.images = [SegBIM() for _ in range(self.MAX_NUM_IMGS)]
+        self.sig_blk_hdr = SegSIGB()
         self.sig_blk_size = 0
         self.padding = 8
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SegBIC1):
+            return False
+        if self.flags != obj.flags or \
+           self.sw_version != obj.sw_version or \
+           self.fuse_version != obj.fuse_version or \
+           self.images_count != obj.images_count or \
+           self.sig_blk_offset != obj.sig_blk_offset or \
+           self.images != obj.images or \
+           self.sig_blk_hdr != obj.sig_blk_hdr or \
+           self.sig_blk_size != obj.sig_blk_size:
+            return False
+        return True
 
     def info(self):
         msg = ""
@@ -1313,7 +1448,7 @@ class SegBIC1(BaseSegment):
         """
         self.validate()
 
-        data = self.header.export()
+        data = self._header.export()
         data += pack(self.FORMAT,
                      self.flags,
                      self.sw_version,
@@ -1348,11 +1483,11 @@ class SegBIC1(BaseSegment):
 
         offset += calcsize(cls.FORMAT)
         for i in range(obj.images_count):
-            obj.images[i] = SegBootImage.parse(data[offset:])
-            offset += SegBootImage.SIZE
+            obj.images[i] = SegBIM.parse(data[offset:])
+            offset += SegBIM.SIZE
 
-        obj.sig_blk_hdr = SegSigBlk.parse(data[offset:])
-        offset += SegSigBlk.SIZE
+        obj.sig_blk_hdr = SegSIGB.parse(data[offset:])
+        offset += SegSIGB.SIZE
         obj.sig_blk_size = unpack_from('<L', data, offset)
 
         obj.validate()
