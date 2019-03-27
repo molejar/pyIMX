@@ -52,12 +52,16 @@ def test_imxim_create3b(script_runner):
 
 @pytest.mark.script_launch_mode('subprocess')
 def test_imxim_create(script_runner):
-    pass
+    ret = script_runner.run('imxim', 'create',
+                            os.path.join(DATA_DIR, 'imx7d_bootimg.yaml'),
+                            os.path.join(TEMP_DIR, 'imx7d_bootimg.imx'))
+    assert ret.success
 
 
 @pytest.mark.script_launch_mode('subprocess')
 def test_imxim_extract(script_runner):
-    pass
+    ret = script_runner.run('imxim', 'extract', os.path.join(TEMP_DIR, 'test_image.imx'))
+    assert ret.success
 
 
 @pytest.mark.script_launch_mode('subprocess')
