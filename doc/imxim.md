@@ -172,7 +172,7 @@ Create new i.MX6/7/RT boot image from attached files:
 ##### Example:
 
 ```sh
- $ imxim create -d dcd.bin 0x877FF000 u-boot.bin u-boot.imx
+ $ imxim create2a -d dcd.bin 0x877FF000 u-boot.bin u-boot.imx
 
  Image successfully created
  Path: u-boot.imx

@@ -106,10 +106,20 @@ class EnumItm(Enum):
 
 
 ########################################################################################################################
-# HAB Commands
+# Abstract Class
 ########################################################################################################################
 
 class CmdBase(object):
+
+    @property
+    def size(self):
+        return self._header.length
+
+    def __init__(self, tag, param, length=None):
+        self._header = Header(tag, param, length)
+
+    def __ne__(self, cmd):
+        return not self.__eq__(cmd)
 
     def __str__(self):
         return self.info()
@@ -118,10 +128,21 @@ class CmdBase(object):
         return self.info()
 
     def info(self):
-        pass
+        raise NotImplementedError()
+
+    def export(self):
+        raise NotImplementedError()
+
+    @classmethod
+    def parse(cls, data, offset=0):
+        raise NotImplementedError()
 
 
-class CmdWriteData(object):
+########################################################################################################################
+# HAB Commands
+########################################################################################################################
+
+class CmdWriteData(CmdBase):
     """ Write data command """
 
     @property
@@ -130,7 +151,7 @@ class CmdWriteData(object):
 
     @bytes.setter
     def bytes(self, value):
-        assert value in (1, 2, 4), "Unsupported Value !"
+        assert value in (1, 2, 4)
         self._header.param &= ~0x7
         self._header.param |= value
 
@@ -140,18 +161,14 @@ class CmdWriteData(object):
 
     @ops.setter
     def ops(self, value):
-        assert EnumWriteOps.is_valid(value), "Unsupported Value !"
+        assert EnumWriteOps.is_valid(value)
         self._header.param &= ~(0x3 << 3)
         self._header.param |= int(value) << 3
 
-    @property
-    def size(self):
-        return self._header.length
-
     def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE, data=None):
-        assert bytes in (1, 2, 4), "Unsupported Value !"
-        assert EnumWriteOps.is_valid(ops), "Unsupported Value !"
-        self._header = Header(tag=CmdTag.WRT_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
+        assert bytes in (1, 2, 4)
+        assert EnumWriteOps.is_valid(ops)
+        super().__init__(CmdTag.WRT_DAT, ((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._data = []
         if data is not None:
             assert isinstance(data, (list, tuple))
@@ -167,15 +184,6 @@ class CmdWriteData(object):
             if val not in self._data:
                 return False
         return True
-
-    def __ne__(self, cmd):
-        return not self.__eq__(cmd)
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def __len__(self):
         return len(self._data)
@@ -231,7 +239,7 @@ class CmdWriteData(object):
         return obj
 
 
-class CmdCheckData(object):
+class CmdCheckData(CmdBase):
     """ Check data command """
 
     @property
@@ -285,7 +293,7 @@ class CmdCheckData(object):
     def __init__(self, bytes=4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
         assert bytes in (1, 2, 4), "Unsupported Value !"
         assert EnumCheckOps.is_valid(ops), "Unsupported value !"
-        self._header = Header(tag=CmdTag.CHK_DAT, param=((int(ops) & 0x3) << 3) | (bytes & 0x7))
+        super().__init__(CmdTag.CHK_DAT, ((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._address = address
         self._mask = mask
         self._count = count
@@ -300,15 +308,6 @@ class CmdCheckData(object):
            self.count != cmd.count:
             return False
         return True
-
-    def __ne__(self, cmd):
-        return not self.__eq__(cmd)
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def info(self):
         msg  = "-" * 60 + "\n"
@@ -325,7 +324,7 @@ class CmdCheckData(object):
         raw_data = self._header.export()
         raw_data += pack(">LL", self._address, self._mask)
         if self._count is not None:
-            raw_data += pack(">L",self._count)
+            raw_data += pack(">L", self._count)
         return raw_data
 
     @classmethod
@@ -340,29 +339,16 @@ class CmdCheckData(object):
         return cls(bytes, ops, address, mask, count)
 
 
-class CmdNop(object):
+class CmdNop(CmdBase):
     """ Nop command """
 
-    @property
-    def size(self):
-        return self._header.length
-
     def __init__(self, param=0):
-        self._header = Header(tag=CmdTag.NOP, param=param)
+        super().__init__(CmdTag.NOP, param)
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdNop):
             return False
         return True
-
-    def __ne__(self, cmd):
-        return not self.__eq__(cmd)
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def info(self):
         msg = "-" * 60 + "\n"
@@ -381,7 +367,7 @@ class CmdNop(object):
         return cls(header.param)
 
 
-class CmdSet(object):
+class CmdSet(CmdBase):
     """ Set command """
 
     @property
@@ -390,16 +376,12 @@ class CmdSet(object):
 
     @itm.setter
     def itm(self, value):
-        assert EnumItm.is_valid(value), "uncorrected value !"
+        assert EnumItm.is_valid(value)
         self._header.param = int(value)
 
-    @property
-    def size(self):
-        return self._header.length
-
     def __init__(self, itm=EnumItm.ENG, data=None):
-        assert EnumItm.is_valid(itm), "uncorrected value !"
-        self._header = Header(tag=CmdTag.SET, param=itm)
+        assert EnumItm.is_valid(itm)
+        super().__init__(CmdTag.SET, itm)
         self._data = data if data else []
 
     def __eq__(self, cmd):
@@ -411,15 +393,6 @@ class CmdSet(object):
             if val not in self._data:
                 return False
         return True
-
-    def __ne__(self, cmd):
-        return not self.__eq__(cmd)
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def __len__(self):
         len(self._data)
@@ -440,8 +413,8 @@ class CmdSet(object):
         return msg
 
     def append(self, alg, eng, cfg):
-        assert EnumAlgorithm.is_valid(alg), "uncorrected value !"
-        assert EnumEngine.is_valid(eng), "uncorrected value !"
+        assert EnumAlgorithm.is_valid(alg), "Wrong Algorithm Value !"
+        assert EnumEngine.is_valid(eng), "Wrong Engine Value !"
         assert type(cfg) is int, "cfg value must be INT type"
         assert 0 <= cfg < 256, "cfg value out of range"
         self._data.append([alg, eng, cfg])
@@ -475,7 +448,7 @@ class CmdSet(object):
         return obj
 
 
-class CmdInitialize(object):
+class CmdInitialize(CmdBase):
     """ Initialize command """
 
     @property
@@ -484,23 +457,33 @@ class CmdInitialize(object):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value), "uncorrected value !"
+        assert EnumEngine.is_valid(value)
         self._header.param = int(value)
 
-    @property
-    def size(self):
-        return self._header.length
-
     def __init__(self, engine=EnumEngine.ANY, data=None):
-        assert EnumEngine.is_valid(engine), "uncorrected value !"
-        self._header = Header(tag=CmdTag.INIT, param=engine)
+        assert EnumEngine.is_valid(engine)
+        super().__init__(CmdTag.INIT, engine)
         self._data = data if data else []
 
-    def __str__(self):
-        return self.info()
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdInitialize):
+            return False
+        if self.size != cmd.size or self.engine != cmd.engine:
+            return False
+        # TODO: Compare data
+        return True
 
-    def __repr__(self):
-        return self.info()
+    def __len__(self):
+        len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
@@ -547,7 +530,7 @@ class CmdInitialize(object):
         return obj
 
 
-class CmdUnlock(object):
+class CmdUnlock(CmdBase):
     """ Unlock engine command """
 
     @property
@@ -556,23 +539,25 @@ class CmdUnlock(object):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value), "uncorrected value !"
+        assert EnumEngine.is_valid(value)
         self._header.param = int(value)
 
     @property
     def size(self):
         return self._header.size + len(self._data) * 4
 
-    def __init__(self, engine = EnumEngine.ANY, data=None):
-        assert EnumEngine.is_valid(engine), "uncorrected value !"
-        self._header = Header(tag=CmdTag.UNLK, param=engine)
+    def __init__(self, engine=EnumEngine.ANY, data=None):
+        assert EnumEngine.is_valid(engine)
+        super().__init__(CmdTag.UNLK, engine)
         self._data = data if data else []
 
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdUnlock):
+            return False
+        if self.size != cmd.size or self.engine != cmd.engine:
+            return False
+        # TODO: Compare data
+        return True
 
     def __len__(self):
         len(self._data)
@@ -629,101 +614,105 @@ class CmdUnlock(object):
         return obj
 
 
-class CmdInstallKey(object):
+class CmdInstallKey(CmdBase):
     """ Install key command """
+
     @property
     def param(self):
         return self._header.param
 
     @param.setter
     def param(self, value):
-        assert EnumInsKey.is_valid(value), "uncorrected value !"
+        assert EnumInsKey.is_valid(value)
         self._header.param = int(value)
 
     @property
-    def pcl(self):
+    def protocol(self):
         return self._pcl
 
-    @pcl.setter
-    def pcl(self, value):
-        assert EnumProtocol.is_valid(value), "uncorrected value !"
+    @protocol.setter
+    def protocol(self, value):
+        assert EnumProtocol.is_valid(value)
         self._pcl = int(value)
 
     @property
-    def alg(self):
+    def algorithm(self):
         return self._alg
 
-    @alg.setter
-    def alg(self, value):
-        assert EnumAlgorithm.is_valid(value), "uncorrected value !"
+    @algorithm.setter
+    def algorithm(self, value):
+        assert EnumAlgorithm.is_valid(value)
         self._alg = int(value)
 
     @property
-    def src(self):
+    def src_key_index(self):
         return self._src
 
-    @src.setter
-    def src(self, value):
+    @src_key_index.setter
+    def src_key_index(self, value):
         self._src = value
 
     @property
-    def tgt(self):
+    def tgt_key_index(self):
         return self._tgt
 
-    @tgt.setter
-    def tgt(self, value):
+    @tgt_key_index.setter
+    def tgt_key_index(self, value):
         self._tgt = value
 
     @property
-    def keydat(self):
-        return self._keydat
+    def key_data(self):
+        return self._key_data
 
-    @keydat.setter
-    def keydat(self, value):
-        self._keydat = value
+    @key_data.setter
+    def key_data(self, value):
+        self._key_data = value
 
     @property
     def size(self):
         return self._header.size + 8 + len(self._crthsh)
 
-    def __init__(self, param=EnumInsKey.CLR,
+    def __init__(self,
+                 param=EnumInsKey.CLR,
                  pcl=EnumProtocol.SRK,
                  alg=EnumAlgorithm.ANY,
                  src=0,
                  tgt=0,
                  keydat=0,
                  crthsh=None):
-        self._header = Header(tag=CmdTag.INS_KEY, param=param)
-        self.pcl = pcl
-        self.alg = alg
-        self.src = src
-        self.tgt = tgt
-        self._keydat = keydat
+        super().__init__(CmdTag.INS_KEY, param)
+        self.protocol = pcl
+        self.algorithm = alg
+        self.src_key_index = src
+        self.tgt_key_index = tgt
+        self._key_data = keydat
         self._crthsh = [] if crthsh is None else crthsh
 
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdInstallKey):
+            return False
+        if self.size != cmd.size or self.param != cmd.param or self.protocol != cmd.protocol or self.algorithm != cmd.algorithm or \
+           self.src_key_index != cmd.src_key_index or self.tgt_key_index != cmd.tgt_key_index or self.key_data != cmd.key_data:
+            return False
+        # TODO: Compare crthsh
+        return True
 
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Install Key Command\n"
-        print(" Flag:   {0:s}\n".format(EnumInsKey[self.param]))
-        msg += " Flag:   {0:s}\n".format(EnumInsKey[self.param])
-        msg += " Prot:   {0:s}\n".format(EnumProtocol[self.pcl])
-        msg += " Algo:   {0:s}\n".format(EnumAlgorithm[self.alg])
-        msg += " SrcKey: {0:d} (Source key index) \n".format(self.src)
-        msg += " TgtKey: {0:d} (Target key index) \n".format(self.tgt)
-        msg += " Addr:   0x{0:08X} (Start address of key data to install) \n".format(self.keydat)
+        msg += " Flag:   {:d} ({})\n".format(self.param, EnumInsKey.desc(self.param))
+        msg += " Prot:   {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
+        msg += " Algo:   {:d} ({})\n".format(self.algorithm, EnumAlgorithm.desc(self.algorithm))
+        msg += " SrcKey: {:d} (Source key index) \n".format(self.src_key_index)
+        msg += " TgtKey: {:d} (Target key index) \n".format(self.tgt_key_index)
+        msg += " Addr:   0x{:08X} (Start address of key data to install) \n".format(self.key_data)
         msg += "-" * 60 + "\n"
         return msg
 
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
-        raw_data += pack(">BBBBL", self.pcl, self.alg, self.src, self.tgt, self.keydat)
+        raw_data += pack(">BBBBL", self.protocol, self.algorithm, self.src_key_index, self.tgt_key_index, self.key_data)
         raw_data += self._crthsh
         return raw_data
 
@@ -735,15 +724,16 @@ class CmdInstallKey(object):
         return cls(header.param, pcl, alg, src, tgt, keydat, crthsh)
 
 
-class CmdAuthData(object):
+class CmdAuthData(CmdBase):
     """ Authenticate data command """
+
     @property
     def flag(self):
         return self._header.param
 
     @flag.setter
     def flag(self, value):
-        assert EnumAuthDat.is_valid(value), "uncorrected value !"
+        assert EnumAuthDat.is_valid(value)
         self._header.param = int(value)
 
     @property
@@ -755,29 +745,29 @@ class CmdAuthData(object):
         self._key = value
 
     @property
-    def pcl(self):
+    def protocol(self):
         return self._pcl
 
-    @pcl.setter
-    def pcl(self, value):
-        assert EnumProtocol.is_valid(value), "uncorrected value !"
+    @protocol.setter
+    def protocol(self, value):
+        assert EnumProtocol.is_valid(value)
         self._pcl = int(value)
 
     @property
-    def eng(self):
+    def engine(self):
         return self._eng
 
-    @eng.setter
-    def eng(self, value):
-        assert EnumEngine.is_valid(value), "uncorrected value !"
+    @engine.setter
+    def engine(self, value):
+        assert EnumEngine.is_valid(value)
         self._eng = int(value)
 
     @property
-    def cfg(self):
+    def conf(self):
         return self._cfg
 
-    @cfg.setter
-    def cfg(self, value):
+    @conf.setter
+    def conf(self, value):
         self._cfg = value
 
     @property
@@ -800,32 +790,41 @@ class CmdAuthData(object):
     def size(self):
         return self._header.size + 8 + 8 * len(self._blocks)
 
-    def __init__(self, flag=EnumAuthDat.CLR, key=0, pcl=EnumProtocol.SRK, eng=EnumEngine.ANY, cfg=0, auth_start=0,
+    def __init__(self,
+                 flag=EnumAuthDat.CLR,
+                 key=0,
+                 pcl=EnumProtocol.SRK,
+                 eng=EnumEngine.ANY,
+                 cfg=0,
+                 auth_start=0,
                  auth_data=None):
-        self._header = Header(CmdTag.AUT_DAT, flag)
+        super().__init__(CmdTag.AUT_DAT, flag)
         self.key = key
-        self.pcl = pcl
-        self.eng = eng
-        self.cfg = cfg
+        self.protocol = pcl
+        self.engine = eng
+        self.conf = cfg
         self.auth_start = auth_start
         self.auth_data = auth_data
         self._blocks = []
 
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
+    def __eq__(self, cmd):
+        if not isinstance(cmd, CmdAuthData):
+            return False
+        if self.size != cmd.size or self.flag != cmd.flag or self.key != cmd.key or self.protocol != cmd.protocol or \
+           self.engine != cmd.engine or self.conf != cmd.conf or self.auth_start != cmd.auth_start:
+            return False
+        # TODO: Compare auth_data and blocks
+        return True
 
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Auth Data Command\n"
-        msg += " Flag:   {0:s}\n".format(EnumAuthDat[self._header.param])
-        msg += " Prot:   {0:s}\n".format(EnumProtocol[self.pcl])
-        msg += " Engine: {0:s}\n".format(EnumEngine[self.eng])
-        msg += " Key:    {0:d} (Key index)\n".format(self.key)
-        msg += " Conf:   {0:d} (Configuration)\n".format(self.cfg)
-        msg += " Addr:   0x{0:08X} (Start address of authentication data) \n".format(self.auth_start)
+        msg += " Flag:   {:d} ({})\n".format(self.flag, EnumAuthDat.desc(self.flag))
+        msg += " Prot:   {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
+        msg += " Engine: {:d} ({})\n".format(self.engine, EnumEngine.desc(self.engine))
+        msg += " Key:    {:d} (Key index)\n".format(self.key)
+        msg += " Conf:   {:d} (Configuration)\n".format(self.conf)
+        msg += " Addr:   0x{:08X} (Start address of authentication data) \n".format(self.auth_start)
         msg += "-" * 60 + "\n"
         for blk in self._blocks:
             msg += "- Start: 0x{0:08X}, Length: {1:d} Bytes\n".format(blk[0], blk[1])
@@ -844,7 +843,7 @@ class CmdAuthData(object):
     def export(self):
         self._header.length = self.size
         raw_data  = self._header.export()
-        raw_data += pack(">BBBBL", self.key, self.pcl, self.eng, self.cfg, self.auth_start)
+        raw_data += pack(">BBBBL", self.key, self.protocol, self.engine, self.conf, self.auth_start)
         for blk in self._blocks:
             raw_data += pack(">2L", blk[0], blk[1])
         return raw_data

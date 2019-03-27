@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Martin Olejar
+# Copyright (c) 2019 Martin Olejar
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
@@ -17,7 +17,7 @@ DCD_BIN = os.path.join(DATA_DIR, 'dcd_test.bin')
 
 
 def setup_module(module):
-    # Prepare reference DCD
+    # Prepare reference DCD object
     global ref_dcd_obj
 
     ref_dcd_obj = img.SegDCD(enabled=True)
