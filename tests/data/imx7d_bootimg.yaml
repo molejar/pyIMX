@@ -1,0 +1,15 @@
+# Target general information's
+TARGET:  imx67
+OFFSET:  0x400
+ADDRESS: 0x877FF000
+VERSION: 0x41
+
+# Device Configuration Data
+DCD:
+  TYPE: TXT
+  PATH: dcd_test.txt
+
+# Collection of images
+IMAGES:
+  - TYPE: APP
+    PATH: dcd_test.bin
