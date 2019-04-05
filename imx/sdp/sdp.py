@@ -280,7 +280,7 @@ class SdpBase(object):
         """ Read value from reg/mem at specified address
         :param address: Start address of first register
         :param length: Count of bytes
-        :param format: Register access format 8, 16, 32 bytes
+        :param format: Register access format 8, 16, 32 bites
         :return {list} read data
         """
         if (address % (format // 8)) > 0:
@@ -302,7 +302,7 @@ class SdpBase(object):
         :param address: Start address of first register
         :param value: Register value
         :param count: Count of bytes (max 4)
-        :param format: Register access format 8, 16, 32 bytes
+        :param format: Register access format 8, 16, 32 bites
         """
         # Check if start address value is aligned
         if (address % (format // 8)) > 0:

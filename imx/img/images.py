@@ -22,9 +22,9 @@ def parse(buffer, step=0x100):
     :return: the object of boot image
     """
     if isinstance(buffer, (bytes, bytearray)):
-        buffer = BufferedReader(BytesIO(buffer))
+        buffer = BytesIO(buffer)
 
-    if not isinstance(buffer, BufferedReader):
+    if not isinstance(buffer, (BufferedReader, BytesIO)):
         raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
     start_index = buffer.tell()  # Get stream start index
@@ -294,9 +294,9 @@ class BootImg2(BootImgBase):
         :return: BootImg2 object
         """
         if isinstance(buffer, (bytes, bytearray)):
-            buffer = BufferedReader(BytesIO(buffer))
+            buffer = BytesIO(buffer)
 
-        if not isinstance(buffer, BufferedReader):
+        if not isinstance(buffer, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
         offset = buffer.tell()          # Get stream start index
@@ -530,9 +530,9 @@ class BootImg8m(BootImgBase):
         :return: BootImg2 object
         """
         if isinstance(buffer, (bytes, bytearray)):
-            buffer = BufferedReader(BytesIO(buffer))
+            buffer = BytesIO(buffer)
 
-        if not isinstance(buffer, BufferedReader):
+        if not isinstance(buffer, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
         offset = buffer.tell()          # Get stream start index
@@ -865,14 +865,14 @@ class BootImg3a(BootImgBase):
     @classmethod
     def parse(cls, buffer, step=0x100):
         """
-        :param data:
+        :param buffer:
         :param ivt_offset:
         :return:
         """
         if isinstance(buffer, (bytes, bytearray)):
-            buffer = BufferedReader(BytesIO(buffer))
+            buffer = BytesIO(buffer)
 
-        if not isinstance(buffer, BufferedReader):
+        if not isinstance(buffer, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
         offset = buffer.tell()          # Get stream start index
@@ -1232,9 +1232,9 @@ class BootImg3b(BootImgBase):
         :return:
         """
         if isinstance(buffer, (bytes, bytearray)):
-            buffer = BufferedReader(BytesIO(buffer))
+            buffer = BytesIO(buffer)
 
-        if not isinstance(buffer, BufferedReader):
+        if not isinstance(buffer, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
         offset = buffer.tell()          # Get stream start index
@@ -1342,9 +1342,9 @@ class BootImg4(BootImgBase):
     @classmethod
     def parse(cls, buffer, step=0x100):
         if isinstance(buffer, (bytes, bytearray)):
-            buffer = BufferedReader(BytesIO(buffer))
+            buffer = BytesIO(buffer)
 
-        if not isinstance(buffer, BufferedReader):
+        if not isinstance(buffer, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
 
         offset = buffer.tell()          # Get stream start index

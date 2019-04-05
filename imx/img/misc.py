@@ -9,9 +9,10 @@ from .header import Header
 
 
 def sizeof_fmt(num, use_kibibyte=True):
-    base, suffix = [(1000.,'B'),(1024.,'iB')][use_kibibyte]
+    base, suffix = [(1000., 'B'), (1024., 'iB')][use_kibibyte]
     for x in ['B'] + [x + suffix for x in list('kMGTP')]:
-        if -base < num < base: break
+        if -base < num < base:
+            break
         num /= base
     return "{0:3.1f} {1:s}".format(num, x)
 
