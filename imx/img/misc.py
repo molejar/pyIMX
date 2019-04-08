@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from io import BytesIO, BufferedReader
+from io import BytesIO, BufferedReader, SEEK_CUR
 from .header import Header
 
 
@@ -17,20 +17,27 @@ def sizeof_fmt(num, use_kibibyte=True):
     return "{0:3.1f} {1:s}".format(num, x)
 
 
-def read_raw_data(stream, length, index=None):
+def read_raw_data(stream, length, index=None, no_seek=False):
     if index is not None:
         if index < 0:
             raise ValueError(" Index must be non-negative, found {}".format(index))
         if index != stream.tell():
-            stream.seek(index, 0)
+            stream.seek(index)
+
     if length < 0:
         raise ValueError(" Length must be non-negative, found {}".format(length))
+
     try:
         data = stream.read(length)
     except Exception:
         raise Exception(" stream.read() failed, requested {} bytes".format(length))
+
     if len(data) != length:
         raise Exception(" Could not read enough bytes, expected {}, found {}".format(length, len(data)))
+
+    if no_seek:
+        stream.seek(-length, SEEK_CUR)
+
     return data
 
 

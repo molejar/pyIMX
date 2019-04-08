@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from io import BytesIO, BufferedReader
+from io import BytesIO, BufferedReader, SEEK_END, SEEK_CUR
 from .misc import read_raw_data, read_raw_segment
 from .header import Header, Header2
 from .segments import SegTag, SegIVT2, SegBDT, SegAPP, SegDCD, SegCSF, SegIVT3a, SegIVT3b, SegBDS3a, SegBDS3b, \
@@ -15,36 +15,39 @@ from .segments import SegTag, SegIVT2, SegBDT, SegAPP, SegDCD, SegCSF, SegIVT3a,
 # i.MX Image Public Methods
 ########################################################################################################################
 
-def parse(buffer, step=0x100):
+def parse(stream, step=0x100, size=None):
     """ Common parser for all versions of i.MX boot images
-    :param buffer: stream buffer to image
+    :param stream: stream buffer to image
     :param step: Image searching step
+    :param size: parsing size
     :return: the object of boot image
     """
-    if isinstance(buffer, (bytes, bytearray)):
-        buffer = BytesIO(buffer)
+    if isinstance(stream, (bytes, bytearray)):
+        stream = BytesIO(stream)
 
-    if not isinstance(buffer, (BufferedReader, BytesIO)):
-        raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+    if not isinstance(stream, (BufferedReader, BytesIO)):
+        raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-    start_index = buffer.tell()  # Get stream start index
-    buffer.seek(0, 2)            # Seek to end
-    last_index = buffer.tell()   # Get stream last index
-    buffer.seek(start_index, 0)  # Seek to start
+    # calculate stream size
+    start_index = stream.tell()
+    last_index = stream.seek(0, SEEK_END)
+    stream.seek(start_index)
 
-    while buffer.tell() < (last_index - Header.SIZE):
-        hrd = read_raw_data(buffer, Header.SIZE)
-        buffer.seek(-Header.SIZE, 1)
-        if   hrd[0] == SegTag.IVT2 and ((hrd[1] << 8) | hrd[2]) == SegIVT2.SIZE:
-            return BootImg2.parse(buffer)
-        elif hrd[0] == SegTag.IVT2 and ((hrd[1] << 8) | hrd[2]) == SegIVT3b.SIZE:
-            return BootImg3b.parse(buffer)
-        elif hrd[0] == SegTag.IVT3 and ((hrd[1] << 8) | hrd[2]) == SegIVT3a.SIZE:
-            return BootImg3a.parse(buffer)
-        elif hrd[3] == SegTag.BIC1:
-            return BootImg4.parse(buffer)
+    if size:
+        last_index = min(start_index + size, last_index)
+
+    while start_index < (last_index - Header.SIZE):
+        raw = read_raw_data(stream, Header.SIZE, no_seek=True)
+        if raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT2.SIZE and raw[3] in (0x40, 0x41, 0x42, 0x43):
+            return BootImg2.parse(stream)
+        elif raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT3b.SIZE and raw[3] in (0x43,):
+            return BootImg3b.parse(stream), start_index
+        elif raw[0] == SegTag.IVT3 and ((raw[1] << 8) | raw[2]) == SegIVT3a.SIZE and raw[3] in (0x43,):
+            return BootImg3a.parse(stream)
+        elif raw[3] == SegTag.BIC1:
+            return BootImg4.parse(stream)
         else:
-            buffer.seek(step, 1)
+            start_index = stream.seek(step, SEEK_CUR)
 
     raise Exception(' Not an i.MX Boot Image !')
 
@@ -101,7 +104,7 @@ class BootImgBase(object):
         raise NotImplementedError()
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
+    def parse(cls, stream, step=0x100, size=None):
         raise NotImplementedError()
 
 
@@ -241,24 +244,24 @@ class BootImg2(BootImgBase):
         msg = "#" * 60 + "\n"
         msg += "# IVT (Image Vector Table)\n"
         msg += "#" * 60 + "\n\n"
-        msg += str(self.ivt)
+        msg += self.ivt.info()
         # Print DBI
         msg += "#" * 60 + "\n"
         msg += "# BDI (Boot Data Info)\n"
         msg += "#" * 60 + "\n\n"
-        msg += str(self.bdt)
+        msg += self.bdt.info()
         # Print DCD
         if self.dcd.enabled:
             msg += "#" * 60 + "\n"
             msg += "# DCD (Device Config Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.dcd)
+            msg += self.dcd.info()
         # Print CSF
         if self.csf.enabled:
             msg += "#" * 60 + "\n"
             msg += "# CSF (Code Signing Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.csf)
+            msg += self.csf.info()
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
@@ -287,65 +290,68 @@ class BootImg2(BootImgBase):
         return data
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
+    def parse(cls, stream, step=0x100, size=None):
         """ Parse image from stream buffer or bytes array
-        :param buffer: The stream buffer or bytes array
-        :param step: The
+        :param stream: The stream buffer or bytes array
+        :param step: Image searching step
+        :param size: parsing size
         :return: BootImg2 object
         """
-        if isinstance(buffer, (bytes, bytearray)):
-            buffer = BytesIO(buffer)
+        if isinstance(stream, (bytes, bytearray)):
+            stream = BytesIO(stream)
 
-        if not isinstance(buffer, (BufferedReader, BytesIO)):
-            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+        if not isinstance(stream, (BufferedReader, BytesIO)):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-        offset = buffer.tell()          # Get stream start index
-        buffer.seek(0, 2)               # Seek to end
-        bufend = buffer.tell()          # Get stream last index
-        buffer.seek(offset, 0)          # Seek to start
-        buffer_size = bufend - offset   # Read buffer size
+        start_index = stream.tell()
+        last_index = stream.seek(0, SEEK_END)
+        stream.seek(start_index)
+
+        if size:
+            last_index = min(start_index + size, last_index)
 
         imx_image = False
-        while buffer.tell() < (buffer_size - Header.SIZE):
-            header = Header.parse(read_raw_data(buffer, Header.SIZE))
-            buffer.seek(-Header.SIZE, 1)
-            if header.tag == SegTag.IVT2 and \
-               header.length == SegIVT2.SIZE and \
+        while start_index < (last_index - Header.SIZE):
+            header = Header.parse(read_raw_data(stream, Header.SIZE, no_seek=True))
+            if header.tag == SegTag.IVT2 or \
+               header.length == SegIVT2.SIZE or \
                header.param in (0x40, 0x41, 0x42, 0x43):
-                offset = buffer.tell()
                 imx_image = True
                 break
             else:
-                buffer.seek(step, 1)
+                start_index = stream.seek(step, SEEK_CUR)
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
+        img_size = last_index - start_index
+        img_offset = start_index
+
         # Parse IVT
-        obj.ivt = SegIVT2.parse(read_raw_segment(buffer, SegTag.IVT2))
+        obj.ivt = SegIVT2.parse(read_raw_segment(stream, SegTag.IVT2))
         # Parse BDT
-        obj.bdt = SegBDT.parse(read_raw_data(buffer, SegBDT.SIZE))
+        obj.bdt = SegBDT.parse(read_raw_data(stream, SegBDT.SIZE))
         obj.offset = obj.ivt.ivt_address - obj.bdt.start
         obj.address = obj.bdt.start
         obj.plugin = True if obj.bdt.plugin else False
         # Parse DCD
         if obj.ivt.dcd_address:
-            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
+            obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
-        app_start = offset + (obj.ivt.app_address - obj.ivt.ivt_address)
+        app_start = img_offset + (obj.ivt.app_address - obj.ivt.ivt_address)
         app_size = obj.ivt.csf_address - obj.ivt.app_address if obj.ivt.csf_address else \
                    obj.bdt.length - (obj.bdt.start - obj.ivt.app_address)
-        app_size = buffer_size - app_start if app_size > (buffer_size - app_start) else app_size
-        obj.app.data = read_raw_data(buffer, app_size, app_start)
+        app_size = img_size - app_start if app_size > (img_size - app_start) else app_size
+        obj.app.data = read_raw_data(stream, app_size, app_start)
         obj.app.padding = 0
         # Parse CSF
         #if obj.ivt.csf_address:
         #    obj.csf = SegCSF.parse(buffer)
         #    obj.csf.padding = obj.bdt.length - ((obj.ivt.csf_address - obj.ivt.ivt_address) + obj.csf.size)
 
-        return obj
+        return obj, img_offset
 
 
 ########################################################################################################################
@@ -476,24 +482,24 @@ class BootImg8m(BootImgBase):
         msg = "#" * 60 + "\n"
         msg += "# IVT (Image Vector Table)\n"
         msg += "#" * 60 + "\n\n"
-        msg += str(self.ivt)
+        msg += self.ivt.info()
         # Print DBI
         msg += "#" * 60 + "\n"
         msg += "# BDI (Boot Data Info)\n"
         msg += "#" * 60 + "\n\n"
-        msg += str(self.bdt)
+        msg += self.bdt.info()
         # Print DCD
         if self.dcd.enabled:
             msg += "#" * 60 + "\n"
             msg += "# DCD (Device Config Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.dcd)
+            msg += self.dcd.info()
         # Print CSF
         if self.csf.enabled:
             msg += "#" * 60 + "\n"
             msg += "# CSF (Code Signing Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.csf)
+            msg += self.csf.info()
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
@@ -523,65 +529,68 @@ class BootImg8m(BootImgBase):
         return data
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
+    def parse(cls, stream, step=0x100, size=None):
         """ Parse image from stream buffer or bytes array
-        :param buffer: The stream buffer or bytes array
-        :param step: The
+        :param stream: The stream buffer or bytes array
+        :param step: Image searching step
+        :param size: parsing size
         :return: BootImg2 object
         """
-        if isinstance(buffer, (bytes, bytearray)):
-            buffer = BytesIO(buffer)
+        if isinstance(stream, (bytes, bytearray)):
+            stream = BytesIO(stream)
 
-        if not isinstance(buffer, (BufferedReader, BytesIO)):
-            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+        if not isinstance(stream, (BufferedReader, BytesIO)):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-        offset = buffer.tell()          # Get stream start index
-        buffer.seek(0, 2)               # Seek to end
-        bufend = buffer.tell()          # Get stream last index
-        buffer.seek(offset, 0)          # Seek to start
-        buffer_size = bufend - offset   # Read buffer size
+        start_index = stream.tell()
+        last_index = stream.seek(0, SEEK_END)
+        stream.seek(start_index)
+
+        if size:
+            last_index = min(start_index + size, last_index)
 
         imx_image = False
-        while buffer.tell() < (buffer_size - Header.SIZE):
-            header = Header.parse(read_raw_data(buffer, Header.SIZE))
-            buffer.seek(-Header.SIZE, 1)
-            if header.tag == SegTag.IVT2 and \
-               header.length == SegIVT2.SIZE and \
-               header.param in (0x40, 0x41, 0x42, 0x43):
-                offset = buffer.tell()
+        while start_index < (last_index - Header.SIZE):
+            header = Header.parse(read_raw_data(stream, Header.SIZE, no_seek=True))
+            if header.tag == SegTag.IVT2 or \
+                    header.length == SegIVT2.SIZE or \
+                    header.param in (0x40, 0x41, 0x42, 0x43):
                 imx_image = True
                 break
             else:
-                buffer.seek(step, 1)
+                start_index = stream.seek(step, SEEK_CUR)
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
+        img_size = last_index - start_index
+        img_offset = start_index
+
         # Parse IVT
-        obj.ivt = SegIVT2.parse(read_raw_segment(buffer, SegTag.IVT2))
+        obj.ivt = SegIVT2.parse(read_raw_segment(stream, SegTag.IVT2))
         # Parse BDT
-        obj.bdt = SegBDT.parse(read_raw_data(buffer, SegBDT.SIZE))
+        obj.bdt = SegBDT.parse(read_raw_data(stream, SegBDT.SIZE))
         obj.offset = obj.ivt.ivt_address - obj.bdt.start
         obj.address = obj.bdt.start
         obj.plugin = True if obj.bdt.plugin else False
         # Parse DCD
         if obj.ivt.dcd_address:
-            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
+            obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
-        app_start = offset + (obj.ivt.app_address - obj.ivt.ivt_address)
+        app_start = img_offset + (obj.ivt.app_address - obj.ivt.ivt_address)
         app_size = obj.ivt.csf_address - obj.ivt.app_address if obj.ivt.csf_address else \
                    obj.bdt.length - (obj.bdt.start - obj.ivt.app_address)
-        app_size = buffer_size - app_start if app_size > (buffer_size - app_start) else app_size
-        obj.app.data = read_raw_data(buffer, app_size, app_start)
+        app_size = img_size - app_start if app_size > (img_size - app_start) else app_size
+        obj.app.data = read_raw_data(stream, app_size, app_start)
         obj.app.padding = 0
         # Parse CSF
         #if obj.ivt.csf_address:
         #    obj.csf = SegCSF.parse(buffer)
         #    obj.csf.padding = obj.bdt.length - ((obj.ivt.csf_address - obj.ivt.ivt_address) + obj.csf.size)
 
-        return obj
+        return obj, img_offset
 
 
 ########################################################################################################################
@@ -751,7 +760,7 @@ class BootImg3a(BootImgBase):
             msg += "-" * 60 + "\n"
             msg += "- IVT[{}]\n".format(index)
             msg += "-" * 60 + "\n\n"
-            msg += str(ivt)
+            msg += ivt.info()
         # Print BDI
         msg += "#" * 60 + "\n"
         msg += "# BDI (Boot Data Info)\n"
@@ -760,19 +769,19 @@ class BootImg3a(BootImgBase):
             msg += "-" * 60 + "\n"
             msg += "- BDI[{}]\n".format(index)
             msg += "-" * 60 + "\n\n"
-            msg += str(bdi)
+            msg += bdi.info()
         # Print DCD
         if self.dcd.enabled:
             msg += "#" * 60 + "\n"
             msg += "# DCD (Device Config Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.dcd)
+            msg += self.dcd.info()
         # Print CSF
         if self.csf.enabled:
             msg += "#" * 60 + "\n"
             msg += "# CSF (Code Signing Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.csf)
+            msg += self.csf.info()
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
@@ -863,62 +872,63 @@ class BootImg3a(BootImgBase):
         return data
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
+    def parse(cls, stream, step=0x100, size=None):
+        """ Parse image from stream buffer or bytes array
+        :param stream: The stream buffer or bytes array
+        :param step: Image searching step
+        :param size: parsing size
+        :return: BootImg3a object
         """
-        :param buffer:
-        :param ivt_offset:
-        :return:
-        """
-        if isinstance(buffer, (bytes, bytearray)):
-            buffer = BytesIO(buffer)
+        if isinstance(stream, (bytes, bytearray)):
+            stream = BytesIO(stream)
 
-        if not isinstance(buffer, (BufferedReader, BytesIO)):
-            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+        if not isinstance(stream, (BufferedReader, BytesIO)):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-        offset = buffer.tell()          # Get stream start index
-        buffer.seek(0, 2)               # Seek to end
-        bufend = buffer.tell()          # Get stream last index
-        buffer.seek(offset, 0)          # Seek to start
-        buffer_size = bufend - offset   # Read buffer size
+        start_index = stream.tell()
+        last_index = stream.seek(0, SEEK_END)
+        stream.seek(start_index)
+
+        if size:
+            last_index = min(start_index + size, last_index)
 
         imx_image = False
-        while buffer.tell() < (buffer_size - Header.SIZE):
-            header = Header.parse(read_raw_data(buffer, Header.SIZE))
-            buffer.seek(-Header.SIZE, 1)
-            if header.tag == SegTag.IVT3 and \
-               header.length == SegIVT3a.SIZE and \
+        while start_index < (last_index - Header.SIZE):
+            header = Header.parse(read_raw_data(stream, Header.SIZE, no_seek=True))
+            if header.tag == SegTag.IVT3 or header.length == SegIVT3a.SIZE or \
                header.param in (0x43,):
-                offset = buffer.tell()
                 imx_image = True
                 break
             else:
-                buffer.seek(step, 1)
+                start_index = stream.seek(step, SEEK_CUR)
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
+        img_size = last_index - start_index
+        img_offset = start_index
         # Parse IVT
-        obj.ivt[0] = SegIVT3a.parse(read_raw_segment(buffer, SegTag.IVT3))
-        obj.ivt[1] = SegIVT3a.parse(read_raw_segment(buffer, SegTag.IVT3))
+        obj.ivt[0] = SegIVT3a.parse(read_raw_segment(stream, SegTag.IVT3))
+        obj.ivt[1] = SegIVT3a.parse(read_raw_segment(stream, SegTag.IVT3))
         # Parse BDT
-        obj.bdt[0] = SegBDS3a.parse(read_raw_data(buffer, SegBDS3a.SIZE))
-        obj.bdt[1] = SegBDS3a.parse(read_raw_data(buffer, SegBDS3a.SIZE))
+        obj.bdt[0] = SegBDS3a.parse(read_raw_data(stream, SegBDS3a.SIZE))
+        obj.bdt[1] = SegBDS3a.parse(read_raw_data(stream, SegBDS3a.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
-            buffer.seek(offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
-            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
+            stream.seek(img_offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
+            obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
         # Parse CSF
         if obj.ivt[0].csf_address:
-            buffer.seek(offset + (obj.ivt[0].csf_address - obj.ivt[0].ivt_address), 0)
-            obj.csf = SegCSF.parse(read_raw_segment(buffer, SegTag.CSF))
+            stream.seek(img_offset + (obj.ivt[0].csf_address - obj.ivt[0].ivt_address), 0)
+            obj.csf = SegCSF.parse(read_raw_segment(stream, SegTag.CSF))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
-                buffer.seek(obj.bdt[container].images[i].image_source - obj.offset + offset, 0)
-                obj.app[container][i].data = read_raw_data(buffer, obj.bdt[container].images[i].image_size)
+                stream.seek(obj.bdt[container].images[i].image_source - obj.offset + img_offset, 0)
+                obj.app[container][i].data = read_raw_data(stream, obj.bdt[container].images[i].image_size)
 
-        return obj
+        return obj, img_offset
 
 
 ########################################################################################################################
@@ -1112,7 +1122,7 @@ class BootImg3b(BootImgBase):
             msg += "-" * 60 + "\n"
             msg += "- IVT[{}]\n".format(index)
             msg += "-" * 60 + "\n\n"
-            msg += str(ivt)
+            msg += ivt.info()
         # Print BDI
         msg += "#" * 60 + "\n"
         msg += "# BDI (Boot Data Info)\n"
@@ -1121,19 +1131,19 @@ class BootImg3b(BootImgBase):
             msg += "-" * 60 + "\n"
             msg += "- BDI[{}]\n".format(index)
             msg += "-" * 60 + "\n\n"
-            msg += str(bdi)
+            msg += bdi.info()
         # Print DCD
         if self.dcd.enabled:
             msg += "#" * 60 + "\n"
             msg += "# DCD (Device Config Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.dcd)
+            msg += self.dcd.info()
         # Print CSF
         if self.csf.enabled:
             msg += "#" * 60 + "\n"
             msg += "# CSF (Code Signing Data)\n"
             msg += "#" * 60 + "\n\n"
-            msg += str(self.csf)
+            msg += self.csf.info()
         return msg
 
     def add_image(self, data, img_type=EnumAppType.APP, address=0):
@@ -1225,66 +1235,67 @@ class BootImg3b(BootImgBase):
         return data
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
-        """ Parse
-        :param buffer:
-        :param step:
-        :return:
+    def parse(cls, stream, step=0x100, size=None):
+        """ Parse image from stream buffer or bytes array
+        :param stream: The stream buffer or bytes array
+        :param step: Image searching step
+        :param size: parsing size
+        :return: BootImg3b object
         """
-        if isinstance(buffer, (bytes, bytearray)):
-            buffer = BytesIO(buffer)
+        if isinstance(stream, (bytes, bytearray)):
+            stream = BytesIO(stream)
 
-        if not isinstance(buffer, (BufferedReader, BytesIO)):
-            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+        if not isinstance(stream, (BufferedReader, BytesIO)):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-        offset = buffer.tell()          # Get stream start index
-        buffer.seek(0, 2)               # Seek to end
-        bufend = buffer.tell()          # Get stream last index
-        buffer.seek(offset, 0)          # Seek to start
-        buffer_size = bufend - offset   # Read buffer size
+        start_index = stream.tell()
+        last_index = stream.seek(0, SEEK_END)
+        stream.seek(start_index)
+
+        if size:
+            last_index = min(start_index + size, last_index)
 
         imx_image = False
-        while buffer.tell() < (buffer_size - Header.SIZE):
-            header = Header.parse(read_raw_data(buffer, Header.SIZE))
-            buffer.seek(-Header.SIZE, 1)
-            if header.tag == SegTag.IVT2 and \
-               header.length == SegIVT3b.SIZE and \
+        while start_index < (last_index - Header.SIZE):
+            header = Header.parse(read_raw_data(stream, Header.SIZE, no_seek=True))
+            if header.tag == SegTag.IVT2 or header.length == SegIVT3b.SIZE or \
                header.param in (0x43,):
-                offset = buffer.tell()
                 imx_image = True
                 break
             else:
-                buffer.seek(step, 1)
+                start_index = stream.seek(step, SEEK_CUR)
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
+        img_size = last_index - start_index
+        img_offset = start_index
         # Parse IVT
-        obj.ivt[0] = SegIVT3b.parse(read_raw_segment(buffer, SegTag.IVT2))
-        obj.ivt[1] = SegIVT3b.parse(read_raw_segment(buffer, SegTag.IVT2))
+        obj.ivt[0] = SegIVT3b.parse(read_raw_segment(stream, SegTag.IVT2))
+        obj.ivt[1] = SegIVT3b.parse(read_raw_segment(stream, SegTag.IVT2))
         # Parse BDT
-        obj.bdt[0] = SegBDS3b.parse(read_raw_data(buffer, SegBDS3b.SIZE))
-        obj.bdt[1] = SegBDS3b.parse(read_raw_data(buffer, SegBDS3b.SIZE))
+        obj.bdt[0] = SegBDS3b.parse(read_raw_data(stream, SegBDS3b.SIZE))
+        obj.bdt[1] = SegBDS3b.parse(read_raw_data(stream, SegBDS3b.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
-            buffer.seek(offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
-            obj.dcd = SegDCD.parse(read_raw_segment(buffer, SegTag.DCD))
+            stream.seek(img_offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
+            obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
-                buffer.seek(obj.bdt[container].images[i].image_source - obj.offset + offset, 0)
-                obj.app[container][i].data = read_raw_data(buffer, obj.bdt[container].images[i].image_size)
+                stream.seek(obj.bdt[container].images[i].image_source - obj.offset + img_offset, 0)
+                obj.app[container][i].data = read_raw_data(stream, obj.bdt[container].images[i].image_size)
         # Parse SCD
         if obj.bdt[0].scd.image_source != 0:
-            buffer.seek(obj.bdt[0].scd.image_source - obj.offset + offset, 0)
-            obj.scd.data = read_raw_data(buffer, obj.bdt[0].scd.image_size)
+            stream.seek(obj.bdt[0].scd.image_source - obj.offset + img_offset, 0)
+            obj.scd.data = read_raw_data(stream, obj.bdt[0].scd.image_size)
         # Parse CSF
         if obj.bdt[0].csf.image_source != 0:
-            buffer.seek(obj.bdt[0].csf.image_source - obj.offset + offset, 0)
-            obj.csf = SegCSF.parse(read_raw_segment(buffer, SegTag.CSF))
+            stream.seek(obj.bdt[0].csf.image_source - obj.offset + img_offset, 0)
+            obj.csf = SegCSF.parse(read_raw_segment(stream, SegTag.CSF))
 
-        return obj
+        return obj, img_offset
 
 
 ########################################################################################################################
@@ -1340,39 +1351,47 @@ class BootImg4(BootImgBase):
         return data
 
     @classmethod
-    def parse(cls, buffer, step=0x100):
-        if isinstance(buffer, (bytes, bytearray)):
-            buffer = BytesIO(buffer)
+    def parse(cls, stream, step=0x100, size=None):
+        """ Parse image from stream buffer or bytes array
+        :param stream: The stream buffer or bytes array
+        :param step: Image searching step
+        :param size: parsing size
+        :return: BootImg4 object
+        """
+        if isinstance(stream, (bytes, bytearray)):
+            stream = BytesIO(stream)
 
-        if not isinstance(buffer, (BufferedReader, BytesIO)):
-            raise TypeError(" Not correct value type: \"{}\" !".format(type(buffer)))
+        if not isinstance(stream, (BufferedReader, BytesIO)):
+            raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
-        offset = buffer.tell()          # Get stream start index
-        buffer.seek(0, 2)               # Seek to end
-        bufend = buffer.tell()          # Get stream last index
-        buffer.seek(offset, 0)          # Seek to start
-        buffer_size = bufend - offset   # Read buffer size
+        start_index = stream.tell()
+        last_index = stream.seek(0, SEEK_END)
+        stream.seek(start_index)
+
+        if size:
+            last_index = min(start_index + size, last_index)
 
         imx_image = False
-        while buffer.tell() < (buffer_size - Header2.SIZE):
-            header = Header2.parse(read_raw_data(buffer, Header2.SIZE))
-            buffer.seek(-Header2.SIZE, 1)
+        while start_index < (last_index - Header.SIZE):
+            header = Header.parse(read_raw_data(stream, Header2.SIZE, no_seek=True))
             if header.tag == SegTag.BIC1:
-                offset = buffer.tell()
                 imx_image = True
                 break
             else:
-                buffer.seek(step, 1)
+                start_index = stream.seek(step, SEEK_CUR)
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
+        img_size = last_index - start_index
+        img_offset = start_index
+
         # Parse Containers
-        obj._cont1_header = SegBIC1.parse(read_raw_data(buffer, 0x400))
-        obj._cont2_header = SegBIC1.parse(read_raw_data(buffer, 0x400))
+        obj._cont1_header = SegBIC1.parse(read_raw_data(stream, 0x400))
+        obj._cont2_header = SegBIC1.parse(read_raw_data(stream, 0x400))
         # TODO: Complete Implementation
-        return obj
+        return obj, img_offset
 
 
 ########################################################################################################################

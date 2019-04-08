@@ -118,17 +118,17 @@ def info(offset, type, step, file):
         with open(file, 'rb') as stream:
             stream.seek(offset)
             if type == "auto":
-                boot_image = parse(stream, step)
+                boot_image, offset = parse(stream, step)
             else:
                 img_type = {'67RT': BootImg2,
                             '8M': BootImg2,
                             '8QXP_A0': BootImg3a,
                             '8QM_A0': BootImg3b,
                             '8X': BootImg4}
-                boot_image = img_type[type].parse(stream, step)
+                boot_image, offset = img_type[type].parse(stream, step)
 
         # print image info
-        click.echo(str(boot_image))
+        click.echo(boot_image.info())
 
     except Exception as e:
         click.echo(str(e) if str(e) else "Unknown Error !")
@@ -462,7 +462,10 @@ def extract(file, type, offset, step, embedded):
         # Open and parse IMX img
         with open(file, 'rb') as buffer:
             buffer.seek(offset)
-            img_obj = parse(buffer, step) if type == "auto" else img_type[type].parse(buffer, step)
+            if type == "auto":
+                img_obj, img_offset = parse(buffer, step)
+            else:
+                img_obj, img_offset = img_type[type].parse(buffer, step)
 
         # Create extract directory
         file_path, file_name = os.path.split(file)
@@ -576,7 +579,6 @@ def extract(file, type, offset, step, embedded):
                 yaml_string += '  DATA: |\n'
                 dcd_txt = img_obj.dcd.export_txt()
                 for line in dcd_txt.split('\n'):
-                    #if line.strip():
                     yaml_string += '    {}\n'.format(line)
             else:
                 yaml_string += '  PATH: dcd.txt\n'

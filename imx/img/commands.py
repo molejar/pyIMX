@@ -121,12 +121,6 @@ class CmdBase(object):
     def __ne__(self, cmd):
         return not self.__eq__(cmd)
 
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
-
     def info(self):
         raise NotImplementedError()
 
