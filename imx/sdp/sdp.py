@@ -280,11 +280,11 @@ class SdpBase(object):
         """ Read value from reg/mem at specified address
         :param address: Start address of first register
         :param length: Count of bytes
-        :param format: Register access format 8, 16, 32 bites
+        :param format: Register access format 8, 16, 32 bits
         :return {list} read data
         """
         if (address % (format // 8)) > 0:
-            raise Exception('Address <0x%08X> not aligned to %s bites' % (address, format))
+            raise Exception('Address <0x%08X> not aligned to %s bits' % (address, format))
 
         align = length % (format // 8)
         if align > 0:
@@ -302,11 +302,11 @@ class SdpBase(object):
         :param address: Start address of first register
         :param value: Register value
         :param count: Count of bytes (max 4)
-        :param format: Register access format 8, 16, 32 bites
+        :param format: Register access format 8, 16, 32 bits
         """
         # Check if start address value is aligned
         if (address % (format // 8)) > 0:
-            raise Exception('Address <0x%08X> not aligned to %s bites' % (address, format))
+            raise Exception('Address <0x%08X> not aligned to %s bits' % (address, format))
         # Align count value if doesnt
         align = count % (format // 8)
         if align > 0:
@@ -426,7 +426,8 @@ class SdpMXRT(SdpBase):
     # Supported i.MXRT Devices
     DEVICES = {
         # NAME   | VID   | PID
-        'MXRT':  (0x1FC9, 0x0130),
+        'MXRT50':  (0x1FC9, 0x0130),
+        'MXRT60':  (0x1FC9, 0x0135),
     }
 
     def write_csf(self, address, data):

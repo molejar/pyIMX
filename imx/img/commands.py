@@ -639,32 +639,8 @@ class CmdInstallKey(CmdBase):
         self._alg = int(value)
 
     @property
-    def src_key_index(self):
-        return self._src
-
-    @src_key_index.setter
-    def src_key_index(self, value):
-        self._src = value
-
-    @property
-    def tgt_key_index(self):
-        return self._tgt
-
-    @tgt_key_index.setter
-    def tgt_key_index(self, value):
-        self._tgt = value
-
-    @property
-    def key_data(self):
-        return self._key_data
-
-    @key_data.setter
-    def key_data(self, value):
-        self._key_data = value
-
-    @property
     def size(self):
-        return self._header.size + 8 + len(self._crthsh)
+        return self._header.size + 8
 
     def __init__(self,
                  param=EnumInsKey.CLR,
@@ -672,50 +648,50 @@ class CmdInstallKey(CmdBase):
                  alg=EnumAlgorithm.ANY,
                  src=0,
                  tgt=0,
-                 keydat=0,
-                 crthsh=None):
+                 location=0):
         super().__init__(CmdTag.INS_KEY, param)
         self.protocol = pcl
         self.algorithm = alg
-        self.src_key_index = src
-        self.tgt_key_index = tgt
-        self._key_data = keydat
-        self._crthsh = [] if crthsh is None else crthsh
+        self.source_index = src
+        self.target_index = tgt
+        self.location = location
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdInstallKey):
             return False
-        if self.size != cmd.size or self.param != cmd.param or self.protocol != cmd.protocol or self.algorithm != cmd.algorithm or \
-           self.src_key_index != cmd.src_key_index or self.tgt_key_index != cmd.tgt_key_index or self.key_data != cmd.key_data:
+        if self.size != cmd.size or \
+           self.param != cmd.param or \
+           self.protocol != cmd.protocol or \
+           self.algorithm != cmd.algorithm or \
+           self.source_index != cmd.source_index or \
+           self.target_index != cmd.target_index or \
+           self.location != cmd.location:
             return False
-        # TODO: Compare crthsh
         return True
 
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Install Key Command\n"
-        msg += " Flag:   {:d} ({})\n".format(self.param, EnumInsKey.desc(self.param))
-        msg += " Prot:   {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
-        msg += " Algo:   {:d} ({})\n".format(self.algorithm, EnumAlgorithm.desc(self.algorithm))
-        msg += " SrcKey: {:d} (Source key index) \n".format(self.src_key_index)
-        msg += " TgtKey: {:d} (Target key index) \n".format(self.tgt_key_index)
-        msg += " Addr:   0x{:08X} (Start address of key data to install) \n".format(self.key_data)
+        msg += " Flag:    {:d} ({})\n".format(self.param, EnumInsKey.desc(self.param))
+        msg += " Prot:    {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
+        msg += " Algo:    {:d} ({})\n".format(self.algorithm, EnumAlgorithm.desc(self.algorithm))
+        msg += " SrcKey:  {:d} (Source key index) \n".format(self.source_index)
+        msg += " TgtKey:  {:d} (Target key index) \n".format(self.target_index)
+        msg += " Location:0x{:08X} (Start address of key data to install) \n".format(self.location)
         msg += "-" * 60 + "\n"
         return msg
 
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
-        raw_data += pack(">BBBBL", self.protocol, self.algorithm, self.src_key_index, self.tgt_key_index, self.key_data)
-        raw_data += self._crthsh
+        raw_data += pack(">BBBBL", self.protocol, self.algorithm, self.source_index, self.target_index, self.location)
         return raw_data
 
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, CmdTag.INS_KEY)
         pcl, alg, src, tgt, keydat = unpack_from(">BBBBL", data, offset + header.size)
-        crthsh = data[offset + header.size + 8 : offset + header.size + 8 + header.length]
-        return cls(header.param, pcl, alg, src, tgt, keydat, crthsh)
+        return cls(header.param, pcl, alg, src, tgt, keydat)
 
 
 class CmdAuthData(CmdBase):

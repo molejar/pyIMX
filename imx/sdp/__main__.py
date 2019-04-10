@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2017-2018 Martin Olejar
+# Copyright (c) 2018 Martin Olejar
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
@@ -11,6 +11,7 @@ import sys
 import imx
 import click
 import struct
+import bincopy
 import logging
 import traceback
 
@@ -106,6 +107,7 @@ def hexdump(data, saddr=0, compress=True, length=16, sep='.'):
 # [mx6DQ, mx6SDL, mx6SL, mx6SX, mx6UL, mx6ULL]
 mx6Codes = [0x63, 0x61, 0x60, 0x62, 0x64, 0x65]
 mx7Codes = [0x72]
+
 
 # Create list of ROM addresses for reading USB VID/PID
 # Search elf file for a2 15 or c9 1f subtract elf offset (0x38 or 0x60 or 0x34)
@@ -331,7 +333,7 @@ def cli(ctx, target, debug):
 @cli.command(short_help="Read i.MX device info")
 @click.pass_context
 def info(ctx):
-    ''' Read detailed information's about HAB and Chip from connected IMX device'''
+    """ Read detailed information's about HAB and Chip from connected IMX device"""
 
     error = False
 
@@ -455,9 +457,9 @@ def info(ctx):
 @click.option('-f', '--file', type=click.Path(readable=False), help="Output file name")
 @click.pass_context
 def read(ctx, address, length, size, compress, file):
-    ''' Read raw data from specified address in connected IMX device.
+    """ Read raw data from specified address in connected IMX device.
         The address value must be aligned to selected access size !
-    '''
+    """
 
     error = False
     # Create Flasher instance
@@ -468,7 +470,7 @@ def read(ctx, address, length, size, compress, file):
         flasher.open()
         # Read data from IMX Device
         data = flasher.read(address, length, int(size))
-    except imx.sdp.SdpGenericError as e:
+    except Exception as e:
         error = True
         if ctx.obj['DEBUG']:
             error_msg = '\n' + traceback.format_exc()
@@ -483,8 +485,20 @@ def read(ctx, address, length, size, compress, file):
             if ctx.obj['DEBUG']: click.echo()
             click.echo(hexdump(data, address, compress))
         else:
-            with open(file, "wb") as f:
-                f.write(data)
+            if file.lower().endswith(('.s19', '.srec')):
+                srec = bincopy.BinFile()
+                srec.add_binary(data, address)
+                srec.header = 'imxsd'
+                with open(file, "w") as f:
+                    f.write(srec.as_srec())
+            elif file.lower().endswith(('.hex', '.ihex')):
+                ihex = bincopy.BinFile()
+                ihex.add_binary(data, address)
+                with open(file, "w") as f:
+                    f.write(ihex.as_ihex())
+            else:
+                with open(file, "wb") as f:
+                    f.write(data)
 
             if ctx.obj['DEBUG']: click.echo()
             click.secho(" - Successfully saved into: %s." % file)
@@ -501,9 +515,9 @@ def read(ctx, address, length, size, compress, file):
 @click.option('-f', '--format', type=click.Choice(['b', 'x', 'd']), default='x', show_default=True, help='Value Format')
 @click.pass_context
 def rreg(ctx, address, count, size, format):
-    ''' Read value of register or memory at specified address from connected i.MX device.
+    """ Read value of register or memory at specified address from connected i.MX device.
         The address value must be aligned to selected access size !
-    '''
+    """
 
     error = False
     reg_size = int(size) // 8
@@ -557,9 +571,9 @@ def rreg(ctx, address, count, size, format):
 @click.option('-b', '--bytes', type=click.IntRange(1, 4, True), default=4, show_default=True, help='Count of Bytes')
 @click.pass_context
 def wreg(ctx, address, value, size, bytes):
-    ''' Write value into register or memory at specified address in connected IMX device.
+    """ Write value into register or memory at specified address in connected IMX device.
         The address value must be aligned to selected access size !
-    '''
+    """
 
     error = False
 
@@ -599,9 +613,10 @@ def wreg(ctx, address, value, size, bytes):
 @click.option('-s/','--skipdcd/', is_flag=True, default=False, help='Skip DCD Header from *.imx img')
 @click.pass_context
 def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
-    ''' Write image file (uboot.imx, uImage, ...) into i.MX device and RUN it '''
+    """ Write image file (uboot.imx, uImage, ...) into i.MX device and RUN it """
 
     error = False
+    in_data = bincopy.BinFile()
 
     # Create Flasher instance
     flasher = scan_usb(ctx.obj['TARGET'])
@@ -630,6 +645,16 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
 
                 if flasher.device_name in ('MX6UL', 'MX6ULL', 'MX6SLL', 'MX7SD', 'MX7ULP'):
                     skipdcd = True
+        elif file.lower().endswith(('.hex', '.ihex')):
+            in_data.add_ihex_file(file)
+            data = in_data.as_binary()
+            if addr is None:
+                addr = in_data.minimum_address
+        elif file.lower().endswith(('.s19', '.srec')):
+            in_data.add_srec_file(file)
+            data = in_data.as_binary()
+            if addr is None:
+                addr = in_data.minimum_address
         else:
             if addr is None:
                 raise Exception('Argument: -a/--addr must be specified !')
@@ -680,7 +705,7 @@ def wimg(ctx, addr, offset, ocram, init, run, skipdcd, file):
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wdcd(ctx, address, file, offset):
-    ''' Write Device Configuration Data into i.MX device '''
+    """ Write Device Configuration Data into i.MX device """
 
     error = False
 
@@ -732,7 +757,7 @@ def wdcd(ctx, address, file, offset):
 @click.option('-o', '--offset', type=UINT, default=0, show_default=True, help='Offset of input data')
 @click.pass_context
 def wcsf(ctx, address, file, offset):
-    ''' Write Code Signing File file into i.MX device '''
+    """ Write Code Signing File file into i.MX device """
 
     error = False
 
@@ -778,7 +803,7 @@ def wcsf(ctx, address, file, offset):
 @click.argument('address', nargs=1, type=UINT)
 @click.pass_context
 def jump(ctx, address):
-    ''' Jump to specified address and RUN i.MX device '''
+    """ Jump to specified address and RUN i.MX device """
 
     error = False
 
@@ -811,7 +836,7 @@ def jump(ctx, address):
 @cli.command(short_help="Read status of i.MX device")
 @click.pass_context
 def stat(ctx):
-    ''' Read status of i.MX device '''
+    """ Read status of i.MX device """
 
     error = False
 

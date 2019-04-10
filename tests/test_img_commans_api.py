@@ -82,9 +82,9 @@ def test_install_key_cmd():
     assert cmd.param == img.EnumInsKey.CLR
     assert cmd.protocol == img.EnumProtocol.SRK
     assert cmd.algorithm == img.EnumAlgorithm.ANY
-    assert cmd.src_key_index == 0
-    assert cmd.tgt_key_index == 0
-    assert cmd.key_data == 0
+    assert cmd.source_index == 0
+    assert cmd.target_index == 0
+    assert cmd.location == 0
     assert cmd.size == 12
 
 

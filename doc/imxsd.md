@@ -158,7 +158,7 @@ Read raw data from a specified address in connected i.MX/Vybrid device.
 ##### options:
 * **-s, --size** - Access size: 8, 16 or 32 (default: 32)
 * **-c, --compress** - Compress hexdump output
-* **-f, --file** - Output file name with extension: *.bin
+* **-f, --file** - Output file name with extension: *.srec, *.s19, *.ihex or *.bin
 * **-?, --help** - Show help message and exit
 
 ##### Example (IMX7D):
@@ -190,7 +190,7 @@ Read raw data from a specified address in connected i.MX/Vybrid device.
 
 #### $ imxsd wimg [OPTIONS] FILE
 
-Write image file into connected device. Supported extensions: *.imx, *.bin
+Write image file into connected device. Supported extensions: *.imx, *.ihex, *.srec, *.s19 or *.bin
 
 ##### options:
 * **-a, --addr** - Start address (required for *.bin file)
