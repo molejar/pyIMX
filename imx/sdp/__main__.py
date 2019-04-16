@@ -299,7 +299,7 @@ def scan_usb(device_name):
             i = 0
             click.echo('')
             for fsl in fsls:
-                click.secho(" %d) %s" % (i, fsl.usbd.info))
+                click.secho(" %d) %s" % (i, fsl.usbd.info()))
                 i += 1
             click.echo('\n Select: ', nl=False)
             c = input()

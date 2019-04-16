@@ -265,7 +265,7 @@ def create3a(scfw, outfile, app, m4, dcd, scd, csf, offset, version):
             if dcd.lower().endswith('.txt'):
                 with open(dcd, 'r') as f:
                     boot_image.dcd = SegDCD.parse_txt(f.read())
-                    boot_image.dcd.header.param = 0x43
+                    boot_image.dcd.header.flags = 0x43
             else:
                 with open(dcd, 'rb') as f:
                     boot_image.dcd = SegDCD.parse(f.read())
@@ -331,7 +331,7 @@ def create3b(scfw, outfile, app, m4, dcd, scd, csf, offset, version):
             if dcd.lower().endswith('.txt'):
                 with open(dcd, 'r') as f:
                     boot_image.dcd = SegDCD.parse_txt(f.read())
-                    boot_image.dcd.header.param = 0x43
+                    boot_image.dcd.header.flags = 0x43
             else:
                 with open(dcd, 'rb') as f:
                     boot_image.dcd = SegDCD.parse(f.read())

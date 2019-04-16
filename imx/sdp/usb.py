@@ -12,8 +12,8 @@ from time import time
 
 from .misc import atos
 
-#os.environ['PYUSB_DEBUG'] = 'debug'
-#os.environ['PYUSB_LOG_FILENAME'] = 'usb.log'
+# os.environ['PYUSB_DEBUG'] = 'debug'
+# os.environ['PYUSB_LOG_FILENAME'] = 'usb.log'
 
 
 ########################################################################################################################
@@ -21,10 +21,6 @@ from .misc import atos
 ########################################################################################################################
 
 class RawHidBase(object):
-
-    @property
-    def info(self):
-        return "{0:s} (0x{1:04X}, 0x{2:04X})".format(self.product_name, self.vid, self.pid)
 
     def __init__(self):
         self.vid = 0
@@ -43,6 +39,9 @@ class RawHidBase(object):
     def _decode_packet(data):
         report_id = data[0]                        # Get USB-HID Report ID
         return report_id, data[1:]
+
+    def info(self):
+        return "{0:s} (0x{1:04X}, 0x{2:04X})".format(self.product_name, self.vid, self.pid)
 
     def open(self):
         raise NotImplementedError()

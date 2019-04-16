@@ -34,3 +34,4 @@ def test_create_image():
     assert len(data) == 4000 + 140
 
     assert image.info()
+    assert img.BootImg2.parse(data)

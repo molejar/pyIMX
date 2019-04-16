@@ -9,7 +9,7 @@ from struct import pack, unpack_from, calcsize
 from .header import Header, Header2, SegTag, UnparsedException, CorruptedException
 from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData,\
                       EnumWriteOps, EnumCheckOps, EnumEngine
-from .secret import SecretKeyBlob, Certificate, Signature
+from .secret import Certificate, Signature, MAC
 from .misc import sizeof_fmt
 
 
@@ -571,8 +571,8 @@ class SegCSF(BaseSegment):
     CMD_TYPES = (CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData)
 
     @property
-    def header(self):
-        return self._header
+    def version(self):
+        return self._header.param
 
     @property
     def enabled(self):
@@ -588,17 +588,18 @@ class SegCSF(BaseSegment):
 
     @property
     def size(self):
-        return self.header.length if self.enabled else 0
+        return self._header.length if self.enabled else 0
 
     @property
     def space(self):
         return self.size + self.padding if self.enabled else 0
 
-    def __init__(self, param=0, enabled=False):
+    def __init__(self, version=0x40, enabled=False):
         super().__init__()
-        self._header = Header(SegTag.CSF, param)
+        self._header = Header(SegTag.CSF, version)
         self._enabled = enabled
         self._commands = []
+        self._data = []
 
     def __eq__(self, obj):
         if not isinstance(obj, SegCSF):
@@ -652,7 +653,7 @@ class SegCSF(BaseSegment):
         """
         data = b''
         if self.enabled:
-            data = self.header.export()
+            data = self._header.export()
             for command in self._commands:
                 data += command.export()
             if padding:

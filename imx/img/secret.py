@@ -73,26 +73,20 @@ class SecretKeyBlob(object):
 class Certificate(object):
 
     @property
-    def param(self):
+    def version(self):
         return self._header.param
 
     @property
     def size(self):
-        return self._header.length
+        return Header.SIZE + len(self._data)
 
-    def __init__(self, param=0, data=None):
-        self._header = Header(tag=SegTag.CRT, param=param)
+    def __init__(self, version=0x40, data=None):
+        self._header = Header(tag=SegTag.CRT, param=version)
         self._data = data
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "Certificate:\n"
+        msg += "Certificate (version 0x{:02X})\n".format(self.version)
         msg += "-" * 60 + "\n"
         return msg
 
@@ -101,6 +95,7 @@ class Certificate(object):
         self._data = data[offset + self._header.size : offset + self._header.length]
 
     def export(self):
+        self._header.length = self.size
         raw_data = self._header.export()
         raw_data += self._data
         return raw_data
@@ -109,26 +104,20 @@ class Certificate(object):
 class Signature(object):
 
     @property
-    def param(self):
+    def version(self):
         return self._header.param
 
     @property
     def size(self):
-        return self._header.length
+        return Header.SIZE + len(self._data)
 
-    def __init__(self, param=0, data=None):
-        self._header = Header(tag=SegTag.SIG, param=param)
+    def __init__(self, version=0x40, data=None):
+        self._header = Header(tag=SegTag.SIG, param=version)
         self._data = data
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "Signature:\n"
+        msg += "Signature (version 0x{:02X})\n".format(self.version)
         msg += "-" * 60 + "\n"
         return msg
 
@@ -137,6 +126,41 @@ class Signature(object):
         self._data = data[offset + self._header.size : offset + self._header.length]
 
     def export(self):
+        self._header.length = self.size
+        raw_data = self._header.export()
+        raw_data += self._data
+        return raw_data
+
+
+class MAC(object):
+
+    @property
+    def version(self):
+        return self._header.param
+
+    @property
+    def size(self):
+        return Header.SIZE + 4 + len(self._data)
+
+    def __init__(self, version=0x40, nonce_bytes=0, mac_bytes=0, data=None):
+        self._header = Header(tag=SegTag.MAC, param=version)
+        self.nonce_bytes = nonce_bytes
+        self.mac_bytes = mac_bytes
+        self._data = data
+
+    def info(self):
+        msg = "-" * 60 + "\n"
+        msg += "MAC (version 0x{:02X})\n".format(self.version)
+        msg += "-" * 60 + "\n"
+        return msg
+
+    def parse(self, data, offset=0):
+        self._header.parse(data, offset)
+
+        self._data = data[offset + self._header.size : offset + self._header.length]
+
+    def export(self):
+        self._header.length = self.size
         raw_data = self._header.export()
         raw_data += self._data
         return raw_data

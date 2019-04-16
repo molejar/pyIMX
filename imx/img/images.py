@@ -38,7 +38,7 @@ def parse(stream, step=0x100, size=None):
 
     while start_index < (last_index - Header.SIZE):
         raw = read_raw_data(stream, Header.SIZE, no_seek=True)
-        if raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT2.SIZE and raw[3] in (0x40, 0x41, 0x42, 0x43):
+        if raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT2.SIZE and raw[3] in (0x40, 0x41, 0x42):
             return BootImg2.parse(stream)
         elif raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT3b.SIZE and raw[3] in (0x43,):
             return BootImg3b.parse(stream), start_index

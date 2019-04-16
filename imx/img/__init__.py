@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from .commands import EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumProtocol, EnumInsKey, EnumAuthDat,  EnumEngine, \
+from .commands import EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumCertFormat, EnumInsKey, EnumAuthDat,  EnumEngine, \
                       EnumItm, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, \
                       CmdAuthData
 from .segments import SegIVT2, SegIVT3a, SegIVT3b, SegBDT, SegAPP, SegDCD, SegCSF
@@ -39,7 +39,7 @@ __all__ = [
     'EnumWriteOps',
     'EnumCheckOps',
     'EnumAlgorithm',
-    'EnumProtocol',
+    'EnumCertFormat',
     'EnumInsKey',
     'EnumAuthDat',
     'EnumEngine',

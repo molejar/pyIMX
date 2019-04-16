@@ -53,8 +53,8 @@ class EnumAlgorithm(Enum):
     BLOB = (0x71, 'SHW-specific key wrap')
 
 
-class EnumProtocol(Enum):
-    """ Protocol tags """
+class EnumCertFormat(Enum):
+    """ Certificate format tags """
     SRK = (0x03, 'SRK certificate format')
     X509 = (0x09, 'X.509v3 certificate format')
     CMS = (0xC5, 'CMS/PKCS#7 signature format')
@@ -97,6 +97,17 @@ class EnumEngine(Enum):
     ROM = (0x36, 'Protected ROM area')
     HDCP = (0x24, 'HDCP co-processor')
     SW = (0xFF, 'Software engine')
+
+
+class EnumCAAM(Enum):
+    """ CAAM Engine Configuration """
+    DEFAULT = 0x00
+    IN_SWAP8 = 0x01
+    IN_SWAP16 = 0x02
+    OUT_SWAP8 = 0x08
+    OUT_SWAP16 = 0x10
+    DSC_SWAP8 = 0x40
+    DSC_SWAP16 = 0x80
 
 
 class EnumItm(Enum):
@@ -373,73 +384,67 @@ class CmdSet(CmdBase):
         assert EnumItm.is_valid(value)
         self._header.param = int(value)
 
-    def __init__(self, itm=EnumItm.ENG, data=None):
+    @property
+    def hash_algorithm(self):
+        return self._hash_alg
+
+    @hash_algorithm.setter
+    def hash_algorithm(self, value):
+        assert EnumAlgorithm.is_valid(value)
+        self._hash_alg = int(value)
+
+    @property
+    def engine(self):
+        return self._engine
+
+    @engine.setter
+    def engine(self, value):
+        assert EnumEngine.is_valid(value)
+        self._engine = int(value)
+
+    @property
+    def engine_cfg(self):
+        return self._engine_cfg
+
+    @engine_cfg.setter
+    def engine_cfg(self, value):
+        self._engine_cfg = value
+
+    def __init__(self, itm=EnumItm.ENG, hash_alg=0, engine=0, engine_cfg=0):
         assert EnumItm.is_valid(itm)
         super().__init__(CmdTag.SET, itm)
-        self._data = data if data else []
+        self.hash_algorithm = hash_alg
+        self.engine = engine
+        self.engine_cfg = engine_cfg
+        self._header.length = Header.SIZE + 4
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdSet):
             return False
-        if self.size != cmd.size or self.itm != cmd.itm:
+        if self.size != cmd.size or self.itm != cmd.itm or self.hash_algorithm != cmd.hash_algorithm or \
+           self.engine != cmd.engine or self.engine_cfg != cmd.engine_cfg:
             return False
-        for val in cmd:
-            if val not in self._data:
-                return False
         return True
-
-    def __len__(self):
-        len(self._data)
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __iter__(self):
-        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
         msg += "Set Command (ITM: {0:s})\n".format(EnumItm[self.itm])
+        msg += "HASH Algo:  {})\n".format(self.hash_algorithm)
+        msg += "Engine:     {})\n".format(self.engine)
+        msg += "Engine Conf:{})\n".format(self.engine_cfg)
         msg += "-" * 60 + "\n"
-        for cmd in self._data:
-            msg += "- ALG: {0:s}, ENG: {1:s}, CFG: {2:d}\n".format(EnumAlgorithm[cmd[0]],
-                                                                   EnumEngine[cmd[1]], cmd[2])
         return msg
-
-    def append(self, alg, eng, cfg):
-        assert EnumAlgorithm.is_valid(alg), "Wrong Algorithm Value !"
-        assert EnumEngine.is_valid(eng), "Wrong Engine Value !"
-        assert type(cfg) is int, "cfg value must be INT type"
-        assert 0 <= cfg < 256, "cfg value out of range"
-        self._data.append([alg, eng, cfg])
-        self._header.length += 4
-
-    def pop(self, index):
-        assert 0 <= index < len(self._data)
-        cmd = self._data.pop(index)
-        self._header.length -= 4
-        return cmd
-
-    def clear(self):
-        self._data.clear()
-        self._header.length = self._header.size
 
     def export(self):
         raw_data = self._header.export()
-        for cmd in self._data:
-            raw_data += pack("4B", 0x00, cmd[0], cmd[1], cmd[2])
+        raw_data += pack("4B", 0x00, self.hash_algorithm, self.engine, self.engine_cfg)
         return raw_data
 
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, CmdTag.SET)
-        obj = cls(header.param)
-        index = header.size
-        while index < header.length:
-            (_, alg, eng, cfg) = unpack_from("4B", data, offset + index)
-            obj.append(alg, eng, cfg)
-            index += 4
-        return obj
+        (_, alg, eng, cfg) = unpack_from("4B", data, offset + Header.SIZE)
+        return cls(header.param, alg, eng, cfg)
 
 
 class CmdInitialize(CmdBase):
@@ -536,75 +541,39 @@ class CmdUnlock(CmdBase):
         assert EnumEngine.is_valid(value)
         self._header.param = int(value)
 
-    @property
-    def size(self):
-        return self._header.size + len(self._data) * 4
-
-    def __init__(self, engine=EnumEngine.ANY, data=None):
+    def __init__(self, engine=EnumEngine.ANY, features=0, uid=0):
         assert EnumEngine.is_valid(engine)
         super().__init__(CmdTag.UNLK, engine)
-        self._data = data if data else []
+        self.features = features
+        self.uid = uid
+        self._header.length = Header.SIZE + 12
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdUnlock):
             return False
-        if self.size != cmd.size or self.engine != cmd.engine:
+        if self.size != cmd.size or self.engine != cmd.engine or self.features != cmd.features or self.uid != cmd.uid:
             return False
-        # TODO: Compare data
         return True
-
-    def __len__(self):
-        len(self._data)
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __setitem__(self, key, value):
-        self._data[key] = value
-
-    def __iter__(self):
-        return self._data.__iter__()
 
     def info(self):
         msg  = "-" * 60 + "\n"
-        msg += "Unlock Command (Engine: {0:s})\n".format(EnumEngine[self.engine])
+        msg += "Unlock Command (Engine: {:s})\n".format(EnumEngine[self.engine])
+        msg += "Features: {})\n".format(self.features)
+        msg += "UID:      {})\n".format(self.uid)
         msg += "-" * 60 + "\n"
-        cnt = 0
-        for val in self._data:
-            msg += " {0:02d}) Value: 0x{1:08X}\n".format(cnt, val)
-            cnt += 1
         return msg
-
-    def append(self, value):
-        assert type(value) is int, "value must be INT type"
-        assert 0 <= value < 0xFFFFFFFF, "value out of range"
-        self._data.append(value)
-
-    def pop(self, index):
-        assert 0 <= index < len(self._data)
-        val = self._data.pop(index)
-        return val
-
-    def clear(self):
-        self._data.clear()
 
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
-        for val in self._data:
-            raw_data += pack(">L", val)
+        raw_data += pack(">LQ", self.features, self.uid)
         return raw_data
 
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, CmdTag.UNLK)
-        obj = cls(header.param)
-        index = header.size
-        while index < header.length:
-            assert (offset + index) < len(data)
-            val = unpack_from(">L", data, offset + index)
-            obj.append(val[0])
-            index += 4
+        features, uid = unpack_from(">LQ", data, offset + header.size)
+        obj = cls(header.param, features, uid)
         return obj
 
 
@@ -612,189 +581,187 @@ class CmdInstallKey(CmdBase):
     """ Install key command """
 
     @property
-    def param(self):
+    def flags(self):
         return self._header.param
 
-    @param.setter
-    def param(self, value):
+    @flags.setter
+    def flags(self, value):
         assert EnumInsKey.is_valid(value)
         self._header.param = int(value)
 
     @property
-    def protocol(self):
-        return self._pcl
+    def certificate_format(self):
+        return self._cert_fmt
 
-    @protocol.setter
-    def protocol(self, value):
-        assert EnumProtocol.is_valid(value)
-        self._pcl = int(value)
+    @certificate_format.setter
+    def certificate_format(self, value):
+        assert EnumCertFormat.is_valid(value)
+        self._cert_fmt = int(value)
 
     @property
-    def algorithm(self):
-        return self._alg
+    def hash_algorithm(self):
+        return self._hash_alg
 
-    @algorithm.setter
-    def algorithm(self, value):
+    @hash_algorithm.setter
+    def hash_algorithm(self, value):
         assert EnumAlgorithm.is_valid(value)
-        self._alg = int(value)
+        self._hash_alg = int(value)
 
     @property
-    def size(self):
-        return self._header.size + 8
+    def source_index(self):
+        return self._src_index
 
-    def __init__(self,
-                 param=EnumInsKey.CLR,
-                 pcl=EnumProtocol.SRK,
-                 alg=EnumAlgorithm.ANY,
-                 src=0,
-                 tgt=0,
-                 location=0):
-        super().__init__(CmdTag.INS_KEY, param)
-        self.protocol = pcl
-        self.algorithm = alg
-        self.source_index = src
-        self.target_index = tgt
-        self.location = location
+    @source_index.setter
+    def source_index(self, value):
+        assert value in (0, 2, 3, 4, 5)
+        self._src_index = int(value)
+
+    @property
+    def target_index(self):
+        return self._tgt_index
+
+    @target_index.setter
+    def target_index(self, value):
+        assert value in (0, 1, 2, 3, 4, 5)
+        self._tgt_index = int(value)
+
+    def __init__(self, flags=EnumInsKey.CLR, cert_fmt=EnumCertFormat.SRK, hash_alg=EnumAlgorithm.ANY,
+                 src_index=0, tgt_index=0, location=0):
+        super().__init__(CmdTag.INS_KEY, flags)
+        self.certificate_format = cert_fmt
+        self.hash_algorithm = hash_alg
+        self.source_index = src_index
+        self.target_index = tgt_index
+        self.key_location = location
+        self._header.length = self._header.size + 8
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdInstallKey):
             return False
         if self.size != cmd.size or \
-           self.param != cmd.param or \
-           self.protocol != cmd.protocol or \
-           self.algorithm != cmd.algorithm or \
+           self.flags != cmd.flags or \
+           self.certificate_format != cmd.certificate_format or \
+           self.hash_algorithm != cmd.hash_algorithm or \
            self.source_index != cmd.source_index or \
            self.target_index != cmd.target_index or \
-           self.location != cmd.location:
+           self.key_location != cmd.key_location:
             return False
         return True
 
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Install Key Command\n"
-        msg += " Flag:    {:d} ({})\n".format(self.param, EnumInsKey.desc(self.param))
-        msg += " Prot:    {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
-        msg += " Algo:    {:d} ({})\n".format(self.algorithm, EnumAlgorithm.desc(self.algorithm))
+        msg += " Flag:    {:d} ({})\n".format(self.flags, EnumInsKey.desc(self.flags))
+        msg += " Prot:    {:d} ({})\n".format(self.certificate_format, EnumCertFormat.desc(self.certificate_format))
+        msg += " Algo:    {:d} ({})\n".format(self.hash_algorithm, EnumAlgorithm.desc(self.hash_algorithm))
         msg += " SrcKey:  {:d} (Source key index) \n".format(self.source_index)
         msg += " TgtKey:  {:d} (Target key index) \n".format(self.target_index)
-        msg += " Location:0x{:08X} (Start address of key data to install) \n".format(self.location)
+        msg += " Location:0x{:08X} (Start address of key data to install) \n".format(self.key_location)
         msg += "-" * 60 + "\n"
         return msg
 
     def export(self):
-        self._header.length = self.size
         raw_data = self._header.export()
-        raw_data += pack(">BBBBL", self.protocol, self.algorithm, self.source_index, self.target_index, self.location)
+        raw_data += pack(">4BL", self.certificate_format, self.hash_algorithm, self.source_index, self.target_index,
+                         self.key_location)
         return raw_data
 
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, CmdTag.INS_KEY)
-        pcl, alg, src, tgt, keydat = unpack_from(">BBBBL", data, offset + header.size)
-        return cls(header.param, pcl, alg, src, tgt, keydat)
+        protocol, algorithm, src_index, tgt_index, location = unpack_from(">4BL", data, offset + header.size)
+        return cls(header.param, protocol, algorithm, src_index, tgt_index, location)
 
 
 class CmdAuthData(CmdBase):
     """ Authenticate data command """
 
     @property
-    def flag(self):
+    def flags(self):
         return self._header.param
 
-    @flag.setter
-    def flag(self, value):
+    @flags.setter
+    def flags(self, value):
         assert EnumAuthDat.is_valid(value)
         self._header.param = int(value)
 
     @property
-    def key(self):
-        return self._key
+    def key_index(self):
+        return self._key_index
 
-    @key.setter
-    def key(self, value):
-        self._key = value
-
-    @property
-    def protocol(self):
-        return self._pcl
-
-    @protocol.setter
-    def protocol(self, value):
-        assert EnumProtocol.is_valid(value)
-        self._pcl = int(value)
+    @key_index.setter
+    def key_index(self, value):
+        assert value in (1, 2, 3, 4, 5)
+        self._key_index = value
 
     @property
     def engine(self):
-        return self._eng
+        return self._engine
 
     @engine.setter
     def engine(self, value):
         assert EnumEngine.is_valid(value)
-        self._eng = int(value)
+        self._engine = int(value)
 
     @property
-    def conf(self):
-        return self._cfg
+    def engine_cfg(self):
+        return self._engine_cfg
 
-    @conf.setter
-    def conf(self, value):
-        self._cfg = value
-
-    @property
-    def auth_start(self):
-        return self._auth_start
-
-    @auth_start.setter
-    def auth_start(self, value):
-        self._auth_start = value
+    @engine_cfg.setter
+    def engine_cfg(self, value):
+        self._engine_cfg = value
 
     @property
-    def auth_data(self):
-        return self._auth_data
+    def location(self):
+        return self._location
 
-    @auth_data.setter
-    def auth_data(self, value):
-        self._auth_data = value
+    @location.setter
+    def location(self, value):
+        self._location = value
 
-    @property
-    def size(self):
-        return self._header.size + 8 + 8 * len(self._blocks)
-
-    def __init__(self,
-                 flag=EnumAuthDat.CLR,
-                 key=0,
-                 pcl=EnumProtocol.SRK,
-                 eng=EnumEngine.ANY,
-                 cfg=0,
-                 auth_start=0,
-                 auth_data=None):
-        super().__init__(CmdTag.AUT_DAT, flag)
-        self.key = key
-        self.protocol = pcl
-        self.engine = eng
-        self.conf = cfg
-        self.auth_start = auth_start
-        self.auth_data = auth_data
+    def __init__(self, flags=EnumAuthDat.CLR, key_index=1, engine=EnumEngine.ANY, engine_cfg=0, location=0):
+        super().__init__(CmdTag.AUT_DAT, flags)
+        self.key_index = key_index
+        self.sig_format = 0xC5
+        self.engine = engine
+        self.engine_cfg = engine_cfg
+        self.location = location
+        self._header.length = self._header.size + 8
         self._blocks = []
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdAuthData):
             return False
-        if self.size != cmd.size or self.flag != cmd.flag or self.key != cmd.key or self.protocol != cmd.protocol or \
-           self.engine != cmd.engine or self.conf != cmd.conf or self.auth_start != cmd.auth_start:
+        if self.size != cmd.size or self.flags != cmd.flags or self.key_index != cmd.key_index or \
+           self.engine != cmd.engine or self.engine_cfg != cmd.engine_cfg or self.location != cmd.location:
             return False
-        # TODO: Compare auth_data and blocks
+        for item in cmd:
+            if item not in self._blocks:
+                return False
         return True
+
+    def __len__(self):
+        len(self._blocks)
+
+    def __getitem__(self, key):
+        return self._blocks[key]
+
+    def __setitem__(self, key, value):
+        assert isinstance(value, (list, tuple))
+        assert len(value) == 2
+        self._blocks[key] = value
+
+    def __iter__(self):
+        return self._blocks.__iter__()
 
     def info(self):
         msg = "-" * 60 + "\n"
         msg += "Auth Data Command\n"
-        msg += " Flag:   {:d} ({})\n".format(self.flag, EnumAuthDat.desc(self.flag))
-        msg += " Prot:   {:d} ({})\n".format(self.protocol, EnumProtocol.desc(self.protocol))
-        msg += " Engine: {:d} ({})\n".format(self.engine, EnumEngine.desc(self.engine))
-        msg += " Key:    {:d} (Key index)\n".format(self.key)
-        msg += " Conf:   {:d} (Configuration)\n".format(self.conf)
-        msg += " Addr:   0x{:08X} (Start address of authentication data) \n".format(self.auth_start)
+        msg += " Flag:        {:d} ({})\n".format(self.flags, EnumAuthDat.desc(self.flags))
+        msg += " Key index:   {:d}\n".format(self.key_index)
+        msg += " Engine:      {:d} ({})\n".format(self.engine, EnumEngine.desc(self.engine))
+        msg += " Engine Conf: {:d}\n".format(self.engine_cfg)
+        msg += " Location:    0x{:08X} (Start address of authentication data) \n".format(self.location)
         msg += "-" * 60 + "\n"
         for blk in self._blocks:
             msg += "- Start: 0x{0:08X}, Length: {1:d} Bytes\n".format(blk[0], blk[1])
@@ -802,18 +769,22 @@ class CmdAuthData(CmdBase):
 
     def append(self, start_address, size):
         self._blocks.append([start_address, size])
+        self._header.length += 8
 
     def pop(self, index):
         assert 0 <= index < len(self._blocks)
-        return self._blocks.pop(index)
+        value = self._blocks.pop(index)
+        self._header.length -= 8
+        return value
 
     def clear(self):
         self._blocks.clear()
+        self._header.length = self._header.size + 8
 
     def export(self):
         self._header.length = self.size
-        raw_data  = self._header.export()
-        raw_data += pack(">BBBBL", self.key, self.protocol, self.engine, self.conf, self.auth_start)
+        raw_data = self._header.export()
+        raw_data += pack(">4BL", self.key_index, self.sig_format, self.engine, self.engine_cfg, self.location)
         for blk in self._blocks:
             raw_data += pack(">2L", blk[0], blk[1])
         return raw_data
@@ -821,10 +792,11 @@ class CmdAuthData(CmdBase):
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, CmdTag.AUT_DAT)
-        key, pcl, eng, cfg, auth_start = unpack_from(">BBBBL", data, offset + header.size)
-        obj = cls(header.param, key, pcl, eng, cfg, auth_start)
+        key, sf, eng, cfg, location = unpack_from(">4BL", data, offset + header.size)
+        obj = cls(header.param, key, eng, cfg, location)
+        obj.sig_format = sf
         index = header.size + 8
-        while offset < header.length:
+        while index < header.length:
             start_address, size = unpack_from(">2L", data, offset + index)
             obj.append(start_address, size)
             index += 8

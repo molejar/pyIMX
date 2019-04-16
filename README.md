@@ -70,32 +70,31 @@ Usage
 In following example is demonstrated the simplicity of usage i.MX boot image API covered by `imx.img` module:
 
 ``` Python
-    import imx
+    from imx import img
 
     # --------------------------------------------------------------------------------
     # Create new U-Boot i.MX6/7 image
     # --------------------------------------------------------------------------------
 
-    # Create DCD segnent instance
-    dcd = imx.img.SegDCD()
+    # Create DCD segment instance
+    dcd = img.SegDCD()
 
     # Create Write Data command and append values with addresses
-    cmd = imx.img.CmdWriteData(4, imx.img.EnumWriteOps.WRITE_VALUE)
+    cmd = img.CmdWriteData(4, img.EnumWriteOps.WRITE_VALUE)
     cmd.append(0x30340004, 0x4F400005)
     cmd.append(0x30391000, 0x00000002)
     cmd.append(0x307A0000, 0x01040001)
-    ...
 
     # Append commands into DCD segment
     dcd.append(cmd)
-    dcd.append(imx.img.CmdCheckData(4, imx.img.EnumCheckOps.ANY_CLEAR, 0x307900C4, 0x00000001))
+    dcd.append(img.CmdCheckData(4, img.EnumCheckOps.ANY_CLEAR, 0x307900C4, 0x00000001))
 
     # Open U-Boot raw image
     with open('u-boot.img', 'rb') as f:
         app = f.read()
 
     # Create IMX U-Boot image with DCD segment
-    image = imx.img.BootImg2(0x877FF000, app, dcd)
+    image = img.BootImg2(0x877FF000, app, dcd)
 
     # Print image info
     print(image)
@@ -113,7 +112,7 @@ In following example is demonstrated the simplicity of usage i.MX boot image API
         data = f.read()
 
     # Parse U-Boot IMX image
-    image = imx.img.BootImg2.parse(data)
+    image = img.BootImg2.parse(data)
 
     # Extract DCD from U-Boot IMX image
     dcd = image.dcd
@@ -133,28 +132,28 @@ In following example is demonstrated the simplicity of usage i.MX boot image API
 Second example demonstrate usage of i.MX serial downloader protocol API covered by `imx.sdp` module:
 
 ``` Python
-    import imx
+    from imx import sdp
 
     # scan for connected USB devs
-    devs = imx.sdp.scan_usb()
+    devs = sdp.scan_usb()
 
     if devs:
-        i = 0
-        for dev in devs:
-            print("{}) {}".format(i, dev.usbd.info))
-            i += 1
+        # Print list of connected devices
+        for i, dev in enumerate(devs):
+            print("{}) {}".format(i, dev.usbd.info()))
 
         # Connect to first i.MX device
         flasher = devs[0]
         flasher.open()
 
-        # Read data from IMX Device (i.MX7D OCRAM)
+        # Read data from i.MX Device (i.MX7D OCRAM)
         data = flasher.read(0x910000, 100, 8)
 
-        # Write boot image data into IMX Device (i.MX7D OCRAM)
+        # Write boot image data into i.MX Device (i.MX7D OCRAM)
         flasher.write_file(0x910000, data)
 
-        ...
+        # Other commands
+        # ...
 
         # Disconnect IMX Device
         flasher.close()
