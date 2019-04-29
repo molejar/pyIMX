@@ -49,12 +49,6 @@ class BaseSegment(object):
     def __ne__(self, obj):
         return not self.__eq__(obj)
 
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
-
     def info(self):
         """ object info """
         raise NotImplementedError()
@@ -112,6 +106,11 @@ class SegIVT2(BaseSegment):
         self.ivt_address = 0
         self.csf_address = 0
         self.rs2 = 0
+
+    def __repr__(self):
+        return "IVT2 <IVT:0x{:X}, BDT:0x{:X}, DCD:0x{:X}, APP:0x{:X}, CSF:0x{:X}>".format(
+            self.ivt_address, self.bdt_address, self.dcd_address, self.app_address, self.csf_address
+        )
 
     def __eq__(self, obj):
         if not isinstance(obj, SegIVT2):
@@ -215,6 +214,9 @@ class SegBDT(BaseSegment):
         self.length = length
         self.plugin = plugin
 
+    def __repr__(self):
+        return "BDT <ADDR: 0x{:X}, LEN: {} Bytes, Plugin: {}>".format(self.start, self.length, self.plugin)
+
     def __eq__(self, obj):
         if not isinstance(obj, SegBDT):
             return False
@@ -275,6 +277,9 @@ class SegAPP(BaseSegment):
         """
         super().__init__()
         self._data = data
+
+    def __repr__(self):
+        return "APP <LEN: {} Bytes>".format(len(self._data))
 
     def __eq__(self, obj):
         if not isinstance(obj, SegAPP):
@@ -338,6 +343,9 @@ class SegDCD(BaseSegment):
         self._header = Header(SegTag.DCD, param)
         self._header.length = self._header.size
         self._commands = []
+
+    def __repr__(self):
+        return "DCD <Commands: {}>".format(len(self._commands))
 
     def __eq__(self, obj):
         if not isinstance(obj, SegDCD):
@@ -601,6 +609,9 @@ class SegCSF(BaseSegment):
         self._commands = []
         self._data = []
 
+    def __repr__(self):
+        return "CSF <Commands: {}>".format(len(self._commands))
+
     def __eq__(self, obj):
         if not isinstance(obj, SegCSF):
             return False
@@ -730,6 +741,11 @@ class SegIVT3a(BaseSegment):
         self.csf_address = 0
         self.next = 0
 
+    def __repr__(self):
+        return "IVT3a <IVT:0x{:X}, BDT:0x{:X}, DCD:0x{:X}, CSF:0x{:X}>".format(
+            self.ivt_address, self.bdt_address, self.dcd_address, self.csf_address
+        )
+
     def __eq__(self, obj):
         if not isinstance(obj, SegIVT3a):
             return False
@@ -826,10 +842,15 @@ class SegIVT3b(BaseSegment):
         self.rs2h = 0
         self.rs2l = 0
 
+    def __repr__(self):
+        return "IVT3b <IVT:0x{:X}, BDT:0x{:X}, DCD:0x{:X}, CSF:0x{:X}, SCD:0x{:X}>".format(
+            self.ivt_address, self.bdt_address, self.dcd_address, self.csf_address, self.scd_address
+        )
+
     def __eq__(self, obj):
         if not isinstance(obj, SegIVT3b):
             return False
-        if self.header.param != obj.header.param or \
+        if self.header != obj.header or \
            self.dcd_address != obj.dcd_address or \
            self.bdt_address != obj.bdt_address or \
            self.ivt_address != obj.ivt_address or \
@@ -915,6 +936,12 @@ class SegIDS3a(BaseSegment):
         self.hab_flags = 0
         self.scfw_flags = 0
         self.rom_flags = 0
+
+    def __repr__(self):
+        return "IDS3a <IN:0x{:X}, OUT:0x{:X}, ENTRY:0x{:X}, SIZE:{}B, HAB:0x{:X}, SCFW:0x{:X}, ROM:0x{:X}>".format(
+            self.image_source, self.image_destination, self.image_entry, self.image_size, self.hab_flags,
+            self.scfw_flags, self.rom_flags
+        )
 
     def __eq__(self, obj):
         if not isinstance(obj, SegIDS3a):
@@ -1003,6 +1030,11 @@ class SegBDS3a(BaseSegment):
         self.images = [SegIDS3a() for i in range(self.IMAGES_MAX_COUNT)]
         self.rs = 0
 
+    def __repr__(self):
+        return "BDS3a <IMAGES: {}, SIZE: {}B, FLAG: 0x{:X}>".format(
+            self.images_count, self.boot_data_size, self.boot_data_flag
+        )
+
     def info(self):
         msg  = " IMAGES: {}\n".format(self.images_count)
         #msg += " Data size: {}\n".format(self.boot_data_size)
@@ -1066,6 +1098,11 @@ class SegIDS3b(BaseSegment):
         self.image_entry = 0
         self.image_size = 0
         self.flags = 0
+
+    def __repr__(self):
+        return "IDS3b <IN:0x{:X}, OUT:0x{:X}, ENTRY:0x{:X}, SIZE:{}B, FLAGS:0x{:X}>".format(
+            self.image_source, self.image_destination, self.image_entry, self.image_size, self.flags
+        )
 
     def info(self):
         msg  = " Source: 0x{:08X}\n".format(self.image_source)
@@ -1132,6 +1169,11 @@ class SegBDS3b(BaseSegment):
         self.scd = SegIDS3b()
         self.csf = SegIDS3b()
         self.rs_img = SegIDS3b()
+
+    def __repr__(self):
+        return "BDS3b <IMAGES: {}, SIZE: {}B, FLAG: 0x{:X}>".format(
+            self.images_count, self.boot_data_size, self.boot_data_flag
+        )
 
     def info(self):
         msg  = " IMAGES: {}\n".format(self.images_count)
@@ -1223,6 +1265,11 @@ class SegBIM(BaseSegment):
         self.meta_data = 0
         self.image_hash = None
         self.image_iv = None
+
+    def __repr__(self):
+        return "BIM <OFFSET:{}, SIZE:{}B, LOAD:0x{:X}, ENTRY:0x{:X}, FLAGS:0x{:X}>".format(
+            self.image_offset, self.image_size, self.load_address, self.entry_address, self.hab_flags
+        )
 
     def __eq__(self, obj):
         if not isinstance(obj, SegBIM):
@@ -1320,6 +1367,11 @@ class SegSIGB(BaseSegment):
         self.signature_offset = 0
         self.reserved = 0
 
+    def __repr__(self):
+        return "SIGB <SRK:0x{:X}, CERT:0x{:X}, BLOB:0x{:X}, SIG:0x{:X}>".format(
+            self.srk_table_offset, self.cert_offset, self.blob_offset, self.signature_offset
+        )
+
     def __eq__(self, obj):
         if not isinstance(obj, SegSIGB):
             return False
@@ -1408,6 +1460,11 @@ class SegBIC1(BaseSegment):
         self.sig_blk_hdr = SegSIGB()
         self.sig_blk_size = 0
         self.padding = 8
+
+    def __repr__(self):
+        return "BIC1 <FLAGS:0x{:X}, SWV:0x{:X}, FUSEV:0x{:X}, COUNT:{}, SBO:0x{:X}>".format(
+            self.flags, self.sw_version, self.fuse_version, self.images_count, self.sig_blk_offset
+        )
 
     def __eq__(self, obj):
         if not isinstance(obj, SegBIC1):

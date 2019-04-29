@@ -74,11 +74,8 @@ class Header(object):
         self.param = param
         self.length = self.SIZE if length is None else length
 
-    def __str__(self):
-        return self.info()
-
     def __repr__(self):
-        return self.info()
+        return "Header <TAG:0x{:02X}, PARAM:0x{:02X}, LEN:{:d}B>".format(self.tag, self.param, self.length)
 
     def info(self):
         return "HEADER < TAG: 0x{:02X}, PARAM: 0x{:02X}, DLEN: {:d} Bytes >\n".format(self.tag, self.param, self.length)
@@ -91,8 +88,8 @@ class Header(object):
         """ Parse header
         :param data: Raw data as bytes or bytearray
         :param offset: Offset of input data
-        :param required_tag:
-        :return:
+        :param required_tag: Check header TAG if specified value or ignore if is None
+        :return: Header object
         """
         tag, length, param = unpack_from(cls.FORMAT, data, offset)
         if required_tag is not None and tag != required_tag:
@@ -105,6 +102,9 @@ class Header2(Header):
     """ header element type """
     FORMAT = "<BHB"
 
+    def __repr__(self):
+        return "Header2 <TAG:0x{:02X}, PARAM:0x{:02X}, LEN:{:d}B>".format(self.tag, self.param, self.length)
+
     def export(self):
         return pack(self.FORMAT, self.param, self.length, self.tag)
 
@@ -113,7 +113,7 @@ class Header2(Header):
         """ Parse header
         :param data: Raw data as bytes or bytearray
         :param offset: Offset of input data
-        :param required_tag:
+        :param required_tag: Check header TAG if specified value or ignore if is None
         :return: Header2 object
         """
         param, length, tag = unpack_from(cls.FORMAT, data, offset)

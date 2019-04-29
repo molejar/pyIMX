@@ -180,6 +180,9 @@ class CmdWriteData(CmdBase):
             for address, value in data:
                 self.append(address, value)
 
+    def __repr__(self):
+        return "CmdWriteData <{}/{}, {}>".format(EnumWriteOps[self.ops], self.bytes, len(self._data))
+
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdWriteData):
             return False
@@ -303,6 +306,11 @@ class CmdCheckData(CmdBase):
         self._mask = mask
         self._count = count
 
+    def __repr__(self):
+        return "CmdCheckData <{}/{}, ADDR=0x{:X}, MASK=0x{:X}>".format(
+            EnumCheckOps[self.ops], self.bytes, self.address, self.mask
+        )
+
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdCheckData):
             return False
@@ -349,6 +357,9 @@ class CmdNop(CmdBase):
 
     def __init__(self, param=0):
         super().__init__(CmdTag.NOP, param)
+
+    def __repr__(self):
+        return "CmdNop"
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdNop):
@@ -418,6 +429,11 @@ class CmdSet(CmdBase):
         self.engine_cfg = engine_cfg
         self._header.length = Header.SIZE + 4
 
+    def __repr__(self):
+        return "CmdSet <{}, {}, {}, 0x{:X}>".format(
+            EnumItm[self.itm], EnumAlgorithm[self.hash_algorithm], EnumEngine[self.engine], self.engine_cfg
+        )
+
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdSet):
             return False
@@ -463,6 +479,11 @@ class CmdInitialize(CmdBase):
         assert EnumEngine.is_valid(engine)
         super().__init__(CmdTag.INIT, engine)
         self._data = data if data else []
+
+    def __repr__(self):
+        return "CmdInitialize <{}, {}>".format(
+            EnumEngine[self.engine], len(self._data)
+        )
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdInitialize):
@@ -547,6 +568,11 @@ class CmdUnlock(CmdBase):
         self.features = features
         self.uid = uid
         self._header.length = Header.SIZE + 12
+
+    def __repr__(self):
+        return "CmdUnlock <{}, {}, {}>".format(
+            EnumEngine[self.engine], self.features, self.uid
+        )
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdUnlock):
@@ -634,6 +660,12 @@ class CmdInstallKey(CmdBase):
         self.target_index = tgt_index
         self.key_location = location
         self._header.length = self._header.size + 8
+
+    def __repr__(self):
+        return "CmdInstallKey <{}, {}, {}, {}, {}, 0x{:X}>".format(
+            EnumInsKey[self.flags], EnumCertFormat[self.certificate_format], EnumAlgorithm[self.hash_algorithm],
+            self.source_index, self.target_index, self.key_location
+        )
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdInstallKey):
@@ -728,6 +760,11 @@ class CmdAuthData(CmdBase):
         self.location = location
         self._header.length = self._header.size + 8
         self._blocks = []
+
+    def __repr__(self):
+        return "CmdAuthData <{}, {}, {}, key:{}, 0x{:X}>".format(
+            EnumAuthDat[self.flags], EnumEngine[self.engine], self.engine_cfg, self.key_index, self.location
+        )
 
     def __eq__(self, cmd):
         if not isinstance(cmd, CmdAuthData):
