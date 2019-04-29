@@ -77,6 +77,16 @@ class Header(object):
     def __repr__(self):
         return "Header <TAG:0x{:02X}, PARAM:0x{:02X}, LEN:{:d}B>".format(self.tag, self.param, self.length)
 
+    def __eq__(self, header):
+        if not isinstance(header, Header):
+            return False
+        if self.tag != header.tag or self.param != header.param or self.length != header.length:
+            return False
+        return True
+
+    def __ne__(self, header):
+        return not self.__eq__(header)
+
     def info(self):
         return "HEADER < TAG: 0x{:02X}, PARAM: 0x{:02X}, DLEN: {:d} Bytes >\n".format(self.tag, self.param, self.length)
 
@@ -104,6 +114,13 @@ class Header2(Header):
 
     def __repr__(self):
         return "Header2 <TAG:0x{:02X}, PARAM:0x{:02X}, LEN:{:d}B>".format(self.tag, self.param, self.length)
+
+    def __eq__(self, header):
+        if not isinstance(header, Header2):
+            return False
+        if self.tag != header.tag or self.param != header.param or self.length != header.length:
+            return False
+        return True
 
     def export(self):
         return pack(self.FORMAT, self.param, self.length, self.tag)
