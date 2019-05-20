@@ -8,13 +8,23 @@ from io import BytesIO, BufferedReader, SEEK_CUR
 from .header import Header
 
 
-def sizeof_fmt(num, use_kibibyte=True):
+def size_fmt(num, use_kibibyte=True):
     base, suffix = [(1000., 'B'), (1024., 'iB')][use_kibibyte]
     for x in ['B'] + [x + suffix for x in list('kMGTP')]:
         if -base < num < base:
             break
         num /= base
     return "{0:3.1f} {1:s}".format(num, x)
+
+
+def modulus_fmt(modulus, tab=4, length=15, sep=':'):
+    text = ' ' * tab
+    data = b'\0' + modulus
+    for i, b in enumerate(data):
+        text += "{:02x}{}".format(b, sep)
+        if ((i + 1) % length) == 0:
+            text += '\n' + ' ' * tab
+    return text
 
 
 def read_raw_data(stream, length, index=None, no_seek=False):

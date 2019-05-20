@@ -5,7 +5,9 @@
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
 from struct import pack, unpack_from
+from hashlib import sha256
 
+from .misc import modulus_fmt
 from .header import SegTag, Header
 from .commands import EnumAlgorithm
 
@@ -212,9 +214,11 @@ class SrkItem(object):
         msg = str()
         msg += "Algorithm: {}\n".format(EnumAlgorithm[self.algorithm])
         msg += "Flag:      0x{:02X}\n".format(self.flag)
+        msg += "Length:    {} bit\n".format(len(self.modulus) * 8)
         msg += "Modulus:\n"
-        msg += "    " + ":".join('{:02X}'.format(b) for b in self.modulus)
-        msg += "Exponent:  0x{:X}\n".format(int.from_bytes(self.exponent, 'big'))
+        msg += modulus_fmt(self.modulus)
+        msg += "\n"
+        msg += "Exponent: {0} (0x{0:X})\n".format(int.from_bytes(self.exponent, 'big'))
         return msg
 
     def export(self):
@@ -245,7 +249,10 @@ class SrkTable(object):
 
     @property
     def size(self):
-        return Header.SIZE + len(self._keys)
+        size = Header.SIZE
+        for key in self._keys:
+            size += key.size
+        return size
 
     def __init__(self, version=0x40):
         self._header = Header(tag=SegTag.CRT, param=version)
@@ -255,7 +262,7 @@ class SrkTable(object):
         return "SRK_Table <Version: {:02X}, Keys: {}>".format(self.version, len(self._keys))
 
     def __len__(self):
-        len(self._keys)
+        return len(self._keys)
 
     def __getitem__(self, key):
         return self._keys[key]
@@ -269,14 +276,23 @@ class SrkTable(object):
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "SRK Table (version 0x{:02X})\n".format(self.version)
+        msg += "SRK Table (Version 0x{:02X}, Keys: {})\n".format(self.version, len(self._keys))
         msg += "-" * 60 + "\n"
-        for srk in self._keys:
+        for i, srk in enumerate(self._keys):
+            msg += "Key Index: {} \n".format(i)
             msg += srk.info()
+            msg += "\n"
         return msg
 
     def append(self, srk):
         self._keys.append(srk)
+
+    def export_fuses(self):
+        data = b''
+        for srk in self._keys:
+            srk_data = srk.export()
+            data += sha256(srk_data).digest()
+        return sha256(data).digest()
 
     def export(self):
         self._header.length = self.size

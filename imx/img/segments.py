@@ -10,7 +10,7 @@ from .header import Header, Header2, SegTag, UnparsedException, CorruptedExcepti
 from .commands import CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, CmdAuthData,\
                       EnumWriteOps, EnumCheckOps, EnumEngine
 from .secret import Certificate, Signature, MAC
-from .misc import sizeof_fmt
+from .misc import size_fmt
 
 
 ########################################################################################################################
@@ -229,7 +229,7 @@ class SegBDT(BaseSegment):
         :return: string
         """
         msg  = " Start:  0x{0:08X}\n".format(self.start)
-        msg += " Length: {0:s} ({1:d} Bytes)\n".format(sizeof_fmt(self.length), self.length)
+        msg += " Length: {0:s} ({1:d} Bytes)\n".format(size_fmt(self.length), self.length)
         msg += " Plugin: {0:s}\n".format('YES' if self.plugin else 'NO')
         msg += "\n"
 
@@ -961,7 +961,7 @@ class SegIDS3a(BaseSegment):
         msg  = " Source: 0x{:08X}\n".format(self.image_source)
         msg += " Dest:   0x{:08X}\n".format(self.image_destination)
         msg += " Entry:  0x{:08X}\n".format(self.image_entry)
-        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += " Size:   {:s} ({} Bytes)\n".format(size_fmt(self.image_size), self.image_size)
         msg += " <Flags>\n"
         msg += " SCFW:   0x{:08X}\n".format(self.scfw_flags)
         msg += " HAB:    0x{:08X}\n".format(self.hab_flags)
@@ -1109,7 +1109,7 @@ class SegIDS3b(BaseSegment):
         msg += " Dest:   0x{:08X}\n".format(self.image_destination)
         msg += " Entry:  0x{:08X}\n".format(self.image_entry)
         msg += " Flags:  0x{:08X}\n".format(self.flags)
-        msg += " Size:   {:s} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += " Size:   {:s} ({} Bytes)\n".format(size_fmt(self.image_size), self.image_size)
         msg += "\n"
         return msg
 
@@ -1288,7 +1288,7 @@ class SegBIM(BaseSegment):
     def info(self):
         """ Get BootImage segment info """
         msg  = " Offset:     0x{:X}\n".format(self.image_offset)
-        msg += " Size:       {} ({} Bytes)\n".format(sizeof_fmt(self.image_size), self.image_size)
+        msg += " Size:       {} ({} Bytes)\n".format(size_fmt(self.image_size), self.image_size)
         msg += " Load:       0x{:X}\n".format(self.load_address)
         msg += " Entry:      0x{:X}\n".format(self.entry_address)
         msg += " HASH:       {}\n".format(''.join(['{:02X}'.format(i) for i in self.image_hash]))
