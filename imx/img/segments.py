@@ -373,7 +373,7 @@ class SegDCD(BaseSegment):
     def info(self):
         msg = ""
         for cmd in self._commands:
-            msg += str(cmd)
+            msg += cmd.info()
             msg += "\n"
         return msg
 
@@ -449,14 +449,14 @@ class SegDCD(BaseSegment):
         :return SegDCD object
         """
         cmds = {
-            'WriteValue': ('write', int(EnumWriteOps.WRITE_VALUE)),
-            'WriteValue1': ('write', int(EnumWriteOps.WRITE_VALUE1)),
-            'ClearBitMask': ('write', int(EnumWriteOps.CLEAR_BITMASK)),
-            'SetBitMask': ('write', int(EnumWriteOps.SET_BITMASK)),
-            'CheckAllClear': ('check', int(EnumCheckOps.ALL_CLEAR)),
-            'CheckAllSet': ('check', int(EnumCheckOps.ALL_SET)),
-            'CheckAnyClear': ('check', int(EnumCheckOps.ANY_CLEAR)),
-            'CheckAnySet': ('check', int(EnumCheckOps.ANY_SET)),
+            'WriteValue': ('write', EnumWriteOps.WRITE_VALUE),
+            'WriteValue1': ('write', EnumWriteOps.WRITE_VALUE1),
+            'ClearBitMask': ('write', EnumWriteOps.CLEAR_BITMASK),
+            'SetBitMask': ('write', EnumWriteOps.SET_BITMASK),
+            'CheckAllClear': ('check', EnumCheckOps.ALL_CLEAR),
+            'CheckAllSet': ('check', EnumCheckOps.ALL_SET),
+            'CheckAnyClear': ('check', EnumCheckOps.ANY_CLEAR),
+            'CheckAnySet': ('check', EnumCheckOps.ANY_SET),
             'Unlock': None,
             'Nop': None
         }
@@ -638,7 +638,7 @@ class SegCSF(BaseSegment):
     def info(self):
         msg = ""
         for cmd in self._commands:
-            msg += str(cmd)
+            msg += cmd.info()
             msg += "\n"
         return msg
 
@@ -676,6 +676,7 @@ class SegCSF(BaseSegment):
     def parse(cls, data, offset=0):
         """ Parse segment from bytes array
         :param data: The bytes array of CSF segment
+        :param offset:
         :return SegCSF object
         """
         header = Header.parse(data, offset, SegTag.CSF)

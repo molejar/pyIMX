@@ -118,14 +118,14 @@ def info(offset, type, step, file):
         with open(file, 'rb') as stream:
             stream.seek(offset)
             if type == "auto":
-                boot_image, offset = parse(stream, step)
+                boot_image = parse(stream, step)
             else:
                 img_type = {'67RT': BootImg2,
                             '8M': BootImg2,
                             '8QXP_A0': BootImg3a,
                             '8QM_A0': BootImg3b,
                             '8X': BootImg4}
-                boot_image, offset = img_type[type].parse(stream, step)
+                boot_image = img_type[type].parse(stream, step)
 
         # print image info
         click.echo(boot_image.info())
@@ -463,9 +463,9 @@ def extract(file, type, offset, step, embedded):
         with open(file, 'rb') as buffer:
             buffer.seek(offset)
             if type == "auto":
-                img_obj, img_offset = parse(buffer, step)
+                img_obj = parse(buffer, step)
             else:
-                img_obj, img_offset = img_type[type].parse(buffer, step)
+                img_obj = img_type[type].parse(buffer, step)
 
         # Create extract directory
         file_path, file_name = os.path.split(file)

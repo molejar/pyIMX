@@ -41,7 +41,7 @@ def parse(stream, step=0x100, size=None):
         if raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT2.SIZE and raw[3] in (0x40, 0x41, 0x42):
             return BootImg2.parse(stream)
         elif raw[0] == SegTag.IVT2 and ((raw[1] << 8) | raw[2]) == SegIVT3b.SIZE and raw[3] in (0x43,):
-            return BootImg3b.parse(stream), start_index
+            return BootImg3b.parse(stream)
         elif raw[0] == SegTag.IVT3 and ((raw[1] << 8) | raw[2]) == SegIVT3a.SIZE and raw[3] in (0x43,):
             return BootImg3a.parse(stream)
         elif raw[3] == SegTag.BIC1:
@@ -87,12 +87,6 @@ class BootImgBase(object):
         """
         self.offset = offset
         self.address = address
-
-    def __str__(self):
-        return self.info()
-
-    def __repr__(self):
-        return self.info()
 
     def info(self):
         raise NotImplementedError()
@@ -303,6 +297,7 @@ class BootImg2(BootImgBase):
         if not isinstance(stream, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
+        header = None
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
         stream.seek(start_index)
@@ -324,9 +319,10 @@ class BootImg2(BootImgBase):
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
-        obj = cls()
+        obj = cls(version=header.param)
         img_size = last_index - start_index
-        img_offset = start_index
+        if start_index > 0:
+            obj.offset = start_index
 
         # Parse IVT
         obj.ivt = SegIVT2.parse(read_raw_segment(stream, SegTag.IVT2))
@@ -340,7 +336,7 @@ class BootImg2(BootImgBase):
             obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
-        app_start = img_offset + (obj.ivt.app_address - obj.ivt.ivt_address)
+        app_start = start_index + (obj.ivt.app_address - obj.ivt.ivt_address)
         app_size = obj.ivt.csf_address - obj.ivt.app_address if obj.ivt.csf_address else \
                    obj.bdt.length - (obj.bdt.start - obj.ivt.app_address)
         app_size = img_size - app_start if app_size > (img_size - app_start) else app_size
@@ -351,7 +347,7 @@ class BootImg2(BootImgBase):
         #    obj.csf = SegCSF.parse(buffer)
         #    obj.csf.padding = obj.bdt.length - ((obj.ivt.csf_address - obj.ivt.ivt_address) + obj.csf.size)
 
-        return obj, img_offset
+        return obj
 
 
 ########################################################################################################################
@@ -542,6 +538,7 @@ class BootImg8m(BootImgBase):
         if not isinstance(stream, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
+        header = None
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
         stream.seek(start_index)
@@ -563,9 +560,10 @@ class BootImg8m(BootImgBase):
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
-        obj = cls()
+        obj = cls(version=header.param)
         img_size = last_index - start_index
-        img_offset = start_index
+        if start_index > 0:
+            obj.offset = start_index
 
         # Parse IVT
         obj.ivt = SegIVT2.parse(read_raw_segment(stream, SegTag.IVT2))
@@ -579,7 +577,7 @@ class BootImg8m(BootImgBase):
             obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
             obj.dcd.padding = (obj.ivt.app_address - obj.ivt.dcd_address) - obj.dcd.size
         # Parse APP
-        app_start = img_offset + (obj.ivt.app_address - obj.ivt.ivt_address)
+        app_start = start_index + (obj.ivt.app_address - obj.ivt.ivt_address)
         app_size = obj.ivt.csf_address - obj.ivt.app_address if obj.ivt.csf_address else \
                    obj.bdt.length - (obj.bdt.start - obj.ivt.app_address)
         app_size = img_size - app_start if app_size > (img_size - app_start) else app_size
@@ -590,7 +588,7 @@ class BootImg8m(BootImgBase):
         #    obj.csf = SegCSF.parse(buffer)
         #    obj.csf.padding = obj.bdt.length - ((obj.ivt.csf_address - obj.ivt.ivt_address) + obj.csf.size)
 
-        return obj, img_offset
+        return obj
 
 
 ########################################################################################################################
@@ -885,6 +883,7 @@ class BootImg3a(BootImgBase):
         if not isinstance(stream, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
+        header = None
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
         stream.seek(start_index)
@@ -905,9 +904,10 @@ class BootImg3a(BootImgBase):
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
-        obj = cls()
+        obj = cls(version=header.param)
         img_size = last_index - start_index
-        img_offset = start_index
+        if start_index > 0:
+            obj.offset = start_index
         # Parse IVT
         obj.ivt[0] = SegIVT3a.parse(read_raw_segment(stream, SegTag.IVT3))
         obj.ivt[1] = SegIVT3a.parse(read_raw_segment(stream, SegTag.IVT3))
@@ -916,19 +916,19 @@ class BootImg3a(BootImgBase):
         obj.bdt[1] = SegBDS3a.parse(read_raw_data(stream, SegBDS3a.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
-            stream.seek(img_offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
+            stream.seek(start_index + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
             obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
         # Parse CSF
         if obj.ivt[0].csf_address:
-            stream.seek(img_offset + (obj.ivt[0].csf_address - obj.ivt[0].ivt_address), 0)
+            stream.seek(start_index + (obj.ivt[0].csf_address - obj.ivt[0].ivt_address), 0)
             obj.csf = SegCSF.parse(read_raw_segment(stream, SegTag.CSF))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
-                stream.seek(obj.bdt[container].images[i].image_source - obj.offset + img_offset, 0)
+                stream.seek(obj.bdt[container].images[i].image_source - obj.offset, 0)
                 obj.app[container][i].data = read_raw_data(stream, obj.bdt[container].images[i].image_size)
 
-        return obj, img_offset
+        return obj
 
 
 ########################################################################################################################
@@ -1248,6 +1248,7 @@ class BootImg3b(BootImgBase):
         if not isinstance(stream, (BufferedReader, BytesIO)):
             raise TypeError(" Not correct value type: \"{}\" !".format(type(stream)))
 
+        header = None
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
         stream.seek(start_index)
@@ -1268,9 +1269,10 @@ class BootImg3b(BootImgBase):
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
 
-        obj = cls()
+        obj = cls(version=header.param)
         img_size = last_index - start_index
-        img_offset = start_index
+        if start_index > 0:
+            obj.offset = start_index
         # Parse IVT
         obj.ivt[0] = SegIVT3b.parse(read_raw_segment(stream, SegTag.IVT2))
         obj.ivt[1] = SegIVT3b.parse(read_raw_segment(stream, SegTag.IVT2))
@@ -1279,23 +1281,23 @@ class BootImg3b(BootImgBase):
         obj.bdt[1] = SegBDS3b.parse(read_raw_data(stream, SegBDS3b.SIZE))
         # Parse DCD
         if obj.ivt[0].dcd_address:
-            stream.seek(img_offset + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
+            stream.seek(start_index + (obj.ivt[0].dcd_address - obj.ivt[0].ivt_address), 0)
             obj.dcd = SegDCD.parse(read_raw_segment(stream, SegTag.DCD))
         # Parse IMAGES
         for container in range(obj.COUNT_OF_CONTAINERS):
             for i in range(obj.bdt[container].images_count):
-                stream.seek(obj.bdt[container].images[i].image_source - obj.offset + img_offset, 0)
+                stream.seek(obj.bdt[container].images[i].image_source - obj.offset, 0)
                 obj.app[container][i].data = read_raw_data(stream, obj.bdt[container].images[i].image_size)
         # Parse SCD
         if obj.bdt[0].scd.image_source != 0:
-            stream.seek(obj.bdt[0].scd.image_source - obj.offset + img_offset, 0)
+            stream.seek(obj.bdt[0].scd.image_source - obj.offset, 0)
             obj.scd.data = read_raw_data(stream, obj.bdt[0].scd.image_size)
         # Parse CSF
         if obj.bdt[0].csf.image_source != 0:
-            stream.seek(obj.bdt[0].csf.image_source - obj.offset + img_offset, 0)
+            stream.seek(obj.bdt[0].csf.image_source - obj.offset, 0)
             obj.csf = SegCSF.parse(read_raw_segment(stream, SegTag.CSF))
 
-        return obj, img_offset
+        return obj
 
 
 ########################################################################################################################
@@ -1366,6 +1368,7 @@ class BootImg4(BootImgBase):
 
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
+        img_size = last_index - start_index
         stream.seek(start_index)
 
         if size:
@@ -1384,14 +1387,14 @@ class BootImg4(BootImgBase):
             raise Exception(' Not an i.MX Boot Image !')
 
         obj = cls()
-        img_size = last_index - start_index
-        img_offset = start_index
+        if start_index > 0:
+            obj.offset = start_index
 
         # Parse Containers
         obj._cont1_header = SegBIC1.parse(read_raw_data(stream, 0x400))
         obj._cont2_header = SegBIC1.parse(read_raw_data(stream, 0x400))
         # TODO: Complete Implementation
-        return obj, img_offset
+        return obj
 
 
 ########################################################################################################################

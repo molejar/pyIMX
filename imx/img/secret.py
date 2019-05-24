@@ -198,10 +198,16 @@ class SrkItem(object):
         self._flag = value
 
     @property
+    def key_length(self):
+        return len(self.modulus) * 8
+
+    @property
     def size(self):
         return Header.SIZE + 8 + len(self.modulus) + len(self.exponent)
 
-    def __init__(self, modulus=b'', exponent=b'', flag=0, algorithm=EnumAlgorithm.PKCS1):
+    def __init__(self, modulus, exponent, flag=0, algorithm=EnumAlgorithm.PKCS1):
+        assert isinstance(modulus, bytes)
+        assert isinstance(exponent, bytes)
         self._header = Header(tag=self.SRK_TAG, param=algorithm)
         self.flag = flag
         self.modulus = modulus
@@ -214,7 +220,7 @@ class SrkItem(object):
         msg = str()
         msg += "Algorithm: {}\n".format(EnumAlgorithm[self.algorithm])
         msg += "Flag:      0x{:02X}\n".format(self.flag)
-        msg += "Length:    {} bit\n".format(len(self.modulus) * 8)
+        msg += "Length:    {} bit\n".format(self.key_length)
         msg += "Modulus:\n"
         msg += modulus_fmt(self.modulus)
         msg += "\n"
