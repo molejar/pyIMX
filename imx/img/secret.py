@@ -216,10 +216,24 @@ class SrkItem(object):
     def __repr__(self):
         return "SRK <Algorithm: {}, CA: {}>".format(EnumAlgorithm[self.algorithm], 'YES' if self.flag == 0x80 else 'NO')
 
+    def __eq__(self, obj):
+        if not isinstance(obj, SrkItem):
+            return False
+        if self.algorithm != obj.algorithm or \
+           self.flag != obj.flag or \
+           self.key_length != obj.key_length or \
+           self.modulus != obj.modulus or \
+           self.exponent != obj.exponent:
+            return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
+
     def info(self):
         msg = str()
         msg += "Algorithm: {}\n".format(EnumAlgorithm[self.algorithm])
-        msg += "Flag:      0x{:02X}\n".format(self.flag)
+        msg += "Flag:      0x{:02X} {}\n".format(self.flag, '(CA)' if self.flag == 0x80 else '')
         msg += "Length:    {} bit\n".format(self.key_length)
         msg += "Modulus:\n"
         msg += modulus_fmt(self.modulus)
@@ -237,6 +251,11 @@ class SrkItem(object):
 
     @classmethod
     def parse(cls, data, offset=0):
+        """ Parse segment from bytes array
+        :param data: The bytes array of SRK segment
+        :param offset: The offset of input data
+        :return SrkItem object
+        """
         header = Header.parse(data, offset, cls.SRK_TAG)
         offset += Header.SIZE + 3
         (flag, modulus_len, exponent_len) = unpack_from(">B2H", data, offset)
@@ -245,6 +264,32 @@ class SrkItem(object):
         offset += modulus_len
         exponent = data[offset: offset + exponent_len]
         return cls(modulus, exponent, flag, header.param)
+
+    @classmethod
+    def from_certificate(cls, cert):
+
+        from cryptography import x509
+        assert isinstance(cert, x509.Certificate)
+
+        flag = 0
+
+        for extension in cert.extensions:
+            if extension.oid._name == 'keyUsage':
+                if extension.value.key_cert_sign:
+                    flag = 0x80
+
+        # get modulus and exponent of public key
+        pub_key_numbers = cert.public_key().public_numbers()
+        modulus_len = pub_key_numbers.n.bit_length() // 8
+        if pub_key_numbers.n.bit_length() % 8:
+            modulus_len += 1
+        exponent_len = pub_key_numbers.e.bit_length() // 8
+        if pub_key_numbers.e.bit_length() % 8:
+            exponent_len += 1
+        modulus = pub_key_numbers.n.to_bytes(modulus_len, "big")
+        exponent = pub_key_numbers.e.to_bytes(exponent_len, "big")
+
+        return cls(modulus, exponent, flag)
 
 
 class SrkTable(object):
@@ -265,7 +310,20 @@ class SrkTable(object):
         self._keys = []
 
     def __repr__(self):
-        return "SRK_Table <Version: {:02X}, Keys: {}>".format(self.version, len(self._keys))
+        return "SRK_Table <Version: {:X}.{:X}, Keys: {}>".format(self.version >> 4, self.version & 0xF, len(self._keys))
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SrkTable):
+            return False
+        if self.version != obj.version:
+            return False
+        for key in obj:
+            if key not in self._keys:
+                return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
 
     def __len__(self):
         return len(self._keys)
@@ -282,7 +340,7 @@ class SrkTable(object):
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "SRK Table (Version 0x{:02X}, Keys: {})\n".format(self.version, len(self._keys))
+        msg += "SRK Table (Version: {:X}.{:X}, Keys: {})\n".format(self.version>>4, self.version&0xF, len(self._keys))
         msg += "-" * 60 + "\n"
         for i, srk in enumerate(self._keys):
             msg += "Key Index: {} \n".format(i)

@@ -19,7 +19,7 @@ This repository collects a useful tools and python module targeted for [i.MX App
 **Embedded tools:**
 
 * [imxim](https://github.com/molejar/pyIMX/blob/master/doc/imxim.md) - a tool for manipulation with `*.imx` boot image
-* [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX/Vibrid SoCs through the Serial Download Protocol (SDP)
+* [imxsd](https://github.com/molejar/pyIMX/blob/master/doc/imxsd.md) - a tool to download and execute code on i.MX SoCs through the Serial Download Protocol (SDP)
 
 > This project is still in developing phase. Please, test it and report founded issues.
 

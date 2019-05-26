@@ -7,6 +7,8 @@
 import os
 import pytest
 from imx import img
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 
 # Used Directories
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -17,7 +19,13 @@ SRK_FUSES = os.path.join(DATA_DIR, 'SRK_1_2_3_4_fuse.bin')
 
 
 def setup_module(module):
-    pass
+    global srk_pem
+
+    srk_pem = []
+    for i in range(4):
+        srk_pem_file = 'SRK{}_sha256_4096_65537_v3_ca_crt.pem'.format(i+1)
+        with open(os.path.join(DATA_DIR, srk_pem_file), 'rb') as f:
+            srk_pem.append(f.read())
 
 
 def test_srk_table_parser():
@@ -34,4 +42,14 @@ def test_srk_table_parser():
 
 
 def test_srk_table_export():
-    pass
+    srk_table = img.SrkTable(version=0x40)
+
+    for pem_data in srk_pem:
+        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
+        srk_table.append(img.SrkItem.from_certificate(cert))
+
+    with open(SRK_TABLE, 'rb') as f:
+        srk_table_data = f.read()
+
+    assert srk_table.export() == srk_table_data
+    assert srk_table == img.SrkTable.parse(srk_table_data)
