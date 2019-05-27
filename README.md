@@ -15,6 +15,7 @@ This repository collects a useful tools and python module targeted for [i.MX App
 * Boot Image v3 (i.MX8QM-A0 and i.MX8QXP-A0) API
 * SDP (Serial Download Protocol) API - only USB interface
 * HAB-Log parser (only i.MX6 and i.MX7 yet)
+* SRK Table API
 
 **Embedded tools:**
 
@@ -31,6 +32,7 @@ Dependencies
 - [pyYAML](http://pyyaml.org/wiki/PyYAML) - YAML parser and emitter for the Python programming language.
 - [bincopy](https://github.com/eerimoq/bincopy) - Python package for parsing S-Record, Intel HEX and TI-TXT files.
 - [easy_enum](https://github.com/molejar/pyEnum) - User friendly implementation of documented Enum type for Python language.
+- [cryptography](https://cryptography.io/en/latest) - Provides cryptographic recipes and primitives to Python developers
 - [PyUSB](https://walac.github.io/pyusb/) - Python package to access USB devices in Linux OS.
 - [PyWinUSB](https://github.com/rene-aguirre/pywinusb) - Python package that simplifies USB-HID communications on 
 Windows OS.

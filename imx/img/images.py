@@ -76,7 +76,7 @@ class BootImgBase(object):
 
     @dcd.setter
     def dcd(self, value):
-        assert isinstance(value, SegDCD), "Value type not a DCD segment !"
+        assert isinstance(value, SegDCD)
         self._dcd = value
 
     def __init__(self, address, offset):
@@ -87,6 +87,7 @@ class BootImgBase(object):
         """
         self.offset = offset
         self.address = address
+        self._dcd = None
 
     def info(self):
         raise NotImplementedError()
@@ -148,7 +149,7 @@ class BootImg2(BootImgBase):
 
     @ivt.setter
     def ivt(self, value):
-        assert isinstance(value, SegIVT2), "Value type not a IVT2 segment !"
+        assert isinstance(value, SegIVT2)
         self._ivt = value
 
     @property
@@ -157,7 +158,7 @@ class BootImg2(BootImgBase):
 
     @bdt.setter
     def bdt(self, value):
-        assert isinstance(value, SegBDT), "Value type not a BDT segment !"
+        assert isinstance(value, SegBDT)
         self._bdt = value
 
     @property
@@ -166,7 +167,7 @@ class BootImg2(BootImgBase):
 
     @app.setter
     def app(self, value):
-        assert isinstance(value, SegAPP), "Value type not an APP segment !"
+        assert isinstance(value, SegAPP)
         self._app = value
 
     @property
@@ -175,7 +176,7 @@ class BootImg2(BootImgBase):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        assert isinstance(value, SegCSF)
         self._csf = value
 
     @property
@@ -343,9 +344,10 @@ class BootImg2(BootImgBase):
         obj.app.data = read_raw_data(stream, app_size, app_start)
         obj.app.padding = 0
         # Parse CSF
-        #if obj.ivt.csf_address:
-        #    obj.csf = SegCSF.parse(buffer)
-        #    obj.csf.padding = obj.bdt.length - ((obj.ivt.csf_address - obj.ivt.ivt_address) + obj.csf.size)
+        if obj.ivt.csf_address:
+            csf_start = start_index + (obj.ivt.csf_address - obj.ivt.ivt_address)
+            obj.csf = SegCSF.parse(read_raw_segment(stream, SegTag.CSF, csf_start))
+            # obj.csf.padding = csf_start + obj.csf.size
 
         return obj
 
@@ -389,7 +391,7 @@ class BootImg8m(BootImgBase):
 
     @ivt.setter
     def ivt(self, value):
-        assert isinstance(value, SegIVT2), "Value type not a IVT2 segment !"
+        assert isinstance(value, SegIVT2)
         self._ivt = value
 
     @property
@@ -398,7 +400,7 @@ class BootImg8m(BootImgBase):
 
     @bdt.setter
     def bdt(self, value):
-        assert isinstance(value, SegBDT), "Value type not a BDT segment !"
+        assert isinstance(value, SegBDT)
         self._bdt = value
 
     @property
@@ -407,7 +409,7 @@ class BootImg8m(BootImgBase):
 
     @app.setter
     def app(self, value):
-        assert isinstance(value, SegAPP), "Value type not an APP segment !"
+        assert isinstance(value, SegAPP)
         self._app = value
 
     @property
@@ -416,7 +418,7 @@ class BootImg8m(BootImgBase):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        assert isinstance(value, SegCSF)
         self._csf = value
 
     @property
@@ -642,7 +644,7 @@ class BootImg3a(BootImgBase):
 
     @ivt.setter
     def ivt(self, value):
-        assert isinstance(value, list) and isinstance(value[0], SegIVT3a), "Value must be a list of SegIVT3a !"
+        assert isinstance(value, list) and isinstance(value[0], SegIVT3a)
         self._ivt = value
 
     @property
@@ -651,7 +653,7 @@ class BootImg3a(BootImgBase):
 
     @bdt.setter
     def bdt(self, value):
-        assert isinstance(value, list) and isinstance(value[0], SegBDS3a), "Value must be a list of SegBDS3a !"
+        assert isinstance(value, list) and isinstance(value[0], SegBDS3a)
         self._bdt = value
 
     @property
@@ -668,7 +670,7 @@ class BootImg3a(BootImgBase):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        assert isinstance(value, SegCSF)
         self._csf = value
 
     def __init__(self, address=0, offset=0x400, version=0x43):
@@ -987,7 +989,7 @@ class BootImg3b(BootImgBase):
     def ivt(self, value):
         assert isinstance(value, list)
         assert len(value) == self.COUNT_OF_CONTAINERS
-        assert isinstance(value[0], SegIVT3b), "Value must be a list of SegIVT3b !"
+        assert isinstance(value[0], SegIVT3b)
         self._ivt = value
 
     @property
@@ -998,7 +1000,7 @@ class BootImg3b(BootImgBase):
     def bdt(self, value):
         assert isinstance(value, list)
         assert len(value) == self.COUNT_OF_CONTAINERS
-        assert isinstance(value[0], SegBDS3b), "Value must be a list of SegBDS3b !"
+        assert isinstance(value[0], SegBDS3b)
         self._bdt = value
 
     @property
@@ -1023,7 +1025,7 @@ class BootImg3b(BootImgBase):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        assert isinstance(value, SegCSF)
         self._csf = value
 
     def __init__(self, address=0, offset=0x400, version=0x43):
@@ -1368,7 +1370,6 @@ class BootImg4(BootImgBase):
 
         start_index = stream.tell()
         last_index = stream.seek(0, SEEK_END)
-        img_size = last_index - start_index
         stream.seek(start_index)
 
         if size:
@@ -1385,6 +1386,8 @@ class BootImg4(BootImgBase):
 
         if not imx_image:
             raise Exception(' Not an i.MX Boot Image !')
+
+        img_size = last_index - start_index
 
         obj = cls()
         if start_index > 0:
@@ -1428,7 +1431,7 @@ class KernelImg(object):
 
     @app.setter
     def app(self, value):
-        assert isinstance(value, (bytes, bytearray)), "Value type not a bytes or bytearray !"
+        assert isinstance(value, (bytes, bytearray))
         self._app.data = value
 
     @property
@@ -1437,7 +1440,7 @@ class KernelImg(object):
 
     @csf.setter
     def csf(self, value):
-        assert isinstance(value, SegCSF), "Value type not a CSF segment !"
+        assert isinstance(value, SegCSF)
         self._csf = value
 
     def __init__(self, address=0, app=None, csf=None, version=0x41):

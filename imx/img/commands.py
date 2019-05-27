@@ -659,7 +659,7 @@ class CmdInstallKey(CmdBase):
         self.source_index = src_index
         self.target_index = tgt_index
         self.key_location = location
-        self._header.length = self._header.size + 8
+        self._header.length = Header.SIZE + 8
 
     def __repr__(self):
         return "CmdInstallKey <{}, {}, {}, {}, {}, 0x{:X}>".format(
@@ -758,7 +758,7 @@ class CmdAuthData(CmdBase):
         self.engine = engine
         self.engine_cfg = engine_cfg
         self.location = location
-        self._header.length = self._header.size + 8
+        self._header.length = Header.SIZE + 8
         self._blocks = []
 
     def __repr__(self):

@@ -8,6 +8,12 @@ import os
 import pytest
 from imx import img
 
+# Used Directories
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+# Test Files
+UBOOT_IMX = os.path.join(DATA_DIR, 'imx7d_uboot.imx')
+
 
 def setup_module(module):
     # Prepare test environment
@@ -19,9 +25,12 @@ def teardown_module(module):
     pass
 
 
-def test_create_image():
+def test_create_image_api():
     image = img.BootImg2()
 
+    assert image.version == 0x41
+    assert image.address == 0
+    assert image.offset == 0x400
     assert image.size == 44
 
     data = image.export()
@@ -34,4 +43,16 @@ def test_create_image():
     assert len(data) == 4000 + 140
 
     assert image.info()
-    assert img.BootImg2.parse(data)
+
+
+def test_parse_image_api():
+    with open(UBOOT_IMX, 'rb') as f:
+        image = img.BootImg2.parse(f.read())
+
+    assert isinstance(image, img.BootImg2)
+    assert image.version == 0x40
+    assert image.address == 0x877FF000
+    assert image.offset == 0x400
+    assert image.size == 478208
+
+    assert image.info()
