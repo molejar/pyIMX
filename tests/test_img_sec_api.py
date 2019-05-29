@@ -53,3 +53,32 @@ def test_srk_table_export():
 
     assert srk_table.export() == srk_table_data
     assert srk_table == img.SrkTable.parse(srk_table_data)
+
+
+def test_mac_class():
+    mac = img.MAC(version=0x40)
+
+    assert mac.size == 8
+    assert mac.info()
+
+
+def test_signature_class():
+    sig = img.Signature(version=0x40)
+
+    assert sig.size == 4
+    assert sig.info()
+
+
+def test_certificate_class():
+    cer = img.Certificate(version=0x40)
+
+    assert cer.size == 4
+    assert cer.info()
+
+
+def test_secret_key_blob_class():
+    sec_key = img.SecretKeyBlob(mode=0, algorithm=0, flag=0)
+    sec_key.blob = bytes([0xFF] * 32)
+
+    assert sec_key.size == 36
+    assert sec_key.info()

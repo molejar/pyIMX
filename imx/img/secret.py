@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Martin Olejar
+# Copyright (c) 2017-2019 Martin Olejar
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
@@ -21,59 +21,86 @@ class SecretKeyBlob(object):
 
     @mode.setter
     def mode(self, value):
+        # assert value
         self._mode = value
 
     @property
-    def alg(self):
+    def algorithm(self):
         return self._alg
 
-    @alg.setter
-    def alg(self, value):
+    @algorithm.setter
+    def algorithm(self, value):
+        # assert value
         self._alg = value
 
     @property
-    def flg(self):
+    def flag(self):
         return self._flg
 
-    @flg.setter
-    def flg(self, value):
+    @flag.setter
+    def flag(self, value):
+        # assert value
         self._flg = value
 
     @property
-    def data(self):
+    def blob(self):
         return self._data
 
-    @data.setter
-    def data(self, value):
+    @blob.setter
+    def blob(self, value):
+        assert isinstance(value, (bytes, bytearray))
         self._data = value
 
     @property
     def size(self):
-        return self._size
+        return len(self._data) + 4
 
-    @size.setter
-    def size(self, value):
-        self._size = value
-
-    def __init__(self, mode=None, alg=None, flg=None, data=None):
+    def __init__(self, mode, algorithm, flag):
         self._mode = mode
-        self._alg = alg
-        self._flg = flg
-        self._data = data
-        self._size = 0
+        self._alg = algorithm
+        self._flg = flag
+        self._data = bytearray()
+
+    def __repr__(self):
+        return "SecKeyBlob <Mode: {}, Algo: {}, Flag: 0x{:02X}, Size: {}>".format(self.mode, self.algorithm,
+                                                                                  self.flag, len(self._data))
+
+    def __eq__(self, obj):
+        if not isinstance(obj, SecretKeyBlob):
+            return False
+        if self.mode != obj.mode or \
+           self.algorithm != obj.algorithm or \
+           self.flag != obj.flag:
+            return False
+        if self.blob != obj.blob:
+            return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
 
     def info(self):
-        pass
+        msg = "-" * 60 + "\n"
+        msg += "SecKeyBlob\n"
+        msg += "-" * 60 + "\n"
+        msg += "Mode:      {}\n".format(self.mode)
+        msg += "Algorithm: {}\n".format(self.algorithm)
+        msg += "Flag:      0x{:02X}\n".format(self.flag)
+        msg += "Size:      {} Bytes\n".format(len(self._data))
+        return msg
 
     def export(self):
-        raw_data = pack("BBBB", self.mode, self.alg, self.size, self.flg)
-        if self.data:
-            raw_data += self.data
+        raw_data = pack("4B", self.mode, self.algorithm, self.size, self.flag)
+        raw_data += bytes(self._data)
         return raw_data
 
-    def parse(self, data, offset=0):
-        (self.mode, self.alg, self.size, self.flg) = unpack_from("BBBB", data, offset)
-        self.data = data[offset + 4: offset + 4 + self.size]
+    @classmethod
+    def parse(cls, data, offset=0):
+        (mode, alg, size, flg) = unpack_from("4B", data, offset)
+        offset += 4
+        obj = cls(mode, alg, flg)
+        obj.blob = data[offset: offset + size]
+        return obj
 
 
 class Certificate(object):
@@ -88,11 +115,39 @@ class Certificate(object):
 
     def __init__(self, version=0x40, data=None):
         self._header = Header(tag=SegTag.CRT, param=version)
-        self._data = data
+        self._data = bytearray() if data is None else bytearray(data)
+
+    def __repr__(self):
+        return "Certificate <Ver: {:X}.{:X}, Size: {}>".format(self.version >> 4, self.version & 0xF, len(self._data))
+
+    def __eq__(self, obj):
+        if not isinstance(obj, Certificate):
+            return False
+        if self.version != obj.version:
+            return False
+        for i, value in enumerate(self._data):
+            if obj[i] != value:
+                return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "Certificate (version 0x{:02X})\n".format(self.version)
+        msg += "Certificate (Ver: {:X}.{:X}, Size: {})\n".format(self.version >> 4, self.version & 0xF, len(self._data))
         msg += "-" * 60 + "\n"
         return msg
 
@@ -106,7 +161,7 @@ class Certificate(object):
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, SegTag.CRT)
         offset += Header.SIZE
-        return cls(header.param, data[offset: offset + (header.length - Header.SIZE)])
+        return cls(header.param, data[offset: offset + header.length - Header.SIZE])
 
 
 class Signature(object):
@@ -121,11 +176,39 @@ class Signature(object):
 
     def __init__(self, version=0x40, data=None):
         self._header = Header(tag=SegTag.SIG, param=version)
-        self._data = data
+        self._data = bytearray() if data is None else bytearray(data)
+
+    def __repr__(self):
+        return "Signature <Ver: {:X}.{:X}, Size: {}>".format(self.version >> 4, self.version & 0xF, len(self._data))
+
+    def __eq__(self, obj):
+        if not isinstance(obj, Signature):
+            return False
+        if self.version != obj.version:
+            return False
+        for i, value in enumerate(self._data):
+            if obj[i] != value:
+                return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "Signature (version 0x{:02X})\n".format(self.version)
+        msg += "Signature (Ver: {:X}.{:X}, Size: {})\n".format(self.version >> 4, self.version & 0xF, len(self._data))
         msg += "-" * 60 + "\n"
         return msg
 
@@ -139,7 +222,7 @@ class Signature(object):
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, SegTag.SIG)
         offset += Header.SIZE
-        return cls(header.param, data[offset: offset + (header.length - Header.SIZE)])
+        return cls(header.param, data[offset: offset + header.length - Header.SIZE])
 
 
 class MAC(object):
@@ -156,28 +239,61 @@ class MAC(object):
         self._header = Header(tag=SegTag.MAC, param=version)
         self.nonce_bytes = nonce_bytes
         self.mac_bytes = mac_bytes
-        self._data = data
+        self._data = bytearray() if data is None else bytearray(data)
 
     def __repr__(self):
-        return "MAC <Version: {:02X}, Keys: {}>".format(self.version, self.nonce_bytes, self.mac_bytes)
+        return "MAC <Ver: {:X}.{:X}, Nonce: {}, MAC: {}>".format(self.version >> 4, self.version & 0xF,
+                                                                 self.nonce_bytes, self.mac_bytes)
+
+    def __eq__(self, obj):
+        if not isinstance(obj, MAC):
+            return False
+        if self.version != obj.version or \
+           self.nonce_bytes != obj.nonce_bytes or \
+           self.mac_bytes != obj.mac_bytes:
+            return False
+        for i, value in enumerate(self._data):
+            if obj[i] != value:
+                return False
+        return True
+
+    def __ne__(self, obj):
+        return not self.__eq__(obj)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __iter__(self):
+        return self._data.__iter__()
 
     def info(self):
         msg = "-" * 60 + "\n"
-        msg += "MAC (version 0x{:02X})\n".format(self.version)
+        msg += "MAC (Version: {:X}.{:X})\n".format(self.version >> 4, self.version & 0xF)
         msg += "-" * 60 + "\n"
+        msg += "Nonce Len: {} Bytes\n".format(self.nonce_bytes)
+        msg += "MAC Len:   {} Bytes\n".format(self.mac_bytes)
+        msg += "[{}]\n".format(self._data)
         return msg
 
     def export(self):
         self._header.length = self.size
         raw_data = self._header.export()
-        raw_data += self._data
+        raw_data += pack(">4B", 0, self.nonce_bytes, 0, self.mac_bytes)
+        raw_data += bytes(self._data)
         return raw_data
 
     @classmethod
     def parse(cls, data, offset=0):
         header = Header.parse(data, offset, SegTag.MAC)
-        # TODO:
-        return cls(header.param)
+        (_, nonce_bytes, _, mac_bytes) = unpack_from(">4B", data, offset)
+        offset += Header.SIZE + 4
+        return cls(header.param, nonce_bytes, mac_bytes, data[offset: offset + header.length - (Header.SIZE + 4)])
 
 
 class SrkItem(object):

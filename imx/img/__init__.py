@@ -8,7 +8,7 @@ from .commands import EnumWriteOps, EnumCheckOps, EnumAlgorithm, EnumCertFormat,
                       EnumItm, CmdWriteData, CmdCheckData, CmdNop, CmdSet, CmdInitialize, CmdUnlock, CmdInstallKey, \
                       CmdAuthData
 from .segments import SegIVT2, SegIVT3a, SegIVT3b, SegBDT, SegAPP, SegDCD, SegCSF
-from .secret import SrkTable, SrkItem, Certificate, Signature, MAC
+from .secret import SrkTable, SrkItem, Certificate, Signature, MAC, SecretKeyBlob
 from .images import parse, BootImg2, BootImg3a, BootImg3b, BootImg4, EnumAppType
 
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     'Certificate',
     'Signature',
     'MAC',
+    'SecretKeyBlob',
     # Enums
     'EnumAppType',
     # Commands
