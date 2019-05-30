@@ -71,6 +71,20 @@ def test_imxim_info(script_runner):
 
 
 @pytest.mark.script_launch_mode('subprocess')
+def test_imxim_srktable(script_runner):
+    # generate SRK table and fuses
+    ret = script_runner.run('imxim',
+                            'srkgen',
+                            '-t', os.path.join(TEMP_DIR, 'srk_table.bin'),
+                            '-f', os.path.join(TEMP_DIR, 'srk_fuses.bin'),
+                            os.path.join(DATA_DIR, 'SRK1_sha256_4096_65537_v3_ca_crt.pem'),
+                            os.path.join(DATA_DIR, 'SRK2_sha256_4096_65537_v3_ca_crt.pem'),
+                            os.path.join(DATA_DIR, 'SRK3_sha256_4096_65537_v3_ca_crt.pem'),
+                            os.path.join(DATA_DIR, 'SRK4_sha256_4096_65537_v3_ca_crt.pem'))
+    assert ret.success
+
+
+@pytest.mark.script_launch_mode('subprocess')
 def test_imxim_dcdfc(script_runner):
     # convert DCD in TXT format to Binary format (default conversion)
     ret = script_runner.run('imxim',

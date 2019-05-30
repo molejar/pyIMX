@@ -25,6 +25,7 @@ Commands:
   create2b  Create new i.MX8M boot image from attached files
   create3a  Create new i.MX8QXP boot image from attached files
   create3b  Create new i.MX8QM boot image from attached files
+  srkgen    SRK Table and Fuses Generator
   dcdfc     DCD file converter (*.bin, *.txt)
   extract   Extract i.MX boot image content
   info      List i.MX boot image content
@@ -242,6 +243,31 @@ Create new i.MX8QM boot image from attached files:
 
  Image successfully created
  Path: scfw_8qm.imx
+```
+
+<br>
+
+#### $ imxim srkgen [OPTIONS] [INFILES]
+
+SRK Table and Fuses Generator.
+
+**INFILES** - Input certificates with *.pem extension
+
+##### options:
+* **-t, --table** - Output file name of SRK table (default: srk_table.bin)
+* **-f, --fuses** - Output file name of SRK fuses (default: srk_fuses.bin)
+* **-v, --version** - HAB version (default: 0x40)
+* **-?, --help** - Show help message and exit
+
+##### Example:
+
+```sh
+ $ imxim srkgen -t srk_table.bin -f srk_fuses.bin SRK1_sha256_4096_65537_v3_ca_crt.pem 
+ SRK2_sha256_4096_65537_v3_ca_crt.pem SRK3_sha256_4096_65537_v3_ca_crt.pem SRK4_sha256_4096_65537_v3_ca_crt.pem
+
+ Generated successfully !
+ SRK Table: srk_table.bin
+ SRK Fuses: srk_fuses.bin
 ```
 
 <br>

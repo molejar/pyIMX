@@ -11,7 +11,10 @@ import sys
 import yaml
 import click
 
-from imx.img import parse, SegDCD, BootImg2, BootImg3a, BootImg3b, BootImg4, EnumAppType
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+
+from imx.img import parse, SegDCD, BootImg2, BootImg3a, BootImg3b, BootImg4, EnumAppType, SrkItem, SrkTable
 from imx import __version__
 
 
@@ -610,6 +613,38 @@ def extract(file, type, offset, step, embedded):
         sys.exit(ERROR_CODE)
 
     click.secho(" Image successfully extracted\n Path: %s\n" % out_path)
+
+
+@cli.command(short_help="SRK Table and Fuses Generator")
+@click.argument('infiles', nargs=-1, type=click.Path(exists=True))
+@click.option('-t', '--table', default='srk_table.bin', show_default=True, help="Output file name")
+@click.option('-f', '--fuses', default='srk_fuses.bin', show_default=True, help="Output file name")
+@click.option('-v', '--version', type=UINT, default=0x40, show_default=True, help="HAB version")
+def srkgen(infiles, table, fuses, version):
+    """ SRK table generator """
+    try:
+        srk_table = SrkTable(version)
+
+        for infile in infiles:
+            with open(infile, 'rb') as f:
+                cert = x509.load_pem_x509_certificate(f.read(), default_backend())
+                srk_table.append(SrkItem.from_certificate(cert))
+
+        if table:
+            # Save SRK table
+            with open(table, 'wb') as f:
+                f.write(srk_table.export())
+
+        if fuses:
+            # Save SRK fuses
+            with open(fuses, 'wb') as f:
+                f.write(srk_table.export_fuses())
+
+    except Exception as e:
+        click.echo(str(e) if str(e) else "Unknown Error !")
+        sys.exit(ERROR_CODE)
+
+    click.secho(" Generated successfully\n SRK Table: %s\n SRK Fuses: %s\n" % (table, fuses))
 
 
 @cli.command(short_help="DCD file converter (*.bin, *.txt)")
