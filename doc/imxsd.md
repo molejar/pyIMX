@@ -17,7 +17,7 @@ For printing a general info of usage this tool execute `imxsd -?`.
  $ imxsd -?
  Usage: imxsd [OPTIONS] COMMAND [ARGS]...
 
-   i.MX Serial Downloader, ver.: 0.1.0 Beta
+   i.MX Serial Downloader, ver.: 0.1.2 Beta
 
    NOTE: Development version, be carefully with it usage !
 

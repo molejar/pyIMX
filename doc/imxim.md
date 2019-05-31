@@ -11,7 +11,7 @@ For printing a general info of usage this tool execute `imxim -?`.
 ```sh
 Usage: imxim [OPTIONS] COMMAND [ARGS]...
 
-  i.MX Boot Image Manager, ver.: 0.1.1 Beta
+  i.MX Boot Image Manager, ver.: 0.1.2 Beta
 
   NOTE: Development version, be carefully with it usage !
 

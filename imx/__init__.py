@@ -8,6 +8,6 @@ from . import hab, img, otp, sdp
 
 __author__  = "Martin Olejar"
 __contact__ = "martin.olejar@gmail.com"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __license__ = "BSD3"
 __status__  = "Development"
