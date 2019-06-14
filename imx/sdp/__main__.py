@@ -306,7 +306,7 @@ def scan_usb(device_name):
             click.echo()
             index = int(c, 10)
 
-        click.secho("\n DEVICE: %s\n" % fsls[index].usbd.info)
+        click.secho("\n DEVICE: %s\n" % fsls[index].usbd.info())
         return fsls[index]
 
     else:

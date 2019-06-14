@@ -126,19 +126,21 @@ if os.name == "nt":
             """
             returns all the connected devices which matches PyWinUSB.vid/PyWinUSB.pid.
             returns an array of PyWinUSB (Interface) objects
-            :param vid:
-            :param pid:
+            :param vid: Vendor ID
+            :param pid: Product ID
             """
             all_hid_devices = hid.find_all_hid_devices()
 
-            # find devices with good vid/pid
+            # find all devices with correct vid/pid
             all_imx_devices = []
-            for hid_dev in all_hid_devices:
-                if hid_dev.vendor_id == vid or \
-                   hid_dev.product_id == pid or \
-                   'Freescale' in hid_dev.vendor_name or \
-                   'NXP' in hid_dev.vendor_name.upper():
-                    all_imx_devices.append(hid_dev)
+            if vid is None and pid is None:
+                for hid_dev in all_hid_devices:
+                    if 'Freescale' in hid_dev.vendor_name or 'NXP' in hid_dev.vendor_name.upper():
+                        all_imx_devices.append(hid_dev)
+            else:
+                for hid_dev in all_hid_devices:
+                    if hid_dev.vendor_id == vid and hid_dev.product_id == pid:
+                        all_imx_devices.append(hid_dev)
 
             targets = []
             for dev in all_imx_devices:
