@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from easy_enum import EEnum as Enum
+from easy_enum import Enum
 from struct import pack, unpack_from
 from .header import CmdTag, Header
 
@@ -166,13 +166,13 @@ class CmdWriteData(CmdBase):
 
     @ops.setter
     def ops(self, value):
-        assert EnumWriteOps.is_valid(value)
+        assert value in EnumWriteOps
         self._header.param &= ~(0x3 << 3)
         self._header.param |= int(value) << 3
 
     def __init__(self, bytes=4, ops=EnumWriteOps.WRITE_VALUE, data=None):
         assert bytes in (1, 2, 4)
-        assert EnumWriteOps.is_valid(ops)
+        assert ops in EnumWriteOps
         super().__init__(CmdTag.WRT_DAT, ((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._data = []
         if data is not None:
@@ -256,7 +256,7 @@ class CmdCheckData(CmdBase):
 
     @bytes.setter
     def bytes(self, value):
-        assert value in (1, 2, 4), "Unsupported Value !"
+        assert value in (1, 2, 4)
         self._header.param &= ~0x7
         self._header.param |= int(value)
 
@@ -266,7 +266,7 @@ class CmdCheckData(CmdBase):
 
     @ops.setter
     def ops(self, value):
-        assert EnumCheckOps.is_valid(value), "Unsupported value !"
+        assert value in EnumCheckOps
         self._header.param &= ~(0x3 << 3)
         self._header.param |= int(value) << 3
 
@@ -299,8 +299,8 @@ class CmdCheckData(CmdBase):
         return self._header.size + (8 if self._count is None else 12)
 
     def __init__(self, bytes=4, ops=EnumCheckOps.ALL_SET, address=0, mask=0, count=None):
-        assert bytes in (1, 2, 4), "Unsupported Value !"
-        assert EnumCheckOps.is_valid(ops), "Unsupported value !"
+        assert bytes in (1, 2, 4)
+        assert ops in EnumCheckOps
         super().__init__(CmdTag.CHK_DAT, ((int(ops) & 0x3) << 3) | (bytes & 0x7))
         self._address = address
         self._mask = mask
@@ -392,8 +392,8 @@ class CmdSet(CmdBase):
 
     @itm.setter
     def itm(self, value):
-        assert EnumItm.is_valid(value)
-        self._header.param = int(value)
+        assert value in EnumItm
+        self._header.param = value
 
     @property
     def hash_algorithm(self):
@@ -401,8 +401,8 @@ class CmdSet(CmdBase):
 
     @hash_algorithm.setter
     def hash_algorithm(self, value):
-        assert EnumAlgorithm.is_valid(value)
-        self._hash_alg = int(value)
+        assert value in EnumAlgorithm
+        self._hash_alg = value
 
     @property
     def engine(self):
@@ -410,8 +410,8 @@ class CmdSet(CmdBase):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value)
-        self._engine = int(value)
+        assert value in EnumEngine
+        self._engine = value
 
     @property
     def engine_cfg(self):
@@ -422,7 +422,7 @@ class CmdSet(CmdBase):
         self._engine_cfg = value
 
     def __init__(self, itm=EnumItm.ENG, hash_alg=0, engine=0, engine_cfg=0):
-        assert EnumItm.is_valid(itm)
+        assert itm in EnumItm
         super().__init__(CmdTag.SET, itm)
         self.hash_algorithm = hash_alg
         self.engine = engine
@@ -472,11 +472,11 @@ class CmdInitialize(CmdBase):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value)
-        self._header.param = int(value)
+        assert value in EnumEngine
+        self._header.param = value
 
     def __init__(self, engine=EnumEngine.ANY, data=None):
-        assert EnumEngine.is_valid(engine)
+        assert engine in EnumEngine
         super().__init__(CmdTag.INIT, engine)
         self._data = data if data else []
 
@@ -559,11 +559,11 @@ class CmdUnlock(CmdBase):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value)
-        self._header.param = int(value)
+        assert value in EnumEngine
+        self._header.param = value
 
     def __init__(self, engine=EnumEngine.ANY, features=0, uid=0):
-        assert EnumEngine.is_valid(engine)
+        assert engine in EnumEngine
         super().__init__(CmdTag.UNLK, engine)
         self.features = features
         self.uid = uid
@@ -612,8 +612,8 @@ class CmdInstallKey(CmdBase):
 
     @flags.setter
     def flags(self, value):
-        assert EnumInsKey.is_valid(value)
-        self._header.param = int(value)
+        assert value in EnumInsKey
+        self._header.param = value
 
     @property
     def certificate_format(self):
@@ -621,8 +621,8 @@ class CmdInstallKey(CmdBase):
 
     @certificate_format.setter
     def certificate_format(self, value):
-        assert EnumCertFormat.is_valid(value)
-        self._cert_fmt = int(value)
+        assert value in EnumCertFormat
+        self._cert_fmt = value
 
     @property
     def hash_algorithm(self):
@@ -630,8 +630,8 @@ class CmdInstallKey(CmdBase):
 
     @hash_algorithm.setter
     def hash_algorithm(self, value):
-        assert EnumAlgorithm.is_valid(value)
-        self._hash_alg = int(value)
+        assert value in EnumAlgorithm
+        self._hash_alg = value
 
     @property
     def source_index(self):
@@ -640,7 +640,7 @@ class CmdInstallKey(CmdBase):
     @source_index.setter
     def source_index(self, value):
         assert value in (0, 2, 3, 4, 5)
-        self._src_index = int(value)
+        self._src_index = value
 
     @property
     def target_index(self):
@@ -649,7 +649,7 @@ class CmdInstallKey(CmdBase):
     @target_index.setter
     def target_index(self, value):
         assert value in (0, 1, 2, 3, 4, 5)
-        self._tgt_index = int(value)
+        self._tgt_index = value
 
     def __init__(self, flags=EnumInsKey.CLR, cert_fmt=EnumCertFormat.SRK, hash_alg=EnumAlgorithm.ANY,
                  src_index=0, tgt_index=0, location=0):
@@ -714,8 +714,8 @@ class CmdAuthData(CmdBase):
 
     @flags.setter
     def flags(self, value):
-        assert EnumAuthDat.is_valid(value)
-        self._header.param = int(value)
+        assert value in EnumAuthDat
+        self._header.param = value
 
     @property
     def key_index(self):
@@ -732,8 +732,8 @@ class CmdAuthData(CmdBase):
 
     @engine.setter
     def engine(self, value):
-        assert EnumEngine.is_valid(value)
-        self._engine = int(value)
+        assert value in EnumEngine
+        self._engine = value
 
     @property
     def engine_cfg(self):

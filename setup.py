@@ -38,13 +38,13 @@ setup(
         'setuptools>=40.0'
     ],
     install_requires=[
-        'click>=6.0',
-        'PyYAML>=3.10',
-        'bincopy>=16.0.0',
-        'easy_enum>=0.1.1',
-        'cryptography>=2.6.1',
-        'pyusb>=1.0.0b2;platform_system!="Windows"',
-        'pywinusb>=0.4.0;platform_system=="Windows"'
+        'click==7.0',
+        'PyYAML==5.1.1',
+        'bincopy==16.0.0',
+        'easy_enum==0.2.0',
+        'cryptography==2.6.1',
+        'pyusb==1.0.0;platform_system!="Windows"',
+        'pywinusb==0.4.2;platform_system=="Windows"'
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

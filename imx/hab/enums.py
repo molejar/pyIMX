@@ -4,7 +4,7 @@
 # The BSD-3-Clause license for this file can be found in the LICENSE file included with this distribution
 # or at https://spdx.org/licenses/BSD-3-Clause.html#licenseText
 
-from easy_enum import EEnum as Enum
+from easy_enum import Enum
 
 
 ########################################################################################################################

@@ -501,7 +501,7 @@ class SegDCD(BaseSegment):
                     dcd_obj.append(cmd_write)
                     cmd_write = None
 
-                if not EnumEngine.is_valid(cmd[1]):
+                if cmd[1] not in EnumEngine:
                     raise SyntaxError("Unlock CMD: wrong engine parameter at line %d" % (line_cnt - 1))
 
                 engine = EnumEngine[cmd[1]]
