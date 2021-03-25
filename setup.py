@@ -39,7 +39,7 @@ setup(
     ],
     install_requires=[
         'click==7.0',
-        'PyYAML==5.1.1',
+        'PyYAML==5.4',
         'bincopy==16.0.0',
         'easy_enum==0.2.0',
         'cryptography==2.6.1',
