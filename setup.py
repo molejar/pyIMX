@@ -42,7 +42,7 @@ setup(
         'PyYAML==5.4',
         'bincopy==16.0.0',
         'easy_enum==0.2.0',
-        'cryptography==2.6.1',
+        'cryptography==3.2',
         'pyusb==1.0.0;platform_system!="Windows"',
         'pywinusb==0.4.2;platform_system=="Windows"'
     ],
